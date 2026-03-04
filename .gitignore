@@ -1,0 +1,21 @@
+# Ambienti virtuali Python
+.venv/
+venv/
+env/
+ENV/
+
+# File compilati di Python (non servono su GitHub)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# File di Database (saranno pesanti e generati ad ogni esecuzione, non pusharli)
+*.db
+*.sqlite3
+telemetria.db
+
+# File di sistema macOS
+.DS_Store
+
+# Cartella di configurazione dell'editor (opzionale, ma di solito si ignora)
+.vscode/
