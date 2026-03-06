@@ -57,9 +57,9 @@ W_SCAFFALE = 1.0           # Profondita' (asse Y) di un singolo modulo scaffalat
 # Viene anche costruita una stringa leggibile nel formato: C{corsia}-S{scaffale}-L{livello}
 # Esempio: C01-S05-L02 = Corsia 1, Scaffale n.5, Livello di mensola 2
 # Questo formato e' lo standard industriale dei magazzini logistici (usato da Amazon, DHL ecc.)
-N_LIVELLI_MENSOLA = 5      # Numero di livelli di mensola per ogni colonna scaffale.
-                           # Determina l'altezza totale: H_scaffale = N_LIVELLI_MENSOLA * H_MENSOLA
-                           # Esempio: 5 livelli * 0.6m = 3.0m di scaffale totale
+#
+# NOTA: Il numero di mensole NON è fisso qui. Dipende dall'altezza totale del magazzino 
+# (Caso A=basso, Caso C=alto). Verrà calcolato in environment.py dinamicamente.
 
 H_MENSOLA = 0.6            # Altezza standard tra una mensola e la successiva (metri)
                            # (Tipico standard industriale: 50-70cm di luce tra i ripiani)
