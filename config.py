@@ -26,6 +26,16 @@ BS_E_ANCHE_RIS = True      # Flag: True = la BS può operare anche come nodo RIS
 V_DRONE = 3.0              # Velocità di volo costante del Drone in m/s (≈ 10.8 km/h)
 DT = 0.1                   # Passo temporale della simulazione (1 step = 0.1 secondi)
 
+# --- Anti-Collisione Droni in Modalità FISSO ---
+# In modalità FISSO tutti i droni volano alla stessa quota Z. 
+# È quindi fondamentale che il Controller garantisca una distanza minima in LUNGHEZZA del corridoio
+# tra un drone e l'altro per evitare sovrapposizioni fisiche.
+# Questo vincolo è critico per magazzini PICCOLI e MEDI dove i corridoi sono brevi
+# e il numero di droni per corsia può essere elevato rispetto alla lunghezza disponibile.
+MIN_DISTANZA_ANTICOLLISIONE = 1.5  # Distanza minima (metri) tra due droni nello stesso corridoio (modo FISSO).
+                                   # Il Controller in devices.py non assegnerà a un drone
+                                   # una posizione target se un altro drone è già entro questa distanza.
+
 # --- Parametri della Batteria ---
 BATTERY_MAX = 100.0        # Capacità massima della batteria del drone (%)
 BATTERY_RTH_THRESHOLD = 20.0 # Soglia RTH (Return To Home): il drone torna alla base se scende sotto questo valore (%)
@@ -38,11 +48,19 @@ P_ACTIVE = 50.0            # Consumo in modalità attiva: pannello amplifica e r
 
 # --- Dimensioni Scaffalature (metri) ---
 L_SCAFFALE = 1.2           # Lunghezza (asse X) di un singolo modulo scaffalatura (metri)
-W_SCAFFALE = 1.0           # Profondità (asse Y) di un singolo modulo scaffalatura (metri)
-# NOTA: L'ALTEZZA TOTALE DEGLI SCAFFALI non è definita qui perché è una variabile del
+W_SCAFFALE = 1.0           # Profondita' (asse Y) di un singolo modulo scaffalatura (metri)
+# NOTA: L'ALTEZZA TOTALE DEGLI SCAFFALI non e' definita qui perche' e' una variabile del
 # layout e viene calcolata dinamicamente in environment.py in base al numero di livelli/mensole.
 
-# --- Parametri Mensole (Piano-Ripiano) ---
+# --- Identificatori e Struttura Scaffali ---
+# Ogni scaffale generato in environment.py ricevera' un ID intero progressivo (0, 1, 2...).
+# Viene anche costruita una stringa leggibile nel formato: C{corsia}-S{scaffale}-L{livello}
+# Esempio: C01-S05-L02 = Corsia 1, Scaffale n.5, Livello di mensola 2
+# Questo formato e' lo standard industriale dei magazzini logistici (usato da Amazon, DHL ecc.)
+N_LIVELLI_MENSOLA = 5      # Numero di livelli di mensola per ogni colonna scaffale.
+                           # Determina l'altezza totale: H_scaffale = N_LIVELLI_MENSOLA * H_MENSOLA
+                           # Esempio: 5 livelli * 0.6m = 3.0m di scaffale totale
+
 H_MENSOLA = 0.6            # Altezza standard tra una mensola e la successiva (metri)
                            # (Tipico standard industriale: 50-70cm di luce tra i ripiani)
 MARGINE_SICUREZZA_DRONE = 0.15 # Margine di sicurezza aggiuntivo sopra la mensola (metri)
@@ -59,12 +77,34 @@ MODALITA_VOLO_DRONE = 'FISSO'  # <-- MODIFICA QUI per cambiare il comportamento 
 Z_DRONE_FISSO = 1.0           # Altezza di crociera fissa per la modalità 'FISSO' (metri)
                                # (Generalmente il corridoio al primo livello del pavimento)
 
-# --- Offset di Installazione RIS e BS (relativi all'altezza del magazzino) ---
-# Le quote assolute si calcolano in environment.py come: Z = altezza_magazzino - OFFSET
-# Esempio: se il magazzino è alto 10m e Z_BS_OFFSET=0.5, la BS sarà installata a 9.5m
-Z_BS_OFFSET_DAL_SOFFITTO = 0.3    # BS montata SUL SOFFITTO a questo offset verso il basso (metri)
-Z_RIS_PARETE_OFFSET_SOFFITTO = 1.0 # RIS a PARETE: installata a questa distanza dal soffitto (metri)
-Z_RIS_SOFFITTO_OFFSET = 0.1       # RIS a SOFFITTO: offset rispetto all'intradosso del soffitto (metri)
+# --- Strategia di Deployment RIS (soffitto e parete) ---
+# Due tipi di RIS con ruoli distinti:
+#
+#   SOFFITTO: 1 RIS centrata sopra ogni corridoio. Ha visione diretta sul drone (no scaffali in mezzo).
+#             Usata per il tracking POSIZIONALE (X, Y) del drone lungo la corsia.
+#             Attiva in ENTRAMBE le modalità di volo (FISSO e MULTILIVELLO).
+#
+#   PARETE:   1 RIS per lato, a metà altezza, per discriminare la QUOTA (Z) del drone.
+#             Utile principalmente in modalità MULTILIVELLO (volo su più livelli di mensola).
+#             In modalità FISSO la quota è nota a priori → la parete è opzionale.
+
+Z_BS_OFFSET_DAL_SOFFITTO = 0.3     # BS a soffitto: offset (in metri) sotto l'intradosso
+Z_RIS_SOFFITTO_OFFSET = 0.1        # RIS a soffitto: offset (in metri) sotto l'intradosso
+Z_RIS_PARETE_RAPPORTO_ALTEZZA = 0.5 # RIS a parete: frazione dell'altezza totale (0.5 = metà parete)
+
+# --- Abilitazione RIS per modalità di volo ---
+# Controlla quali tipi di RIS vengono deployate in base alla modalità drone scelta.
+RIS_SOFFITTO_ABILITATA = True       # Sempre True: 1 RIS a soffitto per corridoio, per il tracking XY
+RIS_PARETE_ABILITATA_FISSO = False  # In modalità FISSO la quota è nota → parete opzionale (risparmio)
+RIS_PARETE_ABILITATA_MULTILIVELLO = True # In MULTILIVELLO serve la parete per discriminare la quota Z
+
+# --- Ottimizzazione Copertura (minimizzare il numero di RIS/BS) ---
+# Il sistema calcolerà il numero minimo di RIS/BS per coprire l'intera area del magazzino.
+# La logica: piazzo la prima RIS, calcolo la sua area coperta, piazzo la prossima dove la copertura finisce.
+COPERTURA_TARGET = 1.0             # Frazione dell'area da coprire (1.0 = 100%): obiettivo piena copertura
+SOGLIA_OVERLAP_RIS = 0.10          # Overlap massimo accettato tra due RIS adiacenti (10%).
+                                   # Troppo overlap = RIS sprecate; troppo poco = buchi di copertura.
+
 
 # --- Limiti Stress Test ---
 MAX_RIS_CALLS_PER_DT = 10  # Massimo numero di attivazioni RIS gestibili dal server in un singolo DT (0.1s)
