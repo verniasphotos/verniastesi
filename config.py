@@ -338,7 +338,7 @@ class Magazzino:
 
 import time
 
-class Pacchetto_Rete:
+class Pacchetto_Rete: 
     """ Rappresenta il pacchetto dati inviato dal drone alla Base Station """
     def __init__(self, id_drone, tx_power, battery_level, package_id, target_x, target_y, target_z):
         # Header (Intestazione del messaggio radio)
