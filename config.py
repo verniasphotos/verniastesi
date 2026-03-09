@@ -114,14 +114,12 @@ MAX_RIS_CALLS_PER_DT = 10  # Massimo numero di attivazioni RIS gestibili dal ser
 # ==========================================
 # MODULO 2: GEOMETRIA E MAGAZZINO (Step 2)
 # ==========================================
-import math
+import math # Libreria per calcoli matematici
 
 class Magazzino:
-    """
-    Rappresenta l'ambiente fisico del magazzino 3D.
+    """ Rappresenta l'ambiente fisico del magazzino 3D.
     Calcola il layout (scaffali e corridoi) partendo dalle dimensioni (L, W, H)
-    e posiziona in base ad esse l'hardware di rete 6G (BS e RIS).
-    """
+    e posiziona in base ad esse l'hardware di rete 6G (BS e RIS). """
 
     def __init__(self, lunghezza, larghezza, altezza):
         # 1. Dimensioni Fisiche del magazzino (metri)
@@ -156,6 +154,7 @@ class Magazzino:
 
         id_scaffale = 0
         
+        # Generazione griglia di scaffali
         for fila in range(n_file_y):
             y_min = fila * passo_y
             y_max = y_min + W_SCAFFALE
@@ -168,7 +167,7 @@ class Magazzino:
                 x_min = colonna * L_SCAFFALE
                 x_max = x_min + L_SCAFFALE
                 
-                # Bounding Box 3D
+                # Scatola di Collisione 3D per gli ostacoli (scaffali)
                 self.scaffali.append({
                     'id': id_scaffale,
                     'file_name': f"C{fila+1:02d}-S{colonna+1:02d}", # Es. C01-S05
@@ -176,18 +175,45 @@ class Magazzino:
                     'y_min': y_min, 'y_max': y_max,
                     'z_min': 0.0,   'z_max': self.h_scaffale
                 })
-                id_scaffale += 1
+                id_scaffale += 1 # Contatore
 
         # --- Deploy Hardware di Rete 6G (Posizionamento Antenne) ---
         
-        # 1. Base Station (BS): La posizioniamo al centro del soffitto del magazzino
+        # 1. Base Station (BS): Deploy a griglia per magazzini grandi (Ridondanza e Copertura)
+        self.base_stations = []
         z_bs = self.altezza - Z_BS_OFFSET_DAL_SOFFITTO
-        self.base_stations = [{
-            'id': 0,
-            'x': self.lunghezza / 2.0,
-            'y': self.larghezza / 2.0,
-            'z': z_bs
-        }]
+        
+        # Distanza tra due BS per garantire sovrapposizione (overlap)
+        # Invece di 2*R_BS (nessun overlap), usiamo 1.5*R_BS (forte ridondanza e continuità di segnale)
+        distanza_bs = R_BS * 1.5 
+        
+        # Calcoliamo quante BS servono per coprire asse X e Y
+        n_bs_x = math.ceil(self.lunghezza / distanza_bs)
+        n_bs_y = math.ceil(self.larghezza / distanza_bs)
+        
+        # Assicuriamo almeno 1 BS
+        n_bs_x = max(1, n_bs_x)
+        n_bs_y = max(1, n_bs_y)
+        
+        # Ricalcoliamo il passo esatto per distribuirle uniformemente (copertura)
+        passo_x = self.lunghezza / n_bs_x if n_bs_x > 1 else self.lunghezza
+        passo_y = self.larghezza / n_bs_y if n_bs_y > 1 else self.larghezza
+        
+        id_bs = 0 # ID base station inizializzato a 0
+        for ix in range(n_bs_x):
+            for iy in range(n_bs_y):
+                # Se c'è solo 1 BS per asse, la mettiamo al centro (es. magazzini piccoli)
+                # Altrimenti le distribuiamo uniformemente
+                x_bs = (self.lunghezza / 2.0) if n_bs_x == 1 else (passo_x / 2.0) + (ix * passo_x)
+                y_bs = (self.larghezza / 2.0) if n_bs_y == 1 else (passo_y / 2.0) + (iy * passo_y)
+                
+                self.base_stations.append({
+                    'id': id_bs,
+                    'x': x_bs,
+                    'y': y_bs,
+                    'z': z_bs
+                })
+                id_bs += 1
 
         # 2. Pannelli RIS (Reconfigurable Intelligent Surfaces)
         self.ris_soffitto = []
@@ -224,11 +250,11 @@ class Magazzino:
                 })
                 id_ris += 1
 
+    # BOM : documento che dice quanti pezzi fisici servono per costruire un progetto
     def get_bom(self):
-        """
-        Calcola e restituisce la Bill of Materials (distinta base),
-        cioè l'inventario matematico dell'ambiente generato.
-        """
+        """Calcola e restituisce la Bill of Materials (distinta base),
+           cioè l'inventario matematico dell'ambiente generato """
+        
         return {
             'n_scaffali': len(self.scaffali),
             'n_corridoi': len(self.corridoi),
@@ -239,11 +265,10 @@ class Magazzino:
             'n_ris_parete': len(self.ris_parete)
         }
 
+    # LOS : Line of Sight (linea di vista) 
     def check_LOS_and_shielding(self, p1, p2):
-        """
-        Simula la propagazione 6G "sparando" un raggio lineare da P1 a P2 
-        e contando quanti ostacoli metallici (scaffali) incrocia.
-        """
+        """ Simula la propagazione 6G "sparando" un raggio lineare da P1 a P2 
+            e contando quanti ostacoli metallici (scaffali) incrocia """
         x1, y1, z1 = p1
         x2, y2, z2 = p2
         
@@ -309,22 +334,69 @@ class Magazzino:
                     
         return ostacoli_attraversati
 
+
+# Esecuzione del programma di configurazione magazzino 6G
 if __name__ == "__main__":
-    # Test del Modulo (Magazzino Piccolo)
-    print("--- Test Generazione Magazzino ---")
-    ambiente = Magazzino(lunghezza=30.0, larghezza=20.0, altezza=8.0)
-    
-    bom = ambiente.get_bom()
-    for k, v in bom.items():
-         print(f" - {k}: {v}")
-         
-    print("\n--- Test Ranging (LOS/NLOS) ---")
-    pa = (5.0, ambiente.corridoi[0], Z_DRONE_FISSO)
-    pb = (20.0, ambiente.corridoi[0], pa[2])
-    ostacoli = ambiente.check_LOS_and_shielding(pa, pb)
-    print(f"Test 1 (Stesso corridoio): {ostacoli} ostacoli (Atteso: 0)")
-    
-    if len(ambiente.corridoi) > 1:
-        pc = (5.0, ambiente.corridoi[1], pa[2])
-        ostacoli_2 = ambiente.check_LOS_and_shielding(pa, pc)
-        print(f"Test 2 (Attraversa corsia): {ostacoli_2} ostacoli (Atteso: >0)")
+    print("=" * 60)
+    print(" BENVENUTO NEL CONFIGURATORE MAGAZZINO 6G ".center(60, '='))
+    print("=" * 60)
+    print("Inserisci le dimensioni reali del magazzino per calcolare")
+    print("l'hardware necessario (Base Stations e RIS) e ricevere")
+    print("un consiglio sul dimensionamento della flotta droni.\n")
+
+    try:
+        # 1. Acquisizione Dati dall'Utente
+        input_l = float(input(" -> Lunghezza del magazzino (in metri): "))
+        input_w = float(input(" -> Larghezza del magazzino (in metri): "))
+        input_h = float(input(" -> Altezza del magazzino (in metri): "))
+        
+        # 2. Generazione dell'Ambiente
+        print("\n... Generazione ambiente 3D in corso ...")
+        ambiente = Magazzino(lunghezza=input_l, larghezza=input_w, altezza=input_h)
+        bom = ambiente.get_bom()
+        
+        # 3. Raccomandazione Flotta Droni
+        # Costruiamo una logica empirica: 
+        # Magazzini piccoli (< 5 corridoi): 1 drone per corsia
+        # Magazzini grandi (>= 5 corridoi): 1 drone ogni 2 corsie per evitare congestione
+        n_corr = bom['n_corridoi']
+        if n_corr < 5:
+            droni_consigliati = n_corr * 1
+        else:
+            droni_consigliati = max(5, int(n_corr / 2))
+            
+        print("\n" + "=" * 60)
+        print(" REPORT INFRASTRUTTURA ".center(60, ' '))
+        print("=" * 60)
+        print(f" ► Dimensioni: {input_l}x{input_w}x{input_h} metri")
+        print(f" ► Scaffali metallici generati: {bom['n_scaffali']}")
+        print(f" ► Livelli di mensole: {bom['n_livelli_mensola']}")
+        print(f" ► Corridoi di volo: {bom['n_corridoi']}")
+        
+        print("\n--- Hardware 6G Necessario ---")
+        print(f" 📡 Base Stations (Raggio {R_BS}m): {bom['n_base_station']} (con griglia di sovrapposizione)")
+        print(f" 🪞 Pannelli RIS a Soffitto: {bom['n_ris_soffitto']}")
+        print(f" 🪞 Pannelli RIS a Parete: {bom['n_ris_parete']}")
+
+        print("\n--- Flotta Droni ---")
+        print(f" 🚁 Numero di Droni consigliato per non saturare la rete: {droni_consigliati}")
+        
+        print("\n--- Spiegazione Modalità di Volo Attuale ---")
+        if MODALITA_VOLO_DRONE == 'FISSO':
+            print("Modalità corrente: [FISSO]")
+            print(" -> I droni voleranno tutti alla stessa quota di sicurezza (Z fissa).")
+            print(" -> È la modalità più semplice, previene incidenti verticali ma gestisce")
+            print("    meno traffico. I droni si alzeranno/abbasseranno solo arrivati")
+            print("    davanti allo scaffale bersaglio per compiere l'operazione.")
+        elif MODALITA_VOLO_DRONE == 'MULTILIVELLO':
+            print("Modalità corrente: [MULTILIVELLO]")
+            print(" -> I droni verranno assegnati a corridoi orizzontali su quote (Z) diverse.")
+            print(" -> Modalità avanzata: permette a più droni di operare simultaneamente")
+            print("    sopra lo stesso tratto di corridoio su piani sfalsati. Il traffico")
+            print("    di rete sarà più denso e intenso.")
+
+        print("=" * 60)
+        
+    except ValueError:
+        print("\n[ERRORE] Inserimento non valido. Devi inserire un numero (usa i punti per i decimali, es: 10.5). Riprova.")
+
