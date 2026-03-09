@@ -177,7 +177,7 @@ class Magazzino:
                 })
                 id_scaffale += 1 # Contatore
 
-        # --- Deploy Hardware di Rete 6G (Posizionamento Antenne) ---
+        # Deploy Hardware di Rete 6G (Posizionamento Antenne)
         
         # 1. Base Station (BS): Deploy a griglia per magazzini grandi (Ridondanza e Copertura)
         self.base_stations = []
