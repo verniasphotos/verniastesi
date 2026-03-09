@@ -86,20 +86,11 @@ W_SCAFFALE = 1.0           # Profondita' (asse Y) di un singolo modulo scaffalat
 # layout e viene calcolata dinamicamente in nel blocco 2 in base al numero di livelli/mensole
 
 # Identificatori e Struttura Scaffali
-# Ogni scaffale generato in environment.py ricevera' un ID intero progressivo (0, 1, 2...).
-# Viene anche costruita una stringa leggibile nel formato: C{corsia}-S{scaffale}-L{livello}
-# Esempio: C01-S05-L02 = Corsia 1, Scaffale n.5, Livello di mensola 2
-# Questo formato e' lo standard industriale dei magazzini logistici (usato da Amazon, DHL ecc.)
-#
-# NOTA: Il numero di mensole NON è fisso qui. Dipende dall'altezza totale del magazzino 
-# (Caso A=basso, Caso C=alto). Verrà calcolato in environment.py dinamicamente.
-
 H_MENSOLA = 0.6            # Altezza standard tra una mensola e la successiva (metri)
                            # (Tipico standard industriale: 50-70cm di luce tra i ripiani)
 MARGINE_SICUREZZA_DRONE = 0.15 # Margine di sicurezza aggiuntivo sopra la mensola (metri)
                            # Il drone vola a H_MENSOLA - MARGINE_SICUREZZA_DRONE per non rischiare collisioni
                            # Questo definisce la "SafeZone" di volo in ogni corridoio di livello.
-
 
 # Limiti Stress Test
 MAX_RIS_CALLS_PER_DT = 10  # Massimo numero di attivazioni RIS gestibili dal server in un singolo DT (0.1s)
