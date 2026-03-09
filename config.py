@@ -222,6 +222,13 @@ class Magazzino:
                 })
                 id_ris += 1
 
+        # --- Decisione Intelligente: Modalità di Volo ---
+        # Se il magazzino e' >= 10.000 mq, si attiva il MULTILIVELLO per gestire flotte grandi
+        if self.area_mq >= 10000:
+            self.modalita_volo = 'MULTILIVELLO'
+        else:
+            self.modalita_volo = 'FISSO'
+
         # RIS a Parete (dinamiche base alla modalità di volo calcolata)
         if (self.modalita_volo == 'FISSO' and RIS_PARETE_ABILITATA_FISSO) or \
            (self.modalita_volo == 'MULTILIVELLO' and RIS_PARETE_ABILITATA_MULTILIVELLO):
@@ -239,13 +246,6 @@ class Magazzino:
                 })
                 id_ris += 1
         
-        # --- Decisione Intelligente: Modalità di Volo ---
-        # Se il magazzino e' >= 10.000 mq, si attiva il MULTILIVELLO per gestire flotte grandi
-        if self.area_mq >= 10000:
-            self.modalita_volo = 'MULTILIVELLO'
-        else:
-            self.modalita_volo = 'FISSO'
-
     # BOM : documento che dice quanti pezzi fisici servono per costruire un progetto
     def get_bom(self):
         """Calcola e restituisce la Bill of Materials (distinta base),
@@ -332,6 +332,126 @@ class Magazzino:
         return ostacoli_attraversati
 
 
+# ==========================================
+# MODULO 3: ENTITÀ DELLA SIMULAZIONE E HARDWARE
+# ==========================================
+
+import time
+
+class Pacchetto_Rete:
+    """ Rappresenta il pacchetto dati inviato dal drone alla Base Station """
+    def __init__(self, id_drone, tx_power, battery_level, package_id, target_x, target_y, target_z):
+        # Header (Intestazione del messaggio radio)
+        self.id_drone = id_drone
+        self.ts = time.time()  # Timestamp corrente (quando viene creato il pacchetto)
+        self.tx_power = tx_power
+        self.battery_level = battery_level
+        
+        # Payload (Dati utili del messaggio)
+        self.package_id = package_id
+        self.route_target = (target_x, target_y, target_z)
+
+    def __repr__(self):
+        """ Come viene stampato il pacchetto a schermo (utile per il debugging) """
+        return (f"<Pacchetto_Rete Drone-{self.id_drone} | Batt:{self.battery_level:.1f}% | "
+                f"Target:{self.route_target} | Pwr:{self.tx_power}dBm>")
+
+
+class Drone:
+    """ Rappresenta l'entità Drone fisico e la sua logica di volo """
+    def __init__(self, id_drone, x, y, z):
+        self.id_drone = id_drone
+        self.stato_missione = 'IN_MISSIONE' # Stati possibili: 'IN_MISSIONE', 'RTH_RICARICA'
+        
+        # Posizione spaziale 3D (metri)
+        self.x = x
+        self.y = y
+        self.z = z
+        
+        # Stato Energetico
+        self.batteria = BATTERY_MAX
+        
+    def aggiorna_batteria(self):
+        """ Simula il consumo della batteria del drone ad ogni step (DT) """
+        self.batteria -= CONSUMO_BATTERIA_DT
+        
+        # Se la batteria scende sotto la soglia di sicurezza, il drone deve tornare alla base
+        if self.batteria <= BATTERY_RTH_THRESHOLD and self.stato_missione != 'RTH_RICARICA':
+            self.stato_missione = 'RTH_RICARICA'
+            # (In futuro, imposteremo come target la Base Station più vicina)
+
+    def muovi_verso(self, target_x, target_y, target_z):
+        """ Sposta il drone verso le coordinate bersaglio di un passettino pari a V_DRONE * DT """
+        # 1. Calcolo la distanza totale verso il target (distanza euclidea 3D)
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dz = target_z - self.z
+        distanza_totale = math.sqrt(dx**2 + dy**2 + dz**2)
+        
+        # 2. Se è già arrivato (o quasi) evito di muoverlo e di dividere per zero
+        if distanza_totale < 0.1:
+            self.x, self.y, self.z = target_x, target_y, target_z
+            return True # Restituisce True per dire "Sono arrivato!"
+            
+        # 3. Calcolo di quanto si muove in questo step temporale
+        passo_lineare = V_DRONE * DT
+        
+        # Se il passo lineare supera la distanza totale, lo piazzo esattamente sul target
+        if passo_lineare >= distanza_totale:
+            self.x, self.y, self.z = target_x, target_y, target_z
+            return True
+            
+        # 4. Movimento proporzionale: aggiungo alla posizione attuale la frazione di spostamento corretta
+        versore_x = dx / distanza_totale
+        versore_y = dy / distanza_totale
+        versore_z = dz / distanza_totale
+        
+        self.x += versore_x * passo_lineare
+        self.y += versore_y * passo_lineare
+        self.z += versore_z * passo_lineare
+        
+        return False # Non è ancora arrivato al target
+        
+    def genera_pacchetto(self, package_id, target_x, target_y, target_z):
+        """ Crea il pacchetto radio da spedire via 6G alla Base Station """
+        return Pacchetto_Rete(
+            id_drone=self.id_drone,
+            tx_power=TX_POWER_DRONE,
+            battery_level=self.batteria,
+            package_id=package_id,
+            target_x=target_x,
+            target_y=target_y,
+            target_z=target_z
+        )
+
+
+class RIS:
+    """ Rappresenta il pannello Reconfigurable Intelligent Surface (lo specchio 6G) """
+    def __init__(self, id_ris, x, y, z):
+        self.id_ris = id_ris
+        self.x = x
+        self.y = y
+        self.z = z
+        self.stato = 'sleep' # Stati possibili: 'sleep', 'passive', 'active'
+        
+    def cambia_stato(self, nuovo_stato):
+        """ Il Controller chiama questo metodo per accendere/spegnere il pannello """
+        stati_validi = ['sleep', 'passive', 'active']
+        if nuovo_stato in stati_validi:
+            self.stato = nuovo_stato
+            
+    def get_consumo(self):
+        """ Restituisce l'attuale consumo in Watt basato sullo stato del pannello """
+        if self.stato == 'sleep':
+            return P_SLEEP
+        elif self.stato == 'passive':
+            return P_PASSIVE
+        elif self.stato == 'active':
+            return P_ACTIVE
+        return 0.0
+
+
+
 # Esecuzione del programma di configurazione magazzino 6G
 if __name__ == "__main__":
     print("=" * 60)
@@ -346,14 +466,14 @@ if __name__ == "__main__":
         input_l = float(input(" -> Lunghezza del magazzino (in metri): "))
         input_w = float(input(" -> Larghezza del magazzino (in metri): "))
         input_h = float(input(" -> Altezza del magazzino (in metri): "))
-        
+      
         # 2. Generazione dell'Ambiente
         print("\n... Generazione ambiente 3D in corso ...")
         ambiente = Magazzino(lunghezza=input_l, larghezza=input_w, altezza=input_h)
         bom = ambiente.get_bom()
-        
+      
         # 3. Raccomandazione Flotta Droni
-        # Costruiamo una logica empirica: 
+        # Costruiamo una logica empirica:
         # Magazzini piccoli (< 5 corridoi): 1 drone per corsia
         # Magazzini grandi (>= 5 corridoi): 1 drone ogni 2 corsie per evitare congestione
         n_corr = bom['n_corridoi']
@@ -361,7 +481,7 @@ if __name__ == "__main__":
             droni_consigliati = n_corr * 1
         else:
             droni_consigliati = max(5, int(n_corr / 2))
-            
+          
         print("\n" + "=" * 60)
         print(" REPORT INFRASTRUTTURA ".center(60, ' '))
         print("=" * 60)
@@ -369,32 +489,30 @@ if __name__ == "__main__":
         print(f" ► Scaffali metallici generati: {bom['n_scaffali']}")
         print(f" ► Livelli di mensole: {bom['n_livelli_mensola']}")
         print(f" ► Corridoi di volo: {bom['n_corridoi']}")
-        
+      
         print("\n--- Hardware 6G Necessario ---")
-        print(f" 📡 Base Stations (Raggio {R_BS}m): {bom['n_base_station']} (con griglia di sovrapposizione)")
-        print(f" 🪞 Pannelli RIS a Soffitto: {bom['n_ris_soffitto']}")
-        print(f" 🪞 Pannelli RIS a Parete: {bom['n_ris_parete']}")
+        print(f"  Base Stations (Raggio {R_BS}m): {bom['n_base_station']} (con griglia di sovrapposizione)")
+        print(f"  Pannelli RIS a Soffitto: {bom['n_ris_soffitto']}")
+        print(f"  Pannelli RIS a Parete: {bom['n_ris_parete']}")
 
         print("\n--- Flotta Droni ---")
         print(f" 🚁 Numero di Droni consigliato per non saturare la rete: {droni_consigliati}")
-        
+      
         print("\n--- Spiegazione Modalità di Volo Attuale ---")
-        if bom['modalita_volo'] == 'FISSO':
-            print("Modalità calcolata: [FISSO] (Magazzino < 10.000 mq)")
+        if ambiente.modalita_volo == 'FISSO':
+            print("Modalità corrente: [FISSO]")
             print(" -> I droni voleranno tutti alla stessa quota di sicurezza (Z fissa).")
-            print(" -> Essendo un magazzino non enorme, non servono corsie aeree sovrapposte.")
-            print(" -> I droni si alzeranno/abbasseranno solo arrivati davanti allo scaffale.")
-            print(f" -> Sicurezza garantita da un distanziamento in coda di {MIN_DISTANZA_ANTICOLLISIONE}m.")
-        elif bom['modalita_volo'] == 'MULTILIVELLO':
-            print("Modalità calcolata: [MULTILIVELLO] (Magazzino >= 10.000 mq)")
-            print(" -> ATTENZIONE: Traffico elevato. I droni verranno assegnati a corridoi")
-            print("    orizzontali su quote (Z) diverse in base al livello della mensola.")
+            print(" -> È la modalità più semplice, previene incidenti verticali ma gestisce")
+            print("    meno traffico. I droni si alzeranno/abbasseranno solo arrivati")
+            print("    davanti allo scaffale bersaglio per compiere l'operazione.")
+        elif ambiente.modalita_volo == 'MULTILIVELLO':
+            print("Modalità corrente: [MULTILIVELLO]")
+            print(" -> I droni verranno assegnati a corridoi orizzontali su quote (Z) diverse.")
             print(" -> Modalità avanzata: permette a più droni di operare simultaneamente")
-            print("    sopra lo stesso tratto di corridoio su piani sfalsati.")
-            print(f" -> Sicurezza in corsia garantita dal distanziamento di {MIN_DISTANZA_ANTICOLLISIONE}m.")
+            print("    sopra lo stesso tratto di corridoio su piani sfalsati. Il traffico")
+            print("    di rete sarà più denso e intenso.")
 
         print("=" * 60)
-        
+      
     except ValueError:
         print("\n[ERRORE] Inserimento non valido. Devi inserire un numero (usa i punti per i decimali, es: 10.5). Riprova.")
-
