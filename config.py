@@ -106,7 +106,7 @@ import math # Libreria per calcoli matematici
 class Magazzino:
     """ Rappresenta l'ambiente fisico del magazzino 3D.
     Calcola il layout (scaffali e corridoi) partendo dalle dimensioni (L, W, H)
-    e posiziona in base ad esse l'hardware di rete 6G (BS e RIS). """
+    e posiziona in base ad esse l'hardware di rete 6G (BS e RIS) """
 
     def __init__(self, lunghezza, larghezza, altezza):
         # 1. Dimensioni Fisiche del magazzino (metri)
@@ -115,8 +115,8 @@ class Magazzino:
         self.altezza = altezza      # Asse Z
         self.area_mq = self.lunghezza * self.larghezza
 
-        # Calcolo del numero di livelli fisici basato sull'altezza del magazzino.
-        # Lasciamo un margine del soffitto per le antenne/droni.
+        # Calcolo del numero di livelli fisici basato sull'altezza del magazzino
+        # Lasciamo un margine del soffitto per le antenne/droni
         margine_soffitto = 1.0
         spazio_utile_z = max(0, self.altezza - margine_soffitto)
         self.n_livelli_mensola = int(spazio_utile_z // H_MENSOLA)
@@ -124,7 +124,7 @@ class Magazzino:
         # L'altezza EFFETTIVA dello scaffale
         self.h_scaffale = self.n_livelli_mensola * H_MENSOLA
 
-        # --- Generazione Layout (Corridoi e Scaffali) ---
+        # Generazione Layout (Corridoi e Scaffali) 
         self.scaffali = []  # Conterrà dizionari con i dati di ciascuno scaffale
         self.corridoi = []  # Coordinate Y del centro di ogni corsia
         
@@ -168,13 +168,12 @@ class Magazzino:
         
         # Deploy Hardware di Rete 6G (Posizionamento Antenne)
         
-        # 1. Base Station (BS): Deploy a griglia per magazzini grandi (Ridondanza e Copertura)
+        # Base Station (BS): Deploy a griglia per magazzini grandi (Ridondanza e Copertura)
         self.base_stations = []
         z_bs = self.altezza - Z_BS_OFFSET_DAL_SOFFITTO
         
         # Distanza tra due BS per garantire sovrapposizione (overlap)
-        # Invece di 2*R_BS (nessun overlap), usiamo 1.5*R_BS (forte ridondanza e continuità di segnale)
-        distanza_bs = R_BS * 1.5 
+        distanza_bs = R_BS * 1.5 #usiamo 1.5 per garantire una ridondanza e continuità di segnale
         
         # Calcoliamo quante BS servono per coprire asse X e Y
         n_bs_x = math.ceil(self.lunghezza / distanza_bs)
@@ -204,7 +203,7 @@ class Magazzino:
                 })
                 id_bs += 1
 
-        # 2. Pannelli RIS (Reconfigurable Intelligent Surfaces)
+        # Pannelli RIS (Reconfigurable Intelligent Surfaces)
         self.ris_soffitto = []
         self.ris_parete = []
         id_ris = 0
@@ -222,7 +221,7 @@ class Magazzino:
                 })
                 id_ris += 1
 
-        # --- Decisione Intelligente: Modalità di Volo ---
+        # Decisione Intelligente: Modalità di Volo
         # Se il magazzino e' >= 10.000 mq, si attiva il MULTILIVELLO per gestire flotte grandi
         if self.area_mq >= 10000:
             self.modalita_volo = 'MULTILIVELLO'
@@ -246,7 +245,7 @@ class Magazzino:
                 })
                 id_ris += 1
         
-    # BOM : documento che dice quanti pezzi fisici servono per costruire un progetto
+    # 2. BOM : documento che dice quanti pezzi fisici servono per costruire un progetto
     def get_bom(self):
         """Calcola e restituisce la Bill of Materials (distinta base),
            cioè l'inventario matematico dell'ambiente generato """
@@ -262,7 +261,7 @@ class Magazzino:
             'n_ris_parete': len(self.ris_parete)
         }
 
-    # LOS : Line of Sight (linea di vista) 
+    # 3. LOS : Line of Sight (linea di vista) 
     def check_LOS_and_shielding(self, p1, p2):
         """ Simula la propagazione 6G "sparando" un raggio lineare da P1 a P2 
             e contando quanti ostacoli metallici (scaffali) incrocia """
@@ -347,14 +346,27 @@ class Pacchetto_Rete:
         self.tx_power = tx_power
         self.battery_level = battery_level
         
-        # Payload (Dati utili del messaggio)
+        # Tracciamento Multi-Hop (Il percorso che fa il pacchetto)
+        # Quando nasce, il primo nodo attraversato è ovviamente il Drone stesso.
+        self.nodi_attraversati = [f"Drone-{self.id_drone}"]
+        
+        # Payload (Dati utili del messaggio logistico)
         self.package_id = package_id
         self.route_target = (target_x, target_y, target_z)
 
+    def aggiungi_hop_ris(self, id_ris):
+        """ Aggiunge la "firma" del pannello RIS che ha riflesso il segnale """
+        self.nodi_attraversati.append(f"RIS-{id_ris}")
+        
+    def aggiungi_hop_bs(self, id_bs):
+        """ Aggiunge la "firma" della Base Station che ha ricevuto il segnale """
+        self.nodi_attraversati.append(f"BS-{id_bs}")
+
     def __repr__(self):
         """ Come viene stampato il pacchetto a schermo (utile per il debugging) """
-        return (f"<Pacchetto_Rete Drone-{self.id_drone} | Batt:{self.battery_level:.1f}% | "
-                f"Target:{self.route_target} | Pwr:{self.tx_power}dBm>")
+        percorso_str = " -> ".join(self.nodi_attraversati)
+        return (f"<Pacchetto_Rete [{percorso_str}] | Batt:{self.battery_level:.1f}% | "
+                f"TxPwr:{self.tx_power}dBm>")
 
 
 class Drone:
@@ -449,6 +461,22 @@ class RIS:
         elif self.stato == 'active':
             return P_ACTIVE
         return 0.0
+
+    def inoltra_pacchetto(self, pacchetto):
+        """ 
+        [MULTI-HOP]
+        Il pannello riceve il segnale, appone la sua firma per tracciamento 
+        e idealmente lo riflette verso la Base Station. 
+        """
+        # Aggiungiamo il timbro del RIS per dire "è passato di qua"
+        pacchetto.aggiungi_hop_ris(self.id_ris)
+        
+        # Se il RIS è attivo (amplifica), aumentiamo artificialmente 
+        # la potenza del segnale contenuta nel pacchetto di un +10 dBm
+        if self.stato == 'active':
+            pacchetto.tx_power += 10.0
+            
+        return pacchetto
 
 
 
