@@ -478,6 +478,110 @@ class RIS:
             
         return pacchetto
 
+# ==========================================
+# MODULO 4: FISICA DEL CANALE E PROPAGAZIONE
+# ==========================================
+
+def calcola_path_loss_dB(distanza):
+    """
+    Calcola l'attenuazione del segnale nello spazio libero (Free Space Path Loss).
+    Usa la formula di Friis: PL = 20*log10(d) + 20*log10(f) + 20*log10(4*pi/c)
+    """
+    if distanza <= 0.1:  # Evita errori logaritmo per distanze minuscole
+        distanza = 0.1
+        
+    c = 3e8  # Velocità della luce in m/s
+    # Calcolo dell'attenuazione base dovuta alla distanza fisica
+    path_loss = 20 * math.log10(distanza) + 20 * math.log10(FREQ) + 20 * math.log10((4 * math.pi) / c)
+    return path_loss
+
+def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
+    """
+    Simula il protocollo 2-Way Ranging.
+    Calcola l'attenuazione totale del segnale (Distanza + Ostacoli Metallici).
+    Se il segnale diretto Drone <-> BS è troppo debole, prova a cercare una RIS.
+    """
+    # 1. Coordinate di partenza (Drone) e arrivo (Base Station)
+    p_drone = (drone.x, drone.y, drone.z)
+    p_bs = (bs_dict['x'], bs_dict['y'], bs_dict['z'])
+    
+    # 2. Calcolo Distanza Fisica (Euclidea)
+    dx = p_drone[0] - p_bs[0]
+    dy = p_drone[1] - p_bs[1]
+    dz = p_drone[2] - p_bs[2]
+    distanza = math.sqrt(dx**2 + dy**2 + dz**2)
+    
+    # 3. Path Loss (indebolimento naturale nello spazio)
+    path_loss = calcola_path_loss_dB(distanza)
+    
+    # 4. Attenuazione da Ostacoli (Effetto Scaffali Metallici)
+    ostacoli = magazzino.check_LOS_and_shielding(p_drone, p_bs)
+    attenuazione_ostacoli = ostacoli * ATTENUAZIONE_SCAFFALE
+    
+    # 5. Attenuazione Totale e Calcolo SNR (Signal-To-Noise Ratio)
+    # L'SNR è la "qualità" del segnale: Potenza Trasmessa - Perdite - Rumore di fondo
+    attenuazione_totale = path_loss + attenuazione_ostacoli
+    snr_diretto = TX_POWER_DRONE - attenuazione_totale - RUMORE_BIANCO
+    
+    risultato = {
+        'distanza_m': distanza,
+        'ostacoli_n': ostacoli,
+        'attenuazione_totale_dB': attenuazione_totale,
+        'snr_diretto_dB': snr_diretto,
+        'connesso': snr_diretto >= SOGLIA_RICEVITORE,
+        'usa_ris': False,
+        'id_ris_scelta': None
+    }
+    
+    # 6. Logica RIS (Specchi Intelligenti)
+    # Se il segnale è sotto la soglia di allerta, e abbiamo RIS disponibili, cerchiamo aiuto
+    if snr_diretto < SOGLIA_RIS_ATTIVAZIONE and ris_list and len(ris_list) > 0:
+        miglior_snr = snr_diretto
+        miglior_ris = None
+        
+        for ris in ris_list:
+            p_ris = (ris['x'], ris['y'], ris['z'])
+            
+            # Quanti ostacoli ci sono tra Drone e RIS? E tra RIS e BS?
+            ost_drone_ris = magazzino.check_LOS_and_shielding(p_drone, p_ris)
+            ost_ris_bs = magazzino.check_LOS_and_shielding(p_ris, p_bs)
+            
+            # Se la RIS ha visuale libera sul Drone e sulla BS (0 ostacoli)
+            if ost_drone_ris == 0 and ost_ris_bs == 0:
+                # Calcola distanza totale (Drone->RIS + RIS->BS)
+                d1 = math.sqrt((p_drone[0]-p_ris[0])**2 + (p_drone[1]-p_ris[1])**2 + (p_drone[2]-p_ris[2])**2)
+                d2 = math.sqrt((p_bs[0]-p_ris[0])**2 + (p_bs[1]-p_ris[1])**2 + (p_bs[2]-p_ris[2])**2)
+                
+                # Calcola nuova attenuazione (sui due tratti e aggiungendo il guadagno teorico della RIS attiva)
+                pl1 = calcola_path_loss_dB(d1)
+                pl2 = calcola_path_loss_dB(d2)
+                # Ipotizziamo un "guadagno" di 10 dB se usiamo una RIS attiva
+                attenuazione_via_ris = (pl1 + pl2) - 10.0 
+                
+                snr_via_ris = TX_POWER_DRONE - attenuazione_via_ris - RUMORE_BIANCO
+                
+                # Troviamo la RIS che offre l'SNR migliore
+                if snr_via_ris > miglior_snr:
+                    miglior_snr = snr_via_ris
+                    miglior_ris = ris['id']
+                    
+        # Se abbiamo trovato una RIS che migliora davvero la situazione
+        if miglior_ris is not None and miglior_snr >= SOGLIA_RICEVITORE:
+            risultato['usa_ris'] = True
+            risultato['id_ris_scelta'] = miglior_ris
+            risultato['snr_effettivo_dB'] = miglior_snr
+            risultato['connesso'] = True
+        else:
+            risultato['snr_effettivo_dB'] = snr_diretto
+    else:
+        risultato['snr_effettivo_dB'] = snr_diretto
+        
+    return risultato
+
+
+
+
+
 
 
 # Esecuzione del programma di configurazione magazzino 6G
@@ -539,6 +643,32 @@ if __name__ == "__main__":
             print(" -> Modalità avanzata: permette a più droni di operare simultaneamente")
             print("    sopra lo stesso tratto di corridoio su piani sfalsati. Il traffico")
             print("    di rete sarà più denso e intenso.")
+
+        print("\n--- Test Modulo 4: Fisica del Canale (2-Way Ranging) ---")
+        if len(ambiente.base_stations) > 0:
+            # Creiamo un drone fittizio per il test, posizionato in un angolo in basso
+            drone_test = Drone(id_drone=99, x=1.0, y=1.0, z=1.0)
+            bs_target = ambiente.base_stations[0]
+            
+            # Combiniamo tutte le RIS disponibili per il test
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+            
+            risultati_ranging = esegui_2way_ranging(drone_test, bs_target, ambiente, tutte_le_ris)
+            
+            print(f" Posizione Drone: X={drone_test.x:.1f}, Y={drone_test.y:.1f}, Z={drone_test.z:.1f}")
+            print(f" Posizione BS(0): X={bs_target['x']:.1f}, Y={bs_target['y']:.1f}, Z={bs_target['z']:.1f}")
+            print(f" > Distanza Drone-BS: {risultati_ranging['distanza_m']:.2f} metri")
+            print(f" > Scaffali attraversati: {risultati_ranging['ostacoli_n']}")
+            print(f" > Attenuazione totale: {risultati_ranging['attenuazione_totale_dB']:.1f} dB")
+            
+            status_conn = "CONNESSO" if risultati_ranging['connesso'] else "DISCONNESSO"
+            print(f" > SNR Diretto: {risultati_ranging['snr_diretto_dB']:.1f} dB [{status_conn}]")
+            
+            if risultati_ranging['usa_ris']:
+                print(f" > [!] SNR Diretto debole, sotto soglia! RIS ID={risultati_ranging['id_ris_scelta']} attivata!")
+                print(f" > Nuovo SNR con RIS: {risultati_ranging['snr_effettivo_dB']:.1f} dB")
+            else:
+                print(" > Nessun pannello RIS attivato (segnale sufficiente o nessuna RIS in vista).")
 
         print("=" * 60)
       
