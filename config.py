@@ -679,14 +679,18 @@ class DatabaseManager:
         self.conn.commit()
         
     def chiudi(self):
-        """ Essenziale a fine simulazione: chiude il "tubo" verso il database in sicurezza """
+        """ Essenziale a fine simulazione: chiude la connessione verso il database in sicurezza """
         self.conn.close()
 
 
+
+
+
+
  ##################################################################################################
- 
+
 # ==========================================
-# MODULO 6: SIMULAZIONE DINAMICA (IL LOOP)
+# MODULO 9: SIMULAZIONE DINAMICA (IL LOOP)
 # ==========================================
 
 # Esecuzione del programma di configurazione magazzino 6G
