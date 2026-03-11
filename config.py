@@ -682,10 +682,79 @@ class DatabaseManager:
         """ Essenziale a fine simulazione: chiude la connessione verso il database in sicurezza """
         self.conn.close()
 
+# ==========================================
+# MODULO 6: LOGICA DECISIONALE CENTRALIZZATA (CONTROLLER)
+# ==========================================
+import time
 
-
-
-
+class SuperServer:
+    """ 
+    Il "Cervello" della rete 6G. Riceve i pacchetti test dai droni, 
+    valuta la qualità del segnale e prende decisioni rapide (euristica)
+    su quali pannelli RIS accendere per garantire la copertura.
+    """
+    def __init__(self, ambiente, db_manager):
+        self.ambiente = ambiente # Layout 3D magazzino e ostacoli
+        self.db = db_manager     # Database per salvare log
+        
+    def ricevi_telemetria(self, drone, bs_target, ris_list):
+        """
+        Il cuore pulsante dell'Euristica. Riceve i dati in input, analizza lo stato della rete,
+        avvia l'handshake e, in caso di problemi radio, cerca una via "riflettente" sicura (RIS).
+        """
+        # 1. SCAMBIO DATI (RANGING): simuliamo prima di tutto il collegamento radio 2-way base.
+        # Questa misurazione calcola le distanze, attenunazione ostacoli del magazzino, e snr finale.
+        risultati = esegui_2way_ranging(drone, bs_target, self.ambiente, ris_list)
+        ts_attuale = time.time()
+        
+        # 2. CONTROLLO BATTERIA (Flight Controller Decision)
+        if drone.batteria <= BATTERY_RTH_THRESHOLD and drone.stato_missione != 'RTH_RICARICA':
+            drone.stato_missione = 'RTH_RICARICA'
+            print(f"[CERVELLO] ⚠️ ALARM: Batteria dronica {drone.id_drone} bassa. Comando 'Return To Home' (RTH) inviato.")
+            
+        # 3. CONTROLLO EMERGENZA RETE (Gestione Dinamica RIS)
+        # SOGLIA_RIS_ATTIVAZIONE=5.0dB è definita nel modulo 1. Al di sotto la connessione è instabile.
+        snr_attuale = risultati['snr_uplink_effettivo_dB']
+        
+        # Se il segnale è sotto la soglia E il simulatore di rete ci offre l'opzione di usare una RIS utile:
+        if snr_attuale < SOGLIA_RIS_ATTIVAZIONE and risultati['usa_ris']:
+            id_ris_attivata = risultati['id_ris_scelta']
+            
+            # --- EURISTICA DEL RISPARMIO ENERGETICO ---
+            # Se la connessione è deboluccia ma non morta (0 dB < SNR < 5 dB), usiamo la RIS in 'PASSIVE' (5 Watt)
+            # Se la connessione è molto degradata (< 0 dB), accendiamo gli amplificatori 'ACTIVE' (50 Watt) !
+            if snr_attuale < 0:
+                azione_ris = 'active'
+                consumo_attuale = P_ACTIVE
+            else:
+                azione_ris = 'passive'
+                consumo_attuale = P_PASSIVE
+                
+            print(f"[CERVELLO] ⚡ Emergenza Radio Rilevata! SNR={snr_attuale:.1f} dB. Attivo specchio RIS_ID={id_ris_attivata} in modalità {azione_ris.upper()}.")
+            
+            # 3.1 Salvataggio dell'Azione (Telemetria di Rete) nel Database!
+            self.db.inserisci_evento_rete(
+                ts=ts_attuale,
+                id_ris=id_ris_attivata,
+                azione=azione_ris,
+                consumo_w=consumo_attuale
+            )
+            
+        # 4. SALVATAGGIO LOG DRONE (Telemetria del Veicolo)
+        # Infine, documentiamo tutto quello che è successo in questo istante nello step temporale ("fotografia").
+        self.db.inserisci_telemetria(
+            ts=ts_attuale,
+            id_drone=drone.id_drone,
+            x=drone.x,
+            y=drone.y,
+            z=drone.z,
+            snr=snr_attuale,
+            attenuazione=risultati['attenuazione_totale_dB'],
+            batteria=drone.batteria,
+            stato=drone.stato_missione
+        )
+        
+        return risultati
 
  ##################################################################################################
 
@@ -784,31 +853,22 @@ if __name__ == "__main__":
             print("\n--- Test Modulo 5: Database e Telemetria ---")
             print(" > Inizializzazione database 'telemetria.db'...")
             db = DatabaseManager('telemetria.db')
+            print(" > Database pronto per le scritture delle telemetrie.")
             
-            ts_attuale = time.time()
-            print(" > Salvataggio della telemetria test nel Database...")
-            db.inserisci_telemetria(
-                ts=ts_attuale,
-                id_drone=drone_test.id_drone,
-                x=drone_test.x,
-                y=drone_test.y,
-                z=drone_test.z,
-                snr=risultati_ranging['snr_uplink_effettivo_dB'],
-                attenuazione=risultati_ranging['attenuazione_totale_dB'],
-                batteria=drone_test.batteria,
-                stato=drone_test.stato_missione
-            )
+            print("\n--- Test Modulo 6: Logica Decisionale Centralizzata ---")
+            print(" > Avvio Server 'SuperServer' Centrale...")
+            controller = SuperServer(ambiente, db)
             
-            if risultati_ranging['usa_ris']:
-                print(f" > Salvataggio Evento Rete (RIS {risultati_ranging['id_ris_scelta']} active)...")
-                db.inserisci_evento_rete(
-                    ts=ts_attuale,
-                    id_ris=risultati_ranging['id_ris_scelta'],
-                    azione='active',
-                    consumo_w=P_ACTIVE # Consumo in W letto dalle costanti
-                )
+            print(" > Il Cervello elabora i dati del drone, invia ACK e prende decisioni in rete:")
             
-            print(" > Chiusura connessione database... SALVATAGGIO RIUSCITO!")
+            # Qui invece di inserire tutto noi, passiamo il lavoro da fare "centralizzato" al controller
+            # Passerà i log al DatabaseManager automaticamente sotto il cofano
+            risultati_controller = controller.ricevi_telemetria(drone_test, bs_target, tutte_le_ris)
+            
+            print(f" > Operazioni concluse. Stato Finale Drone: {drone_test.stato_missione}")
+            print(f" > Il file 'telemetria.db' ha memorizzato questo ciclo in real-time.")
+            
+            print("\n > Chiusura connessione database... SALVATAGGIO RIUSCITO!")
             db.chiudi()
 
         print("=" * 60)
