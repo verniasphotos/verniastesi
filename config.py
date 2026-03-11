@@ -614,15 +614,10 @@ def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
     return risultato
 
 
-
-
-
-
-
 # ==========================================
 # MODULO 5: MEMORIA DEL SISTEMA E DATABASE
 # ==========================================
-import sqlite3
+import sqlite3 #libreria per la gestione del database
 
 class DatabaseManager:
     """
@@ -687,6 +682,12 @@ class DatabaseManager:
         """ Essenziale a fine simulazione: chiude il "tubo" verso il database in sicurezza """
         self.conn.close()
 
+
+ ##################################################################################################
+ 
+# ==========================================
+# MODULO 6: SIMULAZIONE DINAMICA (IL LOOP)
+# ==========================================
 
 # Esecuzione del programma di configurazione magazzino 6G
 if __name__ == "__main__":
