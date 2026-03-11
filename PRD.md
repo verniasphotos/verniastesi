@@ -59,21 +59,30 @@ Il software simula un "cervello centrale" (Controller) in un magazzino logistico
     - Salva l'evento in `Eventi_Rete`.
   - Coordina i droni (invia comando RTH se batteria bassa) e spegne le RIS quando non servono.
 
-## 8. Modulo 7: Motore e Stress Test (`main.py`)
-- Loop principale. Crea 3 layout:
-  - **Caso A**: Piccolo (es. 2000 mq).
-  - **Caso B**: Medio (es. 10000 mq).
-  - **Caso C**: Grande (es. 35000 mq).
-- **Breakdown Test**:
-  - Avvia il loop temporale aggiungendo +5 droni alla volta.
-  - I droni si muovono, consumano batteria, tornano alla base.
-  - *Condizione di stop*: Si ferma quando troppi droni saturano il server (es. SNR crolla per >20% della flotta o vengono fatte troppe richieste alle RIS in un solo `DT`). Salva il numero massimo di droni.
+## 8. Modulo 7: Motore di Simulazione e Scenari di Test (`main.py`)
+- Crea funzioni per eseguire 4 test separati. Per ogni test, il loop temporale avanza a scatti di `DT`, muove i droni e fa intervenire il `SuperServer`.
+- **Test 1: Stress Test e Scalabilità (Punto di Rottura)**
+  - *Setup*: Inizializza Caso A (2000 mq), Caso B (10000 mq), Caso C (35000 mq).
+  - *Azione*: Inizia con 5 droni. Ogni N secondi simulati, aggiungi +5 droni alla flotta.
+  - *Condizione di Stop*: Ferma il test per un Caso quando i messaggi elaborati dal Server superano la capacità massima o quando il 20% dei droni ha un SNR sotto la soglia critica per più di 5 secondi (collasso). Registra il numero massimo di droni raggiunto.
+- **Test 2: Resilienza e Tolleranza ai Guasti (Fault Tolerance)**
+  - *Setup*: Caso B con 15 droni in un'area specifica.
+  - *Azione*: Fai girare la simulazione. All'istante t=50, simula un guasto spegnendo forzatamente la RIS più utilizzata in quel momento (es. stato = 'broken').
+  - *Attesa*: Il Controller deve registrare il calo di SNR, eseguire il failover e "svegliare" le RIS adiacenti.
+- **Test 3: Collo di Bottiglia "Cambio Turno" (Mass Return-To-Home)**
+  - *Setup*: Caso C con 50 droni.
+  - *Azione*: All'istante t=20, sovrascrivi forzatamente il livello di batteria del 40% dei droni portandolo al 21%.
+  - *Attesa*: Subito dopo scenderanno sotto il 20%. Il Server invierà a tutti l'ACK di RTH_RICARICA. Registra l'esplosione di traffico e le accensioni RIS per gestire questo sciame.
+- **Test 4: Confronto Energetico (La Baseline)**
+  - *Setup*: Caso B con 15 droni. Simulazione di 10 minuti.
+  - *Azione*: Esegui il run due volte. Run 1: spegni il Controller Euristico e tieni tutte le RIS sempre accese al massimo (50W). Run 2: usa il Controller Euristico (RIS in sleep a 0.5W, accese solo su richiesta).
 
-## 9. Modulo 8: Visualizzazione (`plotting.py`)
-- Esegue query sul database SQLite per generare grafici tramite `matplotlib`:
-  1. **Mappa (Scatter Plot 2D/3D)**: Layout del magazzino con ostacoli, BS, RIS e traiettoria di un drone.
-  2. **Line Chart Flotta**: Livello di batteria di un drone nel tempo (dimostra il ciclo 24/7 di scarica e ricarica).
-  3. **Bar Chart Stress Test**: Confronto "Consumo Energetico Totale vs Overhead" per i casi A, B, C al punto di rottura.
+## 9. Modulo 8: Visualizzazione Grafici (`plotting.py`)
+- Regola ferrea: Questo blocco NON deve leggere variabili in memoria, ma eseguire query SELECT sul database sqlite3 generato dal Blocco 7 per disegnare grafici con `matplotlib`.
+- **plot_scalabilita()**: Line chart (Asse X: Numero Droni, Asse Y: Overhead messaggi/sec). Mostra 3 curve (Caso A, B, C) con un marker rosso "X" al punto di rottura (Test 1).
+- **plot_resilienza_guasto()**: Line chart dell'SNR nel tempo per i droni del Test 2. Mostra il calo a t=50 e il recupero a V grazie al failover.
+- **plot_consumi_mass_rth()**: Line chart del "Consumo Energetico Totale Rete (W)" nel tempo per il Test 3. Mostra il picco di consumi durante il rientro di massa.
+- **plot_risparmio_energetico()**: Bar chart affiancate per il Test 4. Confronto del consumo energetico: "Sistema Tradizionale (Always-On)" vs "Sistema Proposto (Euristico)".
 
 ---
 **Azione per l'IA:** Conferma di aver letto il PRD, riassumi in 2 righe l'obiettivo e chiedimi quale file vuoi che sviluppiamo per primo.
