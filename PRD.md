@@ -36,11 +36,13 @@ Il software simula un "cervello centrale" (Controller) in un magazzino logistico
 - **Classe RIS**:
   - Stati: `sleep`, `passive`, `active`. Metodo per restituire il consumo attuale (W).
 
-## 5. Modulo 4: Propagazione e Ranging (`channel.py`)
+## 5. Modulo 4: Propagazione e Ranging (`channel.py` / `config.py`)
 - **Metodo `esegui_2way_ranging(drone, bs, ris_list)`**:
-  - Usa `check_LOS_and_shielding` per capire quanti scaffali bloccano il segnale diretto Drone-BS.
-  - Stima un'attenuazione (es. -15 dB per ogni scaffale attraversato).
-  - Restituisce il valore di attenuazione totale al Controller.
+  - Simula lo scambio di pacchetti 2WAY (Handshake) tra Drone e BS.
+  - Usa `check_LOS_and_shielding` per capire quanti scaffali bloccano il segnale.
+  - Calcola l'attenuazione dinamica (la tecnica di ranging rileva la "schermatura" o NLOS severity basandosi sulla caduta di segnale attraverso gli scaffali).
+  - Simula l'Asimmetria: calcola l'**Uplink** (Drone -> BS a 20 dBm) e il **Downlink o ACK** (BS -> Drone a 40 dBm).
+  - Il valore di attenuazione diventa l'input vitale per decidere il livello di amplificazione: se l'Handshake fallisce (l'ACK non torna), il sistema cerca una RIS.
 
 ## 6. Modulo 5: Server Tracking (`database.py`)
 - Gestione `sqlite3` in memoria o su file `telemetria.db`.

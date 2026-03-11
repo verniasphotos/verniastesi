@@ -6,6 +6,7 @@
 
 FREQ = 3.5e9                 # Frequenza del segnale in Hertz (3.5 GHz)
 TX_POWER_DRONE = 20.0        # Potenza di trasmissione del Drone in dBm
+TX_POWER_BS = 40.0           # Potenza di trasmissione della Base Station (fissa, per l'ACK) in dBm
 R_BS = 50.0                  # Raggio di copertura massimo della Base Station (metri)
 R_RIS = 15.0                 # Raggio di copertura effettivo di un pannello RIS (metri)
 ATTENUAZIONE_SCAFFALE = 15.0 # Attenuazione fissa del segnale per ogni scaffale attraversato (dB)
@@ -497,84 +498,118 @@ def calcola_path_loss_dB(distanza):
 
 def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
     """
-    Simula il protocollo 2-Way Ranging.
-    Calcola l'attenuazione totale del segnale (Distanza + Ostacoli Metallici).
-    Se il segnale diretto Drone <-> BS è troppo debole, prova a cercare una RIS.
+    Simula il protocollo 2-Way Ranging (Handshake).
+    1) Uplink: Il drone manda il pacchetto alla BS
+    2) Downlink (ACK): La BS risponde al drone confermando la ricezione
+    Se uno dei due fallisce (es. l'ACK si perde tra gli scaffali), si cerca una RIS in aiuto.
     """
-    # 1. Coordinate di partenza (Drone) e arrivo (Base Station)
     p_drone = (drone.x, drone.y, drone.z)
     p_bs = (bs_dict['x'], bs_dict['y'], bs_dict['z'])
     
-    # 2. Calcolo Distanza Fisica (Euclidea)
+    # Calcolo Distanza Fisica e FSPL
     dx = p_drone[0] - p_bs[0]
     dy = p_drone[1] - p_bs[1]
     dz = p_drone[2] - p_bs[2]
     distanza = math.sqrt(dx**2 + dy**2 + dz**2)
-    
-    # 3. Path Loss (indebolimento naturale nello spazio)
     path_loss = calcola_path_loss_dB(distanza)
     
-    # 4. Attenuazione da Ostacoli (Effetto Scaffali Metallici)
+    # Attenuazione da Ostacoli (Effetto Scaffali Metallici)
     ostacoli = magazzino.check_LOS_and_shielding(p_drone, p_bs)
     attenuazione_ostacoli = ostacoli * ATTENUAZIONE_SCAFFALE
-    
-    # 5. Attenuazione Totale e Calcolo SNR (Signal-To-Noise Ratio)
-    # L'SNR è la "qualità" del segnale: Potenza Trasmessa - Perdite - Rumore di fondo
     attenuazione_totale = path_loss + attenuazione_ostacoli
-    snr_diretto = TX_POWER_DRONE - attenuazione_totale - RUMORE_BIANCO
+    
+    # SIMULAZIONE PROTOCOLLO HANDSHAKE (ACK) 
+    
+    # 1. Tratto di ANDATA (UPLINK): Drone (Trasmettitore) -> BS (Ricevitore)
+    snr_uplink = TX_POWER_DRONE - attenuazione_totale - RUMORE_BIANCO
+    bs_riceve_drone = snr_uplink >= SOGLIA_RICEVITORE
+    
+    # 2. Tratto di RITORNO (DOWNLINK - ACK): BS (Trasmettitore) -> Drone (Ricevitore)
+    # Avviene SOLO se la BS ha originariamente sentito l'Uplink
+    snr_downlink = -999.0
+    drone_riceve_ack = False
+    
+    if bs_riceve_drone:
+        # La BS risponde forte (TX_POWER_BS = 40 dBm, maggiore del drone)
+        snr_downlink = TX_POWER_BS - attenuazione_totale - RUMORE_BIANCO
+        drone_riceve_ack = snr_downlink >= SOGLIA_RICEVITORE
+    
+    # L'handshake è completo (Link stabile) solo se il drone ha ricevuto l'ACK
+    connessione_diretta_ok = bs_riceve_drone and drone_riceve_ack
+    
+    # L'SNR limitante per la logica è sempre l'anello debole (Uplink, avendo il drone meno potenza)
+    snr_limitante = snr_uplink
     
     risultato = {
         'distanza_m': distanza,
         'ostacoli_n': ostacoli,
         'attenuazione_totale_dB': attenuazione_totale,
-        'snr_diretto_dB': snr_diretto,
-        'connesso': snr_diretto >= SOGLIA_RICEVITORE,
+        'snr_uplink_dB': snr_uplink,
+        'snr_downlink_dB': snr_downlink,
+        'bs_ha_ricevuto': bs_riceve_drone,
+        'ack_ricevuto': drone_riceve_ack,
+        'connesso': connessione_diretta_ok,
         'usa_ris': False,
         'id_ris_scelta': None
     }
     
     # 6. Logica RIS (Specchi Intelligenti)
-    # Se il segnale è sotto la soglia di allerta, e abbiamo RIS disponibili, cerchiamo aiuto
-    if snr_diretto < SOGLIA_RIS_ATTIVAZIONE and ris_list and len(ris_list) > 0:
-        miglior_snr = snr_diretto
+    # Se il collegamento diretto si è rotto e abbiamo RIS disponibili, cerchiamo un percorso riflettivo in LOS
+    if not connessione_diretta_ok and ris_list and len(ris_list) > 0:
+        miglior_snr_uplink = snr_limitante
+        miglior_snr_downlink = snr_downlink
         miglior_ris = None
+        connessione_ris_ok = False
         
         for ris in ris_list:
             p_ris = (ris['x'], ris['y'], ris['z'])
             
-            # Quanti ostacoli ci sono tra Drone e RIS? E tra RIS e BS?
+            # Verifichiamo la LOS sui due tratti del rimbalzo
             ost_drone_ris = magazzino.check_LOS_and_shielding(p_drone, p_ris)
             ost_ris_bs = magazzino.check_LOS_and_shielding(p_ris, p_bs)
             
-            # Se la RIS ha visuale libera sul Drone e sulla BS (0 ostacoli)
+            # Condizione ferrea per una simulazione base: la RIS serve solo se la visibilità al drone e alla BS è pulita
             if ost_drone_ris == 0 and ost_ris_bs == 0:
-                # Calcola distanza totale (Drone->RIS + RIS->BS)
                 d1 = math.sqrt((p_drone[0]-p_ris[0])**2 + (p_drone[1]-p_ris[1])**2 + (p_drone[2]-p_ris[2])**2)
                 d2 = math.sqrt((p_bs[0]-p_ris[0])**2 + (p_bs[1]-p_ris[1])**2 + (p_bs[2]-p_ris[2])**2)
                 
-                # Calcola nuova attenuazione (sui due tratti e aggiungendo il guadagno teorico della RIS attiva)
                 pl1 = calcola_path_loss_dB(d1)
                 pl2 = calcola_path_loss_dB(d2)
-                # Ipotizziamo un "guadagno" di 10 dB se usiamo una RIS attiva
+                
+                # Attenuazione totale del percorso riflesso, con il contributo di amplificazione della RIS attiva (10 dB)
                 attenuazione_via_ris = (pl1 + pl2) - 10.0 
                 
-                snr_via_ris = TX_POWER_DRONE - attenuazione_via_ris - RUMORE_BIANCO
+                # Uplink riflesso
+                snr_uplink_ris = TX_POWER_DRONE - attenuazione_via_ris - RUMORE_BIANCO
+                bs_riceve = snr_uplink_ris >= SOGLIA_RICEVITORE
                 
-                # Troviamo la RIS che offre l'SNR migliore
-                if snr_via_ris > miglior_snr:
-                    miglior_snr = snr_via_ris
+                # Downlink riflesso (ACK)
+                snr_downlink_ris = -999.0
+                drone_riceve = False
+                if bs_riceve:
+                    snr_downlink_ris = TX_POWER_BS - attenuazione_via_ris - RUMORE_BIANCO
+                    drone_riceve = snr_downlink_ris >= SOGLIA_RICEVITORE
+                
+                # Cerchiamo la RIS che offre il miglior SNR di Uplink
+                if bs_riceve and drone_riceve and snr_uplink_ris > miglior_snr_uplink:
+                    miglior_snr_uplink = snr_uplink_ris
+                    miglior_snr_downlink = snr_downlink_ris
                     miglior_ris = ris['id']
+                    connessione_ris_ok = True
                     
-        # Se abbiamo trovato una RIS che migliora davvero la situazione
-        if miglior_ris is not None and miglior_snr >= SOGLIA_RICEVITORE:
+        # Applichiamo la RIS scelta al bollettino finale
+        if connessione_ris_ok:
             risultato['usa_ris'] = True
             risultato['id_ris_scelta'] = miglior_ris
-            risultato['snr_effettivo_dB'] = miglior_snr
+            risultato['snr_uplink_effettivo_dB'] = miglior_snr_uplink
+            risultato['snr_downlink_effettivo_dB'] = miglior_snr_downlink
             risultato['connesso'] = True
         else:
-            risultato['snr_effettivo_dB'] = snr_diretto
+            risultato['snr_uplink_effettivo_dB'] = snr_limitante
+            risultato['snr_downlink_effettivo_dB'] = snr_downlink
     else:
-        risultato['snr_effettivo_dB'] = snr_diretto
+        risultato['snr_uplink_effettivo_dB'] = snr_limitante
+        risultato['snr_downlink_effettivo_dB'] = snr_downlink
         
     return risultato
 
@@ -661,12 +696,14 @@ if __name__ == "__main__":
             print(f" > Scaffali attraversati: {risultati_ranging['ostacoli_n']}")
             print(f" > Attenuazione totale: {risultati_ranging['attenuazione_totale_dB']:.1f} dB")
             
-            status_conn = "CONNESSO" if risultati_ranging['connesso'] else "DISCONNESSO"
-            print(f" > SNR Diretto: {risultati_ranging['snr_diretto_dB']:.1f} dB [{status_conn}]")
+            status_conn = "ACK RICEVUTO [LINK OK]" if risultati_ranging['connesso'] else "ACK PERSO / DISCONNESSO"
+            print(f" > SNR Uplink (Drone->BS): {risultati_ranging['snr_uplink_dB']:.1f} dB")
+            print(f" > SNR Downlink (ACK, BS->Drone): {risultati_ranging['snr_downlink_dB']:.1f} dB")
+            print(f" > Handshake Status: {status_conn}")
             
             if risultati_ranging['usa_ris']:
-                print(f" > [!] SNR Diretto debole, sotto soglia! RIS ID={risultati_ranging['id_ris_scelta']} attivata!")
-                print(f" > Nuovo SNR con RIS: {risultati_ranging['snr_effettivo_dB']:.1f} dB")
+                print(f" > [!] Comunicazione diretta fallita. RIS ID={risultati_ranging['id_ris_scelta']} attivata!")
+                print(f" > Nuovo SNR Uplink con RIS: {risultati_ranging['snr_uplink_effettivo_dB']:.1f} dB")
             else:
                 print(" > Nessun pannello RIS attivato (segnale sufficiente o nessuna RIS in vista).")
 
