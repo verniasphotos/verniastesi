@@ -619,6 +619,75 @@ def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
 
 
 
+# ==========================================
+# MODULO 5: MEMORIA DEL SISTEMA E DATABASE
+# ==========================================
+import sqlite3
+
+class DatabaseManager:
+    """
+    Gestisce la connessione al database SQLite (un file locale) e la creazione 
+    delle tabelle necessarie per salvare i log della simulazione.
+    """
+    def __init__(self, db_name="telemetria.db"):
+        self.db_name = db_name
+        # Si connette al database se esiste, altrimenti lo crea come nuovo file
+        self.conn = sqlite3.connect(self.db_name)
+        self.cursor = self.conn.cursor()
+        self._crea_tabelle()
+
+    def _crea_tabelle(self):
+        """ Crea le tabelle (strutture dati) se non esistono ancora """
+        # Tabella 1: Telemetria_Droni (traccia lo stato dei droni)
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Telemetria_Droni (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TS REAL,
+                ID_Drone INTEGER,
+                X REAL,
+                Y REAL,
+                Z REAL,
+                SNR REAL,
+                Attenuazione_Ranging REAL,
+                Livello_Batteria REAL,
+                Stato_Missione TEXT
+            )
+        ''')
+        
+        # Tabella 2: Eventi_Rete (Attivazione/Spegnimento dei RIS)
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Eventi_Rete (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TS REAL,
+                ID_RIS INTEGER,
+                Azione TEXT,
+                Consumo_W REAL
+            )
+        ''')
+        
+        self.conn.commit() # Salva in memoria!
+
+    def inserisci_telemetria(self, ts, id_drone, x, y, z, snr, attenuazione, batteria, stato):
+        """ Salva una "fotografia" dello stato istantaneo di un drone all'interno del DB """
+        self.cursor.execute('''
+            INSERT INTO Telemetria_Droni (TS, ID_Drone, X, Y, Z, SNR, Attenuazione_Ranging, Livello_Batteria, Stato_Missione)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (ts, id_drone, x, y, z, snr, attenuazione, batteria, stato))
+        self.conn.commit()
+        
+    def inserisci_evento_rete(self, ts, id_ris, azione, consumo_w):
+        """ Salva un evento importante del sistema sulla rete (es. risorsa RIS attivata) """
+        self.cursor.execute('''
+            INSERT INTO Eventi_Rete (TS, ID_RIS, Azione, Consumo_W)
+            VALUES (?, ?, ?, ?)
+        ''', (ts, id_ris, azione, consumo_w))
+        self.conn.commit()
+        
+    def chiudi(self):
+        """ Essenziale a fine simulazione: chiude il "tubo" verso il database in sicurezza """
+        self.conn.close()
+
+
 # Esecuzione del programma di configurazione magazzino 6G
 if __name__ == "__main__":
     print("=" * 60)
@@ -706,6 +775,36 @@ if __name__ == "__main__":
                 print(f" > Nuovo SNR Uplink con RIS: {risultati_ranging['snr_uplink_effettivo_dB']:.1f} dB")
             else:
                 print(" > Nessun pannello RIS attivato (segnale sufficiente o nessuna RIS in vista).")
+
+            print("\n--- Test Modulo 5: Database e Telemetria ---")
+            print(" > Inizializzazione database 'telemetria.db'...")
+            db = DatabaseManager('telemetria.db')
+            
+            ts_attuale = time.time()
+            print(" > Salvataggio della telemetria test nel Database...")
+            db.inserisci_telemetria(
+                ts=ts_attuale,
+                id_drone=drone_test.id_drone,
+                x=drone_test.x,
+                y=drone_test.y,
+                z=drone_test.z,
+                snr=risultati_ranging['snr_uplink_effettivo_dB'],
+                attenuazione=risultati_ranging['attenuazione_totale_dB'],
+                batteria=drone_test.batteria,
+                stato=drone_test.stato_missione
+            )
+            
+            if risultati_ranging['usa_ris']:
+                print(f" > Salvataggio Evento Rete (RIS {risultati_ranging['id_ris_scelta']} active)...")
+                db.inserisci_evento_rete(
+                    ts=ts_attuale,
+                    id_ris=risultati_ranging['id_ris_scelta'],
+                    azione='active',
+                    consumo_w=P_ACTIVE # Consumo in W letto dalle costanti
+                )
+            
+            print(" > Chiusura connessione database... SALVATAGGIO RIUSCITO!")
+            db.chiudi()
 
         print("=" * 60)
       
