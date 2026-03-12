@@ -77,12 +77,21 @@ Il software simula un "cervello centrale" (Controller) in un magazzino logistico
   - *Setup*: Caso B con 15 droni. Simulazione di 10 minuti.
   - *Azione*: Esegui il run due volte. Run 1: spegni il Controller Euristico e tieni tutte le RIS sempre accese al massimo (50W). Run 2: usa il Controller Euristico (RIS in sleep a 0.5W, accese solo su richiesta).
 
-## 9. Modulo 8: Visualizzazione Grafici (`plotting.py`)
-- Regola ferrea: Questo blocco NON deve leggere variabili in memoria, ma eseguire query SELECT sul database sqlite3 generato dal Blocco 7 per disegnare grafici con `matplotlib`.
-- **plot_scalabilita()**: Line chart (Asse X: Numero Droni, Asse Y: Overhead messaggi/sec). Mostra 3 curve (Caso A, B, C) con un marker rosso "X" al punto di rottura (Test 1).
-- **plot_resilienza_guasto()**: Line chart dell'SNR nel tempo per i droni del Test 2. Mostra il calo a t=50 e il recupero a V grazie al failover.
-- **plot_consumi_mass_rth()**: Line chart del "Consumo Energetico Totale Rete (W)" nel tempo per il Test 3. Mostra il picco di consumi durante il rientro di massa.
-- **plot_risparmio_energetico()**: Bar chart affiancate per il Test 4. Confronto del consumo energetico: "Sistema Tradizionale (Always-On)" vs "Sistema Proposto (Euristico)".
+## 9. Modulo 8: Visualizzazione Grafica Risultati (Data Plotting)
+Il sistema deve fornire un'astrazione visiva ai *raw-data* telemetrici estratti dal Database SQLite elaborandoli matematicamente per produrre quattro grafici in formato `.png`, iterando l'analisi spaziale sui tre volumi operativi (Caso A: 2.000mq, Caso B: 10.000mq, Caso C: 35.000mq). Regola ferrea: non leggere variabili in memoria, ma eseguire query `SELECT`.
+
+- **`plot_scalabilita.png`** (Grafico a Linee con Marker):
+  - *Scopo*: Visualizzare il punto critico di rottura all'aumentare vertiginoso della flotta.
+  - *Output visivo*: Asse X = Numero droni dispiegati. Asse Y = Messaggi processati/sec (Overhead). Traccia 3 rette ascendenti distinte per i tre Casi, terminanti con un marker speciale "x" rosso di collasso algoritmico della Rete.
+- **`plot_resilienza_guasto.png`** (Grafico a Serie Temporali Sovrapposte):
+  - *Scopo*: Dimostrare il rapido adattamento a percorsi di routing secondari in seguito allo spegnimento della RIS a soffitto.
+  - *Output visivo*: Asse X = Tempo normalizzato a `0`s. Asse Y = SNR (dB). Tre curve colorate mostrano il ping SNR ininterrotto di tre droni campione a seguito dell'intersezione col marcatore tratteggiato (*Guasto RIS*) posto a `t=5s`, attestando il failover.
+- **`plot_consumi_mass_rth.png`** (Grafico ad Aree / Serie Temporali Smoothed):
+  - *Scopo*: Evidenziare la stringente gestione del picco di erogazione in caso di massivo *Return-To-Home*.
+  - *Output visivo*: Asse X = Tempo sui Marker estratti (`START_Caso...`). Asse Y = Consumo istantaneo (W). Plotta tre aree (A, B, C) applicando un filtro "finestra mobile" di *smoothing* temporale a 50 campioni interpolando i record raw di eventi asincroni.
+- **`plot_risparmio_energetico.png`** (Grafico a Barre Raggruppate):
+  - *Scopo*: Esporre il *Benchmark* quantitativo sui benefici ecologici e computazionali.
+  - *Output visivo*: Istogramma aggregato in kW tramite `SUM(Consumo_W)`. Asse X raggruppa su magazzino A, B, C comparando doppiamente la colonna termica *Always-On* (Tradizionale - rosso) con la contrazione estrema dei kW in Run 2 (Schema Proposto/Euristico - verde).
 
 ---
 **Azione per l'IA:** Conferma di aver letto il PRD, riassumi in 2 righe l'obiettivo e chiedimi quale file vuoi che sviluppiamo per primo.
