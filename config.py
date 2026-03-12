@@ -359,7 +359,7 @@ class Pacchetto_Rete:
         """ Aggiunge la "firma" del pannello RIS che ha riflesso il segnale """
         self.nodi_attraversati.append(f"RIS-{id_ris}")
         
-    def aggiungi_hop_bs(self, id_bs):
+    def aggiungi_hop_bs(self, id_bs): 
         """ Aggiunge la "firma" della Base Station che ha ricevuto il segnale """
         self.nodi_attraversati.append(f"BS-{id_bs}")
 
@@ -764,11 +764,12 @@ class SuperServer:
 
 import random # libreria per generare numeri casuali
 
-class SimulationEngine:
-    def __init__(self, db_manager):
-        self.db = db_manager
-        
-    def _create_layout(self, mq):
+class SimulationEngine:              # Motore di simulazione
+    def __init__(self, db_manager):  # Inizializza motore di simulazione
+        self.db = db_manager         # Database per salvare log
+    
+    # Crea layout magazzino
+    def _create_layout(self, mq): 
         if mq == 2000:
             return Magazzino(lunghezza=50, larghezza=40, altezza=10) # Caso A
         elif mq == 10000:
@@ -777,49 +778,51 @@ class SimulationEngine:
             return Magazzino(lunghezza=250, larghezza=140, altezza=15) # Caso C
         else:
             return Magazzino(lunghezza=100, larghezza=100, altezza=10)
-            
-    def _inizializza_droni(self, num_droni, ambiente):
-        flotta = []
-        for i in range(num_droni):
+
+    # Inizializza droni       
+    def _inizializza_droni(self, num_droni, ambiente): 
+        flotta = [] # Lista di droni
+        for i in range(num_droni): 
             # Posizionamento casuale iniziale nel magazzino
-            x = random.uniform(0, ambiente.lunghezza)
-            y = random.uniform(0, ambiente.larghezza)
+            x = random.uniform(0, ambiente.lunghezza)  # Posizione x casuale    
+            y = random.uniform(0, ambiente.larghezza)  # Posizione y casuale
             # Quote fisse semplificate per il test
             z = Z_DRONE_FISSO if ambiente.modalita_volo == 'FISSO' else random.choice([H_MENSOLA * i for i in range(1, ambiente.n_livelli_mensola)])
-            flotta.append(Drone(id_drone=i+1, x=x, y=y, z=z))
+            flotta.append(Drone(id_drone=i+1, x=x, y=y, z=z))  # Aggiunge drone alla lista
         return flotta
 
-    def test1_scalabilita(self):
+    # Test 1: scalabilità
+    def test1_scalabilita(self):    
         print("\n--- AVVIO TEST 1: Stress Test e Scalabilità ---")
-        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000} # Dimensioni magazzino
         
         SERVER_MAX_CAPACITY = MAX_RIS_CALLS_PER_DT * 5 # Semplificazione capacità server
         
         for nome_caso, mq in casi_mq.items():
-            print(f"> Esecuzione {nome_caso} ({mq} mq)")
-            ambiente = self._create_layout(mq)
-            server = SuperServer(ambiente, self.db)
-            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+            print(f"> Esecuzione {nome_caso} ({mq} mq)") # Stampa nome caso e dimensione magazzino
+            ambiente = self._create_layout(mq)           # Crea layout magazzino
+            server = SuperServer(ambiente, self.db)      # Inizializza server
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete # Lista di tutte le RIS
             
-            num_droni = 5
-            max_droni_raggiunti = 5
-            ciclo = 0
+            num_droni = 5             # Numero di droni
+            max_droni_raggiunti = 5   # Numero massimo di droni raggiunti
+            ciclo = 0                 # Contatore ciclo
             
             while True:
-                flotta = self._inizializza_droni(num_droni, ambiente)
-                snr_critici = 0
-                messaggi_server_dt = 0
+                flotta = self._inizializza_droni(num_droni, ambiente) # Inizializza droni
+                snr_critici = 0.                                      # Contatore SNR critici
+                messaggi_server_dt = 0                                # Contatore messaggi server DT
                 
                 # Simuliamo 1 solo step (DT) per il gruppo di droni corrente per testare il carico
                 for drone in flotta:
                     bs_target = ambiente.base_stations[0] # per semplicità inviamo alla prima BS
-                    risultati = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                    risultati = server.ricevi_telemetria(drone, bs_target, tutte_le_ris) # Riceve telemetria
                     
                     if risultati['usa_ris']:
-                        messaggi_server_dt += 1
+                        messaggi_server_dt += 1 # Incrementa contatore messaggi server DT
                     
                     if risultati['snr_uplink_effettivo_dB'] < SOGLIA_RIS_ATTIVAZIONE:
-                        snr_critici += 1
+                        snr_critici += 1 # Incrementa contatore SNR critici
                         
                 # Condizioni di Stop
                 if messaggi_server_dt > SERVER_MAX_CAPACITY:
@@ -830,88 +833,121 @@ class SimulationEngine:
                     print(f"  [!] COLLASSO RETE: Il {int((snr_critici/num_droni)*100)}% dei droni ha SNR critico.")
                     break
                     
-                max_droni_raggiunti = num_droni
-                num_droni += 5 # Aggiungiamo 5 droni per il prossimo ciclo di stress
-                ciclo += 1
+                max_droni_raggiunti = num_droni  # Aggiorna numero massimo di droni raggiunti 
+                num_droni += 5                   # Aggiungiamo 5 droni per il prossimo ciclo di stress
+                ciclo += 1                       # Incrementa contatore ciclo
                 
             print(f"  => Risultato {nome_caso}: Rete regge fino a MAX {max_droni_raggiunti} Droni.\n")
 
-    def test2_resilienza_guasto(self):
+    # Test 2: resilienza e tolleranza ai guasti (simulazione guasto RIS)
+    def test2_resilienza_guasto(self): 
         print("\n--- AVVIO TEST 2: Resilienza e Tolleranza ai Guasti ---")
-        ambiente = self._create_layout(10000) # Caso B
-        server = SuperServer(ambiente, self.db)
-        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
-        flotta = self._inizializza_droni(15, ambiente)
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000} # Dimensioni magazzino (mq)
         
-        # Scegliamo una RIS bersaglio da "rompere" (prendiamo la prima a soffitto se esiste)
-        ris_bersaglio_id = None
-        if len(ambiente.ris_soffitto) > 0:
-            ris_bersaglio_id = ambiente.ris_soffitto[0]['id']
+        offset_drone = 0 # Offset per distinguere i log nel database tra i vari casi
+        for nome_caso, mq in casi_mq.items():                            # Ciclo sui casi
+            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")               # Stampa nome caso e dimensione magazzino
+            ambiente = self._create_layout(mq)                           # Crea layout magazzino
+            server = SuperServer(ambiente, self.db)                      # Inizializza server
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete   # Lista di tutte le RIS
             
-        bs_target = ambiente.base_stations[0]
-        
-        for t in range(0, 100): # 100 step di test
-            if t == 50 and ris_bersaglio_id is not None:
-                print(f"  [t={t}] 💥 SIMULAZIONE GUASTO: Spegnimento forzato RIS_ID={ris_bersaglio_id}")
-                # "Rompiamo" la RIS rimuovendola dalla lista disponibile per il server
-                tutte_le_ris = [ris for ris in tutte_le_ris if ris['id'] != ris_bersaglio_id]
+            # Assegniamo ID univoci per distinguere i log nel database tra i vari casi
+            flotta = self._inizializza_droni(15, ambiente)                # Inizializza droni
+            for d in flotta:
+                d.id_drone += offset_drone                                # Assegna ID univoci
+            
+            # Scegliamo una RIS bersaglio da "rompere" (prendiamo la prima a soffitto se esiste)
+            ris_bersaglio_id = None
+            if len(ambiente.ris_soffitto) > 0:                              # Se esiste una RIS a soffitto
+                ris_bersaglio_id = ambiente.ris_soffitto[0]['id']           # Assegna ID della RIS bersaglio
                 
-            for drone in flotta:
-                # Muoviamo il drone casualmente per sfidare la rete
-                drone.x += random.uniform(-1, 1) * V_DRONE * DT
-                drone.y += random.uniform(-1, 1) * V_DRONE * DT
-                # Il server gestirà il failover automaticamente se una RIS non c'è più
-                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+            bs_target = ambiente.base_stations[0]                           # Base Station bersaglio
+            
+            # Simulazione 100 step per ciascun caso
+            for t in range(0, 100): 
+                if t == 50 and ris_bersaglio_id is not None:
+                    print(f"  [t={t}] 💥 SIMULAZIONE GUASTO ({nome_caso}): Spegnimento forzato RIS_ID={ris_bersaglio_id}")
+                    # "Rompiamo" la RIS rimuovendola dalla lista
+                    tutte_le_ris = [ris for ris in tutte_le_ris if ris['id'] != ris_bersaglio_id] # Rimuove RIS bersaglio
+                    
+                for drone in flotta:
+                    drone.x += random.uniform(-1, 1) * V_DRONE * DT # Aggiorna posizione drone
+                    drone.y += random.uniform(-1, 1) * V_DRONE * DT # Aggiorna posizione drone
+                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris) # Riceve telemetria
+            
+            offset_drone += 100 # Incremento per il caso successivo 
         
-        print("  => Test completato. (Controlla il plot relativo per visualizzare il failover).")
+        print("\n  => Test 2 completato per tutti i layout. (Controlla il plot relativo).")
 
+    # Test 3: collo di bottiglia (mass RTH)
     def test3_collo_bottiglia_rth(self):
         print("\n--- AVVIO TEST 3: Collo di Bottiglia (Mass RTH) ---")
-        ambiente = self._create_layout(35000) # Caso C
-        server = SuperServer(ambiente, self.db)
-        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
-        flotta = self._inizializza_droni(50, ambiente)
-        bs_target = ambiente.base_stations[0]
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
         
-        for t in range(0, 40):
-            if t == 20:
-                print(f"  [t={t}] ⚠️ EVENTO MASSIVO: Il 40% dei droni viene forzato a batteria 21%.")
-                droni_da_scaricare = int(0.40 * len(flotta))
-                for i in range(droni_da_scaricare):
-                    flotta[i].batteria = 21.0
+        for nome_caso, mq in casi_mq.items():
+            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")
+            ambiente = self._create_layout(mq)
+            server = SuperServer(ambiente, self.db)
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+            flotta = self._inizializza_droni(50, ambiente)
+            bs_target = ambiente.base_stations[0]
+            
+            # Marker nel DB per separare i dati dei 3 casi nel plot
+            ts_start = time.time()
+            self.db.inserisci_evento_rete(ts_start, -1, f"START_{nome_caso.replace(' ', '_')}", 0)
+            
+            for t in range(0, 40):
+                if t == 20:
+                    print(f"  [t={t}] ⚠️ EVENTO MASSIVO ({nome_caso}): Il 40% dei droni viene forzato a batteria 21%.")
+                    droni_da_scaricare = int(0.40 * len(flotta))
+                    for i in range(droni_da_scaricare):
+                        flotta[i].batteria = 21.0
+                        
+                for drone in flotta:
+                    drone.aggiorna_batteria() # Questo farà scattare la soglia del 20% subito dopo t=20
+                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
                     
-            for drone in flotta:
-                drone.aggiorna_batteria() # Questo farà scattare la soglia del 20% subito dopo t=20
-                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+            # Pausa per separare i timestamp dei 3 casi in modo chiaro nel DB
+            time.sleep(0.5)
                 
-        print("  => Test completato. (Tantissime RIS dovrebbero essersi attivate in RTH).")
+        print("\n  => Test 3 completato per tutti i layout. (Tantissime RIS dovrebbero essersi attivate in RTH).")
 
+    # Test 4 di confronto energetico
     def test4_confronto_energetico(self):
         print("\n--- AVVIO TEST 4: Confronto Energetico Baseline vs Euristico ---")
-        ambiente = self._create_layout(10000) # Caso B
-        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
-        flotta = self._inizializza_droni(15, ambiente)
-        bs_target = ambiente.base_stations[0]
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
         
-        # Siccome il database traccia tutto temporalmente, dobbiamo distinguere i Run.
-        # Per semplicità logica, simuleremo il Run 1 spostando i timestamp nel "passato".
-        
-        print(" > Esecuzione Run 1: Sistema Tradizionale (RIS Always-ON a 50W)")
-        ts_run1 = time.time() - 3600 # Un'ora fa
-        consumo_run1_totale = len(tutte_le_ris) * P_ACTIVE * 600 # 10 minuti di accensione fissa
-        # Inseriamo un log fittizio per Run 1 nel database per il plotter
-        self.db.inserisci_evento_rete(ts_run1, -1, 'RUN1_ALWAYS_ON_TOTAL', consumo_run1_totale)
+        for nome_caso, mq in casi_mq.items():
+            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")
+            ambiente = self._create_layout(mq)
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+            flotta = self._inizializza_droni(15, ambiente)
+            bs_target = ambiente.base_stations[0]
+            
+            # Siccome il database traccia tutto temporalmente, dobbiamo distinguere i Run.
+            print("   - Run 1: Sistema Tradizionale (RIS Always-ON a 50W)")
+            ts_run1 = time.time() - 3600 # Un'ora fa
+            consumo_run1_totale = len(tutte_le_ris) * P_ACTIVE * 600 # 10 minuti di accensione fissa
+            nome_marker_run1 = f"RUN1_ALWAYS_ON_TOTAL_{nome_caso.replace(' ', '_')}"
+            self.db.inserisci_evento_rete(ts_run1, -1, nome_marker_run1, consumo_run1_totale)
 
-        print(" > Esecuzione Run 2: Sistema Proposto (Euristico con SuperServer)")
-        server = SuperServer(ambiente, self.db)
-        for t in range(0, 6000): # 10 minuti a dt=0.1s -> 6000 step
-            for drone in flotta:
-                 # Simula movimento basilare per cambiare l'SNR nel tempo
-                 drone.x += random.uniform(-0.1, 0.1)
-                 drone.y += random.uniform(-0.1, 0.1)
-                 server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+            print("   - Run 2: Sistema Proposto (Euristico con SuperServer)")
+            server = SuperServer(ambiente, self.db)
+            
+            # Marker per Run 2
+            ts_start_run2 = time.time()
+            self.db.inserisci_evento_rete(ts_start_run2, -1, f"START_RUN2_{nome_caso.replace(' ', '_')}", 0)
+            
+            for t in range(0, 6000): # 10 minuti a dt=0.1s -> 6000 step
+                for drone in flotta:
+                     # Simula movimento basilare per cambiare l'SNR nel tempo
+                     drone.x += random.uniform(-0.1, 0.1)
+                     drone.y += random.uniform(-0.1, 0.1)
+                     server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                     
+            time.sleep(0.5) # Pausa tra un caso e l'altro
                  
-        print("  => Test comparativo completato con successo.")
+        print("\n  => Test 4 comparativo completato con successo per tutti i layout.")
 
 
 # ==========================================
@@ -959,26 +995,33 @@ class DataPlotter:
         print("  > Grafico salvato: plot_scalabilita.png")
 
     def plot_resilienza_guasto(self):
-        """ Legge l'andamento reale dell'SNR dal DB (Test 2) """
-        # Estraiamo gli snr degli ultimi step simulati (approssimativamente Test 2)
-        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 1500"
+        """ Legge l'andamento reale dell'SNR dal DB (Test 2) sui 3 casi """
+        # Estraiamo gli snr per i 3 casi (100 step * 15 droni * 3 casi = 4500 record approx)
+        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 4500"
         dati = self._esegui_query_timeseries(query)
         
         if not dati:
             return
             
-        # Riorganizziamo per plot
         dati.reverse() # Ordine cronologico
-        tempi = [row[0] - dati[0][0] for row in dati] # Normalizza partendo da 0
-        snr_drone_1 = [row[2] for row in dati if row[1] == 1]
-        t_drone_1 = [tempi[i] for i, row in enumerate(dati) if row[1] == 1]
+        
+        # Filtriamo un drone rappresentativo per ciascun caso (offset usati nel test 2)
+        droni_target = {'Caso A (2.000mq)': 1, 'Caso B (10.000mq)': 101, 'Caso C (35.000mq)': 201}
+        colori = {'Caso A (2.000mq)': '#1f77b4', 'Caso B (10.000mq)': '#ff7f0e', 'Caso C (35.000mq)': '#2ca02c'}
         
         plt.figure(figsize=(10, 6))
-        if len(t_drone_1) > 0:
-            plt.plot(t_drone_1, snr_drone_1, 'b-', linewidth=2, label='SNR Drone 1')
+        
+        for nome_caso, id_d in droni_target.items():
+            snr_storico = [row[2] for row in dati if row[1] == id_d]
+            ts_storico = [row[0] for row in dati if row[1] == id_d]
             
-        plt.axvline(x=5.0, color='r', linestyle='--', label='Guasto RIS') # t=50 step approssimato a sec
-        plt.title('Test 2: Resilienza della Rete al Guasto (Failover)')
+            if len(ts_storico) > 0:
+                # Normalizza partendo da 0 per mappare correttamente t=50 (5 secondi) nel grafico a sovrapposizione
+                t_norm = [t - ts_storico[0] for t in ts_storico]
+                plt.plot(t_norm, snr_storico, color=colori[nome_caso], linewidth=2, label=nome_caso)
+            
+        plt.axvline(x=5.0, color='r', linestyle='--', label='Guasto RIS (t=5s)') # t=50 step approssimato a sec
+        plt.title('Test 2: Resilienza della Rete al Guasto (Confronto A, B, C)')
         plt.xlabel('Tempo (secondi simulati)')
         plt.ylabel('SNR (dB)')
         plt.grid(True)
@@ -987,56 +1030,130 @@ class DataPlotter:
         print("  > Grafico salvato: plot_resilienza_guasto.png")
 
     def plot_consumi_mass_rth(self):
-        """ Disegna gli eventi di rete avvenuti recentemente nel DB (Test 3) """
-        query = "SELECT TS, Consumo_W FROM Eventi_Rete WHERE Azione IN ('active', 'passive') ORDER BY TS DESC LIMIT 2000"
-        dati = self._esegui_query_timeseries(query)
+        """ Disegna gli eventi di rete avvenuti nel DB per i 3 casi (Test 3) """
+        # Cerchiamo gli ultimi 3 marker di inizio caso
+        query_markers = "SELECT TS, Azione FROM Eventi_Rete WHERE Azione LIKE 'START_Caso_%' ORDER BY TS DESC LIMIT 3"
+        markers = self._esegui_query_timeseries(query_markers)
         
-        if not dati: return
+        if len(markers) < 3:
+            print("  > Dati insufficienti per plot_consumi_mass_rth. Eseguire prima il Test 3 completo.")
+            return
+            
+        markers.reverse() # Riordina: Caso A, Caso B, Caso C
         
-        dati.reverse()
-        # Aggreghiamo il consumo su finestre temporali 
-        tempi = [row[0] - dati[0][0] for row in dati]
-        consumi = [row[1] for row in dati]
+        colori = {'START_Caso_A': '#1f77b4', 'START_Caso_B': '#ff7f0e', 'START_Caso_C': '#2ca02c'}
+        labels = {'START_Caso_A': 'Caso A (2.000mq)', 'START_Caso_B': 'Caso B (10.000mq)', 'START_Caso_C': 'Caso C (35.000mq)'}
         
         plt.figure(figsize=(10, 6))
-        plt.plot(tempi, consumi, 'orange', alpha=0.5, label='Assorbimento Elettrico Istantaneo')
         
-        # Smoothed line (moving average fittizia per resa estetica tesi)
-        if len(consumi) > 10:
-            smoothed = [sum(consumi[i:i+10])/10 for i in range(len(consumi)-10)]
-            plt.plot(tempi[:-10], smoothed, 'r-', linewidth=3, label='Assorbimento Medio (W)')
+        for i in range(len(markers)):
+            inizio_ts = markers[i][0]
+            azione_marker = markers[i][1]
             
-        plt.title('Test 3: Picco Assorbimento Rete durante RTH di Massa')
+            # Il limite temporale è l'inizio del caso successivo, oppure inf
+            fine_ts = markers[i+1][0] if i < len(markers)-1 else time.time() + 100
+            
+            # Estraiamo l'assorbimento solo per la finestra temporale di questo caso
+            query_dati = """
+                SELECT TS, Consumo_W FROM Eventi_Rete 
+                WHERE Azione IN ('active', 'passive') AND TS >= ? AND TS < ?
+                ORDER BY TS ASC
+            """
+            dati_caso = self._esegui_query_timeseries(query_dati, (inizio_ts, fine_ts))
+            
+            if not dati_caso:
+                continue
+                
+            ts_base = dati_caso[0][0]
+            tempi = [row[0] - ts_base for row in dati_caso]
+            consumi = [row[1] for row in dati_caso]
+            
+            # Finestra mobile temporale per aggregare l'assorbimento. Essendo 50 droni a step, 50 è la finestra reale.
+            finestra = min(50, max(1, len(consumi) // 10)) 
+            if len(consumi) > finestra:
+                smoothed = [sum(consumi[k:k+finestra]) for k in range(len(consumi)-finestra)]
+                plt.plot(tempi[:-finestra], smoothed, color=colori[azione_marker], linewidth=3, label=labels[azione_marker])
+            else:
+                plt.plot(tempi, consumi, color=colori[azione_marker], linewidth=2, label=labels[azione_marker])
+            
+        plt.title('Test 3: Picco Assorbimento Rete durante RTH di Massa (Confronto A, B, C)')
         plt.xlabel('Tempo (secondi simulati)')
-        plt.ylabel('Consumo Rete (Watt)')
+        plt.ylabel('Consumo Rete Istantaneo Aggregato (Watt)')
         plt.grid(True)
         plt.legend()
         plt.savefig("plot_consumi_mass_rth.png", dpi=300)
         print("  > Grafico salvato: plot_consumi_mass_rth.png")
 
     def plot_risparmio_energetico(self):
-        """ Compara il consumo del Run 1 fittizio con la somma del DB per Run 2 """
-        # Cerchiamo il log fittizio di Run 1
-        query_run1 = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'RUN1_ALWAYS_ON_TOTAL'"
-        res_run1 = self._esegui_query_timeseries(query_run1)
-        run1_totale = res_run1[0][0] if res_run1 else 100000 
+        """ Compara il consumo del Run 1 con la somma del DB per Run 2 sui 3 casi """
+        import numpy as np
         
-        # Sommiamo tutti gli atti di accensione normali (Run 2 approssimato)
-        query_run2 = "SELECT SUM(Consumo_W) FROM Eventi_Rete WHERE Azione IN ('active', 'passive')"
-        res_run2 = self._esegui_query_timeseries(query_run2)
-        run2_totale = res_run2[0][0] if res_run2 and res_run2[0][0] else 15000 
+        casi_mq_labels = ['Caso A (2.000mq)', 'Caso B (10.000mq)', 'Caso C (35.000mq)']
+        raw_labels = ['Caso_A', 'Caso_B', 'Caso_C']
         
-        labels = ['Sistema Tradizionale (Always-ON)', 'Sistema Proposto (Euristico)']
-        valori = [run1_totale / 1000, run2_totale / 1000] # Convertiamo in kW 
-        colori = ['#d9534f', '#5cb85c'] # Rosso e Verde
+        valori_run1 = []
+        valori_run2 = []
         
-        plt.figure(figsize=(8, 6))
-        plt.bar(labels, valori, color=colori)
-        plt.title('Test 4: Confronto Consumo Energetico Cumulato (10 min)')
-        plt.ylabel('Energia Erogata (kW)')
-        for i, v in enumerate(valori):
-            plt.text(i, v + (max(valori)*0.05), f"{v:.1f} kW", ha='center', fontsize=12, fontweight='bold')
+        for idx_l, label in enumerate(raw_labels):
+            # Estrazione Run 1 fittizio
+            query_run1 = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = ?"
+            res_run1 = self._esegui_query_timeseries(query_run1, (f"RUN1_ALWAYS_ON_TOTAL_{label}",))
+            r1_tot = res_run1[0][0] if res_run1 else 0
+            valori_run1.append(r1_tot / 1000) # Convertiamo in kW 
             
+            # Estrazione Run 2 reale (Euristico)
+            query_start = "SELECT TS FROM Eventi_Rete WHERE Azione = ? ORDER BY TS DESC LIMIT 1"
+            res_start = self._esegui_query_timeseries(query_start, (f"START_RUN2_{label}",))
+            
+            if res_start:
+                ts_start = res_start[0][0]
+                # Se c'è un caso successivo, fermiamo la somma al suo inizio
+                if idx_l < len(raw_labels) - 1:
+                    query_next = "SELECT TS FROM Eventi_Rete WHERE Azione = ? ORDER BY TS DESC LIMIT 1"
+                    res_next = self._esegui_query_timeseries(query_next, (f"START_RUN2_{raw_labels[idx_l+1]}",))
+                    ts_end = res_next[0][0] if res_next else time.time() + 100
+                else:
+                    ts_end = time.time() + 100
+                    
+                query_run2 = "SELECT SUM(Consumo_W) FROM Eventi_Rete WHERE Azione IN ('active', 'passive') AND TS >= ? AND TS < ?"
+                res_run2 = self._esegui_query_timeseries(query_run2, (ts_start, ts_end))
+                r2_tot = res_run2[0][0] if (res_run2 and res_run2[0][0]) else 0
+                valori_run2.append(r2_tot / 1000)
+            else:
+                valori_run2.append(0)
+        
+        if sum(valori_run1) == 0 and sum(valori_run2) == 0:
+            print("  > Dati insufficienti per plot_risparmio_energetico. Eseguire Test 4 prima.")
+            return
+
+        x = np.arange(len(casi_mq_labels))
+        width = 0.35
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        rects1 = ax.bar(x - width/2, valori_run1, width, label='Sistema Tradizionale (Always-ON)', color='#d9534f')
+        rects2 = ax.bar(x + width/2, valori_run2, width, label='Sistema Proposto (Euristico)', color='#5cb85c')
+        
+        ax.set_ylabel('Energia Erogata in 10 min (kW)')
+        ax.set_title('Test 4: Confronto Consumo Energetico Cumulato per Caso (10 min)')
+        ax.set_xticks(x)
+        ax.set_xticklabels(casi_mq_labels)
+        ax.legend()
+        
+        def autolabel(rects):
+            """Appende un'etichetta sopra ogni barra."""
+            for rect in rects:
+                height = rect.get_height()
+                if height > 0:
+                    ax.annotate(f'{height:.1f} kW',
+                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xytext=(0, 3), 
+                                textcoords="offset points",
+                                ha='center', va='bottom', fontweight='bold')
+                                
+        autolabel(rects1)
+        autolabel(rects2)
+        
+        fig.tight_layout()
         plt.savefig("plot_risparmio_energetico.png", dpi=300)
         print("  > Grafico salvato: plot_risparmio_energetico.png")
 
