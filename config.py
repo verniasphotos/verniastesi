@@ -791,7 +791,7 @@ class SimulationEngine:              # Motore di simulazione
             flotta.append(Drone(id_drone=i+1, x=x, y=y, z=z))  # Aggiunge drone alla lista
         return flotta
 
-    # Test 1: scalabilità
+    # Test 1: Stress Test e Verifica Limite di Scalabilità Topologica
     def test1_scalabilita(self):    
         print("\n--- AVVIO TEST 1: Stress Test e Scalabilità ---")
         casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000} # Dimensioni magazzino
@@ -879,7 +879,7 @@ class SimulationEngine:              # Motore di simulazione
         
         print("\n  => Test 2 completato per tutti i layout. (Controlla il plot relativo).")
 
-    # Test 3: collo di bottiglia (mass RTH)
+    # Test 3: Analisi Energetica sui Transitori di Emergenza Sincrona ("Mass RTH")
     def test3_collo_bottiglia_rth(self):
         print("\n--- AVVIO TEST 3: Collo di Bottiglia (Mass RTH) ---")
         casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
@@ -893,7 +893,8 @@ class SimulationEngine:              # Motore di simulazione
             bs_target = ambiente.base_stations[0]
             
             # Marker nel DB per separare i dati dei 3 casi nel plot
-            ts_start = time.time()
+            ts_start = time.time() # Timestamp di inizio simulazione
+            # Inseriamo un log fittizio per Run 1 nel database per il plotter
             self.db.inserisci_evento_rete(ts_start, -1, f"START_{nome_caso.replace(' ', '_')}", 0)
             
             for t in range(0, 40):
@@ -905,7 +906,7 @@ class SimulationEngine:              # Motore di simulazione
                         
                 for drone in flotta:
                     drone.aggiorna_batteria() # Questo farà scattare la soglia del 20% subito dopo t=20
-                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris) # Riceve telemetria
                     
             # Pausa per separare i timestamp dei 3 casi in modo chiaro nel DB
             time.sleep(0.5)
@@ -918,11 +919,11 @@ class SimulationEngine:              # Motore di simulazione
         casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
         
         for nome_caso, mq in casi_mq.items():
-            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")
-            ambiente = self._create_layout(mq)
-            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
-            flotta = self._inizializza_droni(15, ambiente)
-            bs_target = ambiente.base_stations[0]
+            print(f"\n> Esecuzione {nome_caso} ({mq} mq)") # Stampa nome caso e dimensione magazzino
+            ambiente = self._create_layout(mq) # Crea layout magazzino
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete # Lista di tutte le RIS
+            flotta = self._inizializza_droni(15, ambiente) # Inizializza droni
+            bs_target = ambiente.base_stations[0] # Base Station bersaglio
             
             # Siccome il database traccia tutto temporalmente, dobbiamo distinguere i Run.
             print("   - Run 1: Sistema Tradizionale (RIS Always-ON a 50W)")
@@ -931,12 +932,12 @@ class SimulationEngine:              # Motore di simulazione
             nome_marker_run1 = f"RUN1_ALWAYS_ON_TOTAL_{nome_caso.replace(' ', '_')}"
             self.db.inserisci_evento_rete(ts_run1, -1, nome_marker_run1, consumo_run1_totale)
 
-            print("   - Run 2: Sistema Proposto (Euristico con SuperServer)")
-            server = SuperServer(ambiente, self.db)
+            print("   - Run 2: Sistema Proposto (Euristico con SuperServer)") # Sistema euristico con SuperServer
+            server = SuperServer(ambiente, self.db) # Inizializza server
             
             # Marker per Run 2
-            ts_start_run2 = time.time()
-            self.db.inserisci_evento_rete(ts_start_run2, -1, f"START_RUN2_{nome_caso.replace(' ', '_')}", 0)
+            ts_start_run2 = time.time() # Timestamp di inizio simulazione
+            self.db.inserisci_evento_rete(ts_start_run2, -1, f"START_RUN2_{nome_caso.replace(' ', '_')}", 0) # Inserisce log fittizio per Run 2
             
             for t in range(0, 6000): # 10 minuti a dt=0.1s -> 6000 step
                 for drone in flotta:
