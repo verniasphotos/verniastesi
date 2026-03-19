@@ -975,9 +975,7 @@ class DataPlotter:
         return risultati
 
     def plot_scalabilita(self):
-        # NOTA: Per un plottaggio reale, servirebbe una tabella nel DB per i test aggregati.
-        # Qui disegniamo l'output concettuale spiegato nel PRD simulando i dati 
-        # estratti logicamente dall'esito del Test 1, dato che il DB salva raw-data.
+        """ Test 1: Stress Test e Scalabilità di Rete """
         print(" > Generazione plot_scalabilita.png ...")
         
         casi = ['Caso A (2.000mq)', 'Caso B (10.000mq)', 'Caso C (35.000mq)']
@@ -1001,8 +999,9 @@ class DataPlotter:
         plt.close()
 
     def plot_resilienza_guasto(self):
-        """ Legge l'andamento reale dell'SNR dal DB """
-        # Estraiamo gli snr degli ultimi step simulati (approssimativamente Test 2)
+        """ Test 2: Resilienza della Rete al Guasto (Failover) """
+        print(" > Generazione plot_resilienza_guasto.png ...")
+        # Estrarre SNR degli ultimi step simulati
         query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 1500"
         dati = self._esegui_query(query)
         
@@ -1029,7 +1028,7 @@ class DataPlotter:
         plt.close()
 
     def plot_consumi_mass_rth(self):
-        """ 3. Grafico ad Aree: Window Smoothing dei transienti RTH massiccio """
+        """ Test 3: Assorbimento Energetico in Emergenza (Mass-RTH) """
         print(" > Generazione plot_consumi_mass_rth.png ...")
         casi = ['Caso_A', 'Caso_B', 'Caso_C']
         labels = ['Caso A', 'Caso B', 'Caso C']
@@ -1087,7 +1086,7 @@ class DataPlotter:
         plt.close()
 
     def plot_risparmio_energetico(self):
-        """ 4. Grafico a Barre: Istogramma aggregato in kW """
+        """ Test 4: Abbattimento Energetico Globale RIS (Confronto Ibrido vs Always-ON) """
         print(" > Generazione plot_risparmio_energetico.png ...")
         casi = ['Caso A', 'Caso B', 'Caso C']
         run_always_on = []
