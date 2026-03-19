@@ -915,7 +915,7 @@ class SimulationEngine:              # Motore di simulazione
 
     # Test 4 di confronto energetico
     def test4_confronto_energetico(self):
-        print("\n--- AVVIO TEST 4: Confronto Energetico Baseline vs Euristico ---")
+        print("\n--- AVVIO TEST 4: Confronto Energetico Baseline vs Super Server ---")
         casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
         
         for nome_caso, mq in casi_mq.items():
@@ -928,18 +928,18 @@ class SimulationEngine:              # Motore di simulazione
             # Siccome il database traccia tutto temporalmente, dobbiamo distinguere i Run.
             print("   - Run 1: Sistema Tradizionale (RIS Always-ON a 50W)")
             ts_run1 = time.time() - 3600 # Un'ora fa
-            consumo_run1_totale = len(tutte_le_ris) * P_ACTIVE * 600 # 10 minuti di accensione fissa
+            consumo_run1_totale = len(tutte_le_ris) * P_ACTIVE * 15 # 15 secondi di accensione fissa
             nome_marker_run1 = f"RUN1_ALWAYS_ON_TOTAL_{nome_caso.replace(' ', '_')}"
             self.db.inserisci_evento_rete(ts_run1, -1, nome_marker_run1, consumo_run1_totale)
 
-            print("   - Run 2: Sistema Proposto (Euristico con SuperServer)") # Sistema euristico con SuperServer
+            print("   - Run 2: Modello Ottimizzato (con Super Server)") # Sistema gestito dal Super Server
             server = SuperServer(ambiente, self.db) # Inizializza server
             
             # Marker per Run 2
             ts_start_run2 = time.time() # Timestamp di inizio simulazione
             self.db.inserisci_evento_rete(ts_start_run2, -1, f"START_RUN2_{nome_caso.replace(' ', '_')}", 0) # Inserisce log fittizio per Run 2
             
-            for t in range(0, 6000): # 10 minuti a dt=0.1s -> 6000 step
+            for t in range(0, 150): # Test compatto (15 sec) -> 150 step
                 for drone in flotta:
                      # Simula movimento basilare per cambiare l'SNR nel tempo
                      drone.x += random.uniform(-0.1, 0.1)
@@ -960,14 +960,13 @@ import matplotlib.pyplot as plt
 
 class DataPlotter:
     """ 
-    Si occupa di leggere i dati (raw-data) salvati su SQLite 
-    durante la simulazione ed elaborare grafici scientifici in formato .png. 
+    Legge i dati salvati su SQLite durante i test ed elabora i grafici.
+    Codice epurato da logiche superflue e variabili in memoria: usa solo query SQL.
     """
     def __init__(self, db_name="telemetria.db"):
         self.db_name = db_name
 
     def _esegui_query(self, query, parametri=()):
-        """ Apre la connessione al database, esegue la query e restituisce i risultati """
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute(query, parametri)
@@ -978,46 +977,54 @@ class DataPlotter:
     def plot_scalabilita(self):
         """ 1. Grafico a Linee: Scalabilità e Punto di Rottura """
         print(" > Generazione plot_scalabilita.png ...")
-        
-        # Nel Test 1 il server processa chiamate che aumentano all'aumentare dei droni.
-        # Raggruppiamo i droni massimi per iterazione temporale dal DB
-        query = '''
-            SELECT CAST(TS AS INTEGER) as secondo, COUNT(ID_Drone) as droni_attivi
-            FROM Telemetria_Droni 
-            GROUP BY CAST(TS AS INTEGER)
-            ORDER BY TS ASC LIMIT 100
-        '''
-        dati_raw = self._esegui_query(query)
-        
-        # Per visualizzare chiaramente le "3 rette ascendenti distinte" (Caso A, B, C)
-        # come da PRD per lo Stress Test (Asse X = Numero droni, Asse Y = Messaggi/sec)
-        
         plt.figure(figsize=(10, 6))
         
-        # Dati teorici simulati per il plotting a partire dai conteggi
-        # Dato che simuliamo scatti di +5 droni:
-        x_droni = np.arange(5, 55, 5) # Da 5 a 50 droni
+        # Ricostruiamo la dimensione della flotta nel tempo analizzando i picchi di ID_Drone raggruppati per TS
+        # Utilizziamo COUNT da Eventi_Rete per determinare l'overhead del SuperServer
+        query_flotta = '''
+            SELECT CAST(TS AS INTEGER) as sec, MAX(ID_Drone) as droni
+            FROM Telemetria_Droni
+            GROUP BY sec
+            ORDER BY sec ASC
+        '''
+        dati_flotta = self._esegui_query(query_flotta)
         
-        # Overhead proporzionale (messaggi processati): Caso C soffre di più causa area maggiore
-        y_A = [x * 0.8 for x in x_droni]   
-        y_B = [x * 1.5 for x in x_droni]   
-        y_C = [x * 3.2 for x in x_droni]   
-        
-        plt.plot(x_droni, y_A, marker='o', linestyle='-', label='Caso A (2.000 mq)', color='#3498db', linewidth=2)
-        plt.plot(x_droni, y_B, marker='s', linestyle='-', label='Caso B (10.000 mq)', color='#2ecc71', linewidth=2)
-        plt.plot(x_droni, y_C, marker='^', linestyle='-', label='Caso C (35.000 mq)', color='#9b59b6', linewidth=2)
-        
-        # Inserimento marker rossi per il collasso algoritmico
-        plt.plot(x_droni[-1], y_A[-1], 'rx', markersize=14, mew=3, label='Punto di Collasso (Breakdown)')
-        plt.plot(x_droni[-4], y_B[-4], 'rx', markersize=14, mew=3)
-        plt.plot(x_droni[-7], y_C[-7], 'rx', markersize=14, mew=3)
+        if dati_flotta:
+            x_casi = [[], [], []]
+            y_casi = [[], [], []]
+            idx_caso = 0
+            prev_droni = 0
+            
+            for sec, droni in dati_flotta:
+                # Trova i reset dei cicli (nuovo caso A, B, o C)
+                if droni < prev_droni and droni <= 5:
+                    idx_caso += 1
+                    if idx_caso > 2:
+                        break
+                
+                # Calcola i messaggi processati nello stesso secondo (Overhead)    
+                q_overhead = "SELECT COUNT(*) FROM Eventi_Rete WHERE CAST(TS AS INTEGER) = ?"
+                overhead = self._esegui_query(q_overhead, (sec,))[0][0] * 10 # Stimato in 1 sec
+                
+                if droni >= 5: # Filtra record rumorosi
+                    x_casi[idx_caso].append(droni)
+                    y_casi[idx_caso].append(overhead)
+                    
+                prev_droni = droni
+            
+            etichette = ['Caso A (Piccolo)', 'Caso B (Medio)', 'Caso C (Enorme)']
+            colori = ['#3498db', '#2ecc71', '#9b59b6']
+            
+            for i in range(min(3, idx_caso + 1)):
+                if x_casi[i]:
+                    plt.plot(x_casi[i], y_casi[i], marker='o', linestyle='-', label=etichette[i], color=colori[i], linewidth=2)
+                    plt.plot(x_casi[i][-1], y_casi[i][-1], 'rx', markersize=14, mew=3) # Marker collasso
 
         plt.title('TEST 1: Stress Test di Rete e Limiti di Scalabilità', fontsize=14, fontweight='bold')
-        plt.xlabel('Numero Droni Dispiegati (Flotta Attiva)', fontsize=12)
-        plt.ylabel('Overhead Server (Messaggi Gestiti / sec)', fontsize=12)
+        plt.xlabel('Numero Droni Dispiegati', fontsize=12)
+        plt.ylabel('Overhead Server (Interventi RIS / sec)', fontsize=12)
         plt.grid(True, linestyle='--', alpha=0.6)
         plt.legend(loc='upper left', fontsize=10)
-        
         plt.tight_layout()
         plt.savefig('plot_scalabilita.png', dpi=300)
         plt.close()
@@ -1025,39 +1032,28 @@ class DataPlotter:
     def plot_resilienza_guasto(self):
         """ 2. Grafico Temporale: Adattamento a guasto RIS """
         print(" > Generazione plot_resilienza_guasto.png ...")
-        
         plt.figure(figsize=(12, 6))
         colori = ['#2980b9', '#d35400', '#27ae60']
         
-        # Andiamo a cercare 3 droni usati nel Caso B del Test 2 (ID: 101, 102, 103)
+        # Droni usati nel Caso B del Test 2 (ID: 101, 102, 103)
         for idx, id_drone in enumerate([101, 102, 103]):
-            query = f'''
-                SELECT TS, SNR 
-                FROM Telemetria_Droni 
-                WHERE ID_Drone = {id_drone}
-                ORDER BY TS ASC
-            '''
-            dati = self._esegui_query(query)
+            query = "SELECT TS, SNR FROM Telemetria_Droni WHERE ID_Drone = ? ORDER BY TS ASC"
+            dati = self._esegui_query(query, (id_drone,))
             
-            if not dati:
-                continue
+            if dati:
+                ts_iniziale = dati[0][0]
+                tempi = [(r[0] - ts_iniziale) for r in dati]
+                snr = [r[1] for r in dati]
                 
-            ts_iniziale = dati[0][0]
-            # Mettiamo a zero (normalizziamo) e siccome ogni DT è 0.1 simuliamo i sec totali
-            tempi = [(r[0] - ts_iniziale) for r in dati]
-            snr = [r[1] for r in dati]
+                plt.plot(tempi, snr, label=f'Drone {id_drone}', linewidth=2.5, color=colori[idx], alpha=0.9)
             
-            plt.plot(tempi, snr, label=f'Drone {id_drone} (Ping Continuo)', linewidth=2.5, color=colori[idx], alpha=0.9)
-            
-        # Il guasto è indotto al 50esimo passo nel loop (t=5.0s per dt 0.1)
-        plt.axvline(x=5.0, color='red', linestyle='--', linewidth=2.5, label='Guasto Indotto RIS (t=5s)')
+        plt.axvline(x=5.0, color='red', linestyle='--', linewidth=2.5, label='Guasto RIS (t=5s)')
         
         plt.title('TEST 2: Resilienza Rete e Failover Dinamico RIS', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo Normalizzato di Volo (secondi)', fontsize=12)
-        plt.ylabel('Qualità Segnale SNR (dB)', fontsize=12)
+        plt.xlabel('Tempo Normalizzato (secondi)', fontsize=12)
+        plt.ylabel('SNR (dB)', fontsize=12)
         plt.grid(True, alpha=0.5)
-        plt.legend(loc='lower right', fontsize=10)
-        
+        plt.legend()
         plt.tight_layout()
         plt.savefig('plot_resilienza_guasto.png', dpi=300)
         plt.close()
@@ -1065,26 +1061,22 @@ class DataPlotter:
     def plot_consumi_mass_rth(self):
         """ 3. Grafico ad Aree: Window Smoothing dei transienti RTH massiccio """
         print(" > Generazione plot_consumi_mass_rth.png ...")
-        
         casi = ['Caso_A', 'Caso_B', 'Caso_C']
-        labels = ['Caso A (Piccolo)', 'Caso B (Medio)', 'Caso C (Enorme)']
+        labels = ['Caso A', 'Caso B', 'Caso C']
         colori = ['#3498db', '#2ecc71', '#e74c3c']
         
         plt.figure(figsize=(12, 6))
         
         for i, caso in enumerate(casi):
-            # Cerca l'esatto timestamp di inizio Test 3 per questo caso
-            query_start = f"SELECT TS FROM Eventi_Rete WHERE Azione = 'START_{caso}' ORDER BY TS DESC LIMIT 1"
-            res_start = self._esegui_query(query_start)
+            q_start = f"SELECT TS FROM Eventi_Rete WHERE Azione = 'START_{caso}' ORDER BY TS DESC LIMIT 1"
+            res_start = self._esegui_query(q_start)
             
             if res_start:
                 ts_start = res_start[0][0]
-                # Preleviamo i dati per i successivi 8 secondi virtuali dopo lo start
                 ts_end = ts_start + 8.0 
                 
                 query_dati = '''
-                    SELECT TS, Consumo_W 
-                    FROM Eventi_Rete 
+                    SELECT TS, Consumo_W FROM Eventi_Rete 
                     WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
                     ORDER BY TS ASC
                 '''
@@ -1094,7 +1086,6 @@ class DataPlotter:
                     tempi_raw = [riga[0] - ts_start for riga in dati]
                     consumi_raw = [riga[1] for riga in dati]
                     
-                    # Filtro "finestra mobile" di smoothing (come da PRD)
                     finestra = min(50, len(consumi_raw))
                     if finestra > 2:
                         kernel = np.ones(finestra) / finestra
@@ -1105,85 +1096,72 @@ class DataPlotter:
                     plt.fill_between(tempi_raw, 0, consumi_smoothed, color=colori[i], alpha=0.4, label=labels[i])
                     plt.plot(tempi_raw, consumi_smoothed, color=colori[i], linewidth=2.5)
 
-        # A t=20 step (ovvero t=2.0 sec) abbiamo inserito un droppaggio di batteria improvviso del 40% flotta
-        plt.axvline(x=2.0, color='black', linestyle=':', linewidth=2, label='Inizio Congestione Mass-RTH')
-
-        plt.title('TEST 3: Assorbimento Picco Energetico (Mass Return-To-Home)', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo dai marker START (secondi)', fontsize=12)
-        plt.ylabel('Consumo Istantaneo Controller RIS (Watt)', fontsize=12)
+        plt.axvline(x=2.0, color='black', linestyle=':', linewidth=2, label='Congestione RTH massivo')
+        plt.title('TEST 3: Assorbimento Energetico Mass-RTH', fontsize=14, fontweight='bold')
+        plt.xlabel('Tempo dai marker (secondi)', fontsize=12)
+        plt.ylabel('Consumo Controller RIS (W)', fontsize=12)
         plt.grid(True, alpha=0.4)
-        plt.legend(loc='upper right', fontsize=10)
-        
+        plt.legend()
         plt.tight_layout()
         plt.savefig('plot_consumi_mass_rth.png', dpi=300)
         plt.close()
 
     def plot_risparmio_energetico(self):
-        """ 4. Grafico a Barre: Istogramma aggregato in kW (Benchmark finale) """
+        """ 4. Grafico a Barre: Istogramma aggregato in kW """
         print(" > Generazione plot_risparmio_energetico.png ...")
-        
         casi = ['Caso A', 'Caso B', 'Caso C']
         run_always_on = []
-        run_euristico = []
+        run_superserver = []
         
         for caso in casi:
             nome_caso = caso.replace(' ', '_')
             
-            # --- DATI RUN 1: Tradizionale always-on (Simulazione)
-            query_r1 = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'RUN1_ALWAYS_ON_TOTAL_{nome_caso}' ORDER BY TS DESC LIMIT 1"
-            res_r1 = self._esegui_query(query_r1)
-            consumo_kw = (res_r1[0][0] / 1000.0) if res_r1 else 0.0 # Valore calcolato kW
+            q_r1 = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'RUN1_ALWAYS_ON_TOTAL_{nome_caso}' ORDER BY TS DESC LIMIT 1"
+            res_r1 = self._esegui_query(q_r1)
+            consumo_kw = (res_r1[0][0] / 1000.0) if res_r1 else 0.0
             run_always_on.append(consumo_kw)
             
-            # --- DATI RUN 2: Euristico
-            query_start = f"SELECT TS FROM Eventi_Rete WHERE Azione = 'START_RUN2_{nome_caso}' ORDER BY TS DESC LIMIT 1"
-            res_start = self._esegui_query(query_start)
+            q_start = f"SELECT TS FROM Eventi_Rete WHERE Azione = 'START_RUN2_{nome_caso}' ORDER BY TS DESC LIMIT 1"
+            res_start = self._esegui_query(q_start)
             
             if res_start:
                 ts_start = res_start[0][0]
-                # Usa query SUM per sommare tutto il consumo in modo scalare lungo i 10 min della test run
-                ts_end = ts_start + 650.0 
+                ts_end = ts_start + 60.0 
                 
                 query_sum = '''
-                    SELECT SUM(Consumo_W)
-                    FROM Eventi_Rete
+                    SELECT SUM(Consumo_W) FROM Eventi_Rete
                     WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
                 '''
                 res_sum = self._esegui_query(query_sum, (ts_start, ts_end))
                 somma_watt = res_sum[0][0] if (res_sum and res_sum[0][0]) else 0.0
-                
-                # I droni e le chiamate avvengono centinaia di volte, la somma_watt è l'energia assorbita per frazione DT
-                # Rapportiamo per non sfalsare le scale tra le due Run
-                energia_kw = (somma_watt / 10) / 1000.0
-                run_euristico.append(energia_kw)
+                energia_kw = (somma_watt / 10.0) / 1000.0 # Scala stimata x timestep
+                run_superserver.append(energia_kw)
             else:
-                run_euristico.append(0.0)
+                run_superserver.append(0.0)
 
-        # Plot Istogramma
         x = np.arange(len(casi))
         width = 0.35
 
         fig, ax = plt.subplots(figsize=(9, 6))
-        rects1 = ax.bar(x - width/2, run_always_on, width, label='Always-On (Legacy)', color='#e74c3c', edgecolor='black', zorder=3)
-        rects2 = ax.bar(x + width/2, run_euristico, width, label='Euristico (Intelligente)', color='#2ecc71', edgecolor='black', zorder=3)
+        rects1 = ax.bar(x - width/2, run_always_on, width, label='Always-On', color='#e74c3c', edgecolor='black', zorder=3)
+        rects2 = ax.bar(x + width/2, run_superserver, width, label='Super Server', color='#2ecc71', edgecolor='black', zorder=3)
 
-        ax.set_title('TEST 4: Valutazione Abbattimento Energetico Globale RIS', fontsize=14, fontweight='bold')
-        ax.set_ylabel('Energia Elettrica Impiegata (kW)', fontsize=12)
+        ax.set_title('TEST 4: Abbattimento Energetico Globale RIS', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Energia Impiegata (kW)', fontsize=12)
         ax.set_xticks(x)
         ax.set_xticklabels(casi, fontsize=11)
-        ax.legend(fontsize=11)
+        ax.legend()
         ax.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
 
-        # Annotazioni esatte
         for rect in rects1:
             height = rect.get_height()
             if height > 0:
                 ax.annotate(f'{height:.1f}kW', xy=(rect.get_x() + rect.get_width()/2, height), 
                             xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=10)
-        for rects2 in rects2:
-            height = rects2.get_height()
+        for rect in rects2:
+            height = rect.get_height()
             if height >= 0:
-                ax.annotate(f'{height:.1f}kW', xy=(rects2.get_x() + rects2.get_width()/2, height), 
+                ax.annotate(f'{height:.1f}kW', xy=(rect.get_x() + rect.get_width()/2, height), 
                             xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=10)
 
         plt.tight_layout()
@@ -1287,7 +1265,7 @@ if __name__ == "__main__":
             print("1. [Test 1] Scalabilità e Punto di Rottura (Breakdown)")
             print("2. [Test 2] Resilienza Rete e Guasto RIS")
             print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
-            print("4. [Test 4] Confronto Assorbimenti (Euristica vs Always-ON)")
+            print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
             print("0. Esci")
             
             scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
