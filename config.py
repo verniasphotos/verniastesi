@@ -1175,6 +1175,9 @@ class DeploymentPlanner:
         # 1. Deployment Server (1 istanza fissa a coordinate 0,0)
         self.server = {'x': 0.0, 'y': 0.0, 'z': 0.0}
         
+        # 1b. Base di ricarica droni (a metà della parete inferiore Y=0)
+        self.base_ricarica = {'x': self.L_MAG / 2.0, 'y': 0.0, 'z': 0.0}
+        
         # 2. Deployment Base Stations
         # Se l'area è <= 10.000, basta una BS al centro
         if self.area_mq <= 10000:
@@ -1197,17 +1200,19 @@ class DeploymentPlanner:
                     })
 
         # 3. Deployment RIS a Parete (Lungo il perimetro)
-        passo_ris_parete = R_RIS * 2.0 # Es. 30 metri
-        
-        # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
-        for x in np.arange(0, self.L_MAG, passo_ris_parete):
-            self.ris_parete.append({'x': x, 'y': 0.0, 'z': self.H_MAG / 2.0})
-            self.ris_parete.append({'x': x, 'y': self.W_MAG, 'z': self.H_MAG / 2.0})
+        # Solo in modalità MULTILIVELLO (>= 10.000 mq)
+        if self.area_mq >= 10000:
+            passo_ris_parete = R_RIS * 2.0 # Es. 30 metri
             
-        # Lato Sinistro (X=0) e Destro (X=L_MAG) (escludendo gli angoli già coperti)
-        for y in np.arange(passo_ris_parete, self.W_MAG, passo_ris_parete):
-            self.ris_parete.append({'x': 0.0, 'y': y, 'z': self.H_MAG / 2.0})
-            self.ris_parete.append({'x': self.L_MAG, 'y': y, 'z': self.H_MAG / 2.0})
+            # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
+            for x in np.arange(0, self.L_MAG, passo_ris_parete):
+                self.ris_parete.append({'x': x, 'y': 0.0, 'z': self.H_MAG / 2.0})
+                self.ris_parete.append({'x': x, 'y': self.W_MAG, 'z': self.H_MAG / 2.0})
+                
+            # Lato Sinistro (X=0) e Destro (X=L_MAG) (escludendo gli angoli già coperti)
+            for y in np.arange(passo_ris_parete, self.W_MAG, passo_ris_parete):
+                self.ris_parete.append({'x': 0.0, 'y': y, 'z': self.H_MAG / 2.0})
+                self.ris_parete.append({'x': self.L_MAG, 'y': y, 'z': self.H_MAG / 2.0})
             
         # 4. Deployment RIS a Soffitto (A griglia interna)
         passo_ris_soffitto = R_RIS * 2.0
@@ -1232,10 +1237,11 @@ class DeploymentPlanner:
             'H_MAG': self.H_MAG,
             'AREA': self.area_mq,
             'N_SERVER': 1,
+            'N_BASE_RICARICA': 1,
             'N_BS': len(self.base_stations),
             'N_RIS_PARETE': len(self.ris_parete),
             'N_RIS_SOFFITTO': len(self.ris_soffitto),
-            'TOT_HARDWARE': 1 + len(self.base_stations) + len(self.ris_parete) + len(self.ris_soffitto)
+            'TOT_HARDWARE': 2 + len(self.base_stations) + len(self.ris_parete) + len(self.ris_soffitto)
         }
 
     def genera_dashboard(self, filename="plot_deployment_bom.png"):
@@ -1268,10 +1274,13 @@ class DeploymentPlanner:
         # Plot Server
         ax_mappa.scatter([self.server['x']], [self.server['y']], c='gold', marker='*', s=300, edgecolors='black', label='Super Server', zorder=6)
         
+        # Plot Base Ricarica
+        ax_mappa.scatter([self.base_ricarica['x']], [self.base_ricarica['y']], c='magenta', marker='P', s=250, edgecolors='black', label='Base Ricarica Droni', zorder=6)
+        
         ax_mappa.set_title("Mappa Topologica: Nodi 6G nel Magazzino", fontsize=14, fontweight='bold')
         ax_mappa.set_xlabel("Lunghezza X (m)")
         ax_mappa.set_ylabel("Larghezza Y (m)")
-        ax_mappa.legend(loc='upper right', bbox_to_anchor=(1.05, 1.05))
+        # La legenda verrà posizionata nel pannello di destra
         ax_mappa.grid(True, linestyle='--', alpha=0.5)
         ax_mappa.set_aspect('equal', 'box')
         
@@ -1280,7 +1289,7 @@ class DeploymentPlanner:
         bom = self.get_bom_report()
         
         testo_bom = (
-            " DISTINTA BASE HARDWARE (BoM)\n"
+            " RECAP MAGAZZINO\n"
             "=================================\n\n"
             f" [Dimensioni Magazzino]\n"
             f"  - Lunghezza: {bom['L_MAG']:.1f} m\n"
@@ -1289,6 +1298,7 @@ class DeploymentPlanner:
             f"  - Area:      {bom['AREA']:,.0f} mq\n\n"
             " [Infrastruttura di Rete]\n"
             f"  - Super Server:         {bom['N_SERVER']}\n"
+            f"  - Base Ricarica Droni:  1\n"
             f"  - Base Station (BS):    {bom['N_BS']}\n"
             f"  - Pannelli RIS Parete:  {bom['N_RIS_PARETE']}\n"
             f"  - Pannelli RIS Soffitto:{bom['N_RIS_SOFFITTO']}\n"
@@ -1301,8 +1311,13 @@ class DeploymentPlanner:
         
         # Sfondo per testo
         bbox_props = dict(boxstyle="round,pad=1", fc="#f8f9fa", ec="#ced4da", lw=2)
-        ax_bom.text(0.05, 0.5, testo_bom, fontsize=12, fontfamily='monospace', 
-                    verticalalignment='center', bbox=bbox_props)
+        ax_bom.text(0.05, 0.98, testo_bom, fontsize=10.5, fontfamily='monospace', 
+                    verticalalignment='top', bbox=bbox_props)
+                    
+        # Aggiungiamo la legenda qui sotto al testo
+        handles, labels = ax_mappa.get_legend_handles_labels()
+        ax_bom.legend(handles, labels, loc='lower center', title="Legenda Simboli", 
+                      bbox_to_anchor=(0.5, 0.02), fontsize=10, title_fontsize=11, frameon=True)
         
         plt.tight_layout()
         plt.savefig(filename, dpi=300)
