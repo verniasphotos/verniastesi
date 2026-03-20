@@ -130,22 +130,35 @@ class Magazzino:
         self.corridoi = []  # Coordinate Y del centro di ogni corsia
         
         # Larghezza di un corridoio (spazio vuoto tra due scaffali).
-        LARGHEZZA_CORRIDOIO = 1.5
+        LARGHEZZA_CORRIDOIO = 3.0
+        MARGIN_PERIMETRO = 2.5
+
+        spazio_disp_y = self.larghezza - (2 * MARGIN_PERIMETRO)
+        spazio_disp_x = self.lunghezza - (2 * MARGIN_PERIMETRO)
 
         # Quanti moduli "scaffale + corridoio" stanno lungo l'asse Y (larghezza)?
         passo_y = W_SCAFFALE + LARGHEZZA_CORRIDOIO
         
-        n_file_y = int(self.larghezza // passo_y)
-        if n_file_y == 0: n_file_y = 1 # Minimo 1 fila
+        n_file_y = int((spazio_disp_y + LARGHEZZA_CORRIDOIO) // passo_y)
+        if n_file_y <= 0: n_file_y = 1 # Minimo 1 fila
         
         # Quanti scaffali (L_SCAFFALE) stanno lungo l'asse X (lunghezza)?
-        n_elementi_x = int(self.lunghezza // L_SCAFFALE)
+        n_elementi_x = int(spazio_disp_x // L_SCAFFALE)
+
+        # Centratura Assoluta X e Y
+        spazio_usato_y = (n_file_y * W_SCAFFALE) + ((n_file_y - 1) * LARGHEZZA_CORRIDOIO) if n_file_y > 0 else 0
+        leftover_y = spazio_disp_y - spazio_usato_y
+        offset_y = MARGIN_PERIMETRO + max(0, leftover_y / 2.0)
+        
+        spazio_usato_x = n_elementi_x * L_SCAFFALE
+        leftover_x = spazio_disp_x - spazio_usato_x
+        offset_x = MARGIN_PERIMETRO + max(0, leftover_x / 2.0)
 
         id_scaffale = 0
         
         # Generazione griglia di scaffali
         for fila in range(n_file_y):
-            y_min = fila * passo_y
+            y_min = offset_y + fila * passo_y
             y_max = y_min + W_SCAFFALE
             
             # Il centro del corridoio si trova dopo lo scaffale
@@ -153,7 +166,7 @@ class Magazzino:
             self.corridoi.append(y_centro_corridoio)
 
             for colonna in range(n_elementi_x):
-                x_min = colonna * L_SCAFFALE
+                x_min = offset_x + colonna * L_SCAFFALE
                 x_max = x_min + L_SCAFFALE
                 
                 # Scatola di Collisione 3D per gli ostacoli (scaffali)
@@ -1171,6 +1184,14 @@ class DeploymentPlanner:
         
         self._esegui_deployment()
         
+    def _is_too_close_to_bs(self, x, y, soglia=10.0):
+        # Evita configurazioni adiacenti in cui la BS maschera/rende ridondante la RIS stessa
+        for bs in self.base_stations:
+            distanza = math.sqrt((x - bs['x'])**2 + (y - bs['y'])**2)
+            if distanza <= soglia:
+                return True
+        return False
+
     def _esegui_deployment(self):
         # 1. Deployment Server (1 istanza fissa a coordinate 0,0)
         self.server = {'x': 0.0, 'y': 0.0, 'z': 0.0}
@@ -1206,13 +1227,17 @@ class DeploymentPlanner:
             
             # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
             for x in np.arange(0, self.L_MAG, passo_ris_parete):
-                self.ris_parete.append({'x': x, 'y': 0.0, 'z': self.H_MAG / 2.0})
-                self.ris_parete.append({'x': x, 'y': self.W_MAG, 'z': self.H_MAG / 2.0})
+                if not self._is_too_close_to_bs(x, 0.0):
+                    self.ris_parete.append({'x': x, 'y': 0.0, 'z': self.H_MAG / 2.0})
+                if not self._is_too_close_to_bs(x, self.W_MAG):
+                    self.ris_parete.append({'x': x, 'y': self.W_MAG, 'z': self.H_MAG / 2.0})
                 
             # Lato Sinistro (X=0) e Destro (X=L_MAG) (escludendo gli angoli già coperti)
             for y in np.arange(passo_ris_parete, self.W_MAG, passo_ris_parete):
-                self.ris_parete.append({'x': 0.0, 'y': y, 'z': self.H_MAG / 2.0})
-                self.ris_parete.append({'x': self.L_MAG, 'y': y, 'z': self.H_MAG / 2.0})
+                if not self._is_too_close_to_bs(0.0, y):
+                    self.ris_parete.append({'x': 0.0, 'y': y, 'z': self.H_MAG / 2.0})
+                if not self._is_too_close_to_bs(self.L_MAG, y):
+                    self.ris_parete.append({'x': self.L_MAG, 'y': y, 'z': self.H_MAG / 2.0})
             
         # 4. Deployment RIS a Soffitto (A griglia interna)
         passo_ris_soffitto = R_RIS * 2.0
@@ -1224,11 +1249,14 @@ class DeploymentPlanner:
         
         for ix in range(n_ris_x):
             for iy in range(n_ris_y):
-                self.ris_soffitto.append({
-                     'x': (pr_x / 2.0) + ix * pr_x,
-                     'y': (pr_y / 2.0) + iy * pr_y,
-                     'z': self.H_MAG - 0.5
-                })
+                x_pos = (pr_x / 2.0) + ix * pr_x
+                y_pos = (pr_y / 2.0) + iy * pr_y
+                if not self._is_too_close_to_bs(x_pos, y_pos):
+                    self.ris_soffitto.append({
+                         'x': x_pos,
+                         'y': y_pos,
+                         'z': self.H_MAG - 0.5
+                    })
 
     def get_bom_report(self):
         return {
@@ -1244,7 +1272,7 @@ class DeploymentPlanner:
             'TOT_HARDWARE': 2 + len(self.base_stations) + len(self.ris_parete) + len(self.ris_soffitto)
         }
 
-    def genera_dashboard(self, filename="plot_deployment_bom.png"):
+    def genera_dashboard(self, filename="plot_deployment_bom.png", titolo_custom=None):
         print(f" > Generazione {filename} in corso ...")
         fig, (ax_mappa, ax_bom) = plt.subplots(1, 2, figsize=(14, 7), gridspec_kw={'width_ratios': [2, 1]})
         
@@ -1253,8 +1281,20 @@ class DeploymentPlanner:
         ax_mappa.set_ylim(-10, self.W_MAG + 10)
         
         # Perimetro Magazzino
-        rect = plt.Rectangle((0, 0), self.L_MAG, self.W_MAG, fill=False, color='black', linewidth=2)
+        rect = plt.Rectangle((0, 0), self.L_MAG, self.W_MAG, fill=False, color='black', linewidth=2, zorder=3)
         ax_mappa.add_patch(rect)
+        
+        # Disegno Scaffalature (Ostacoli RF)
+        temp_mag = Magazzino(self.L_MAG, self.W_MAG, self.H_MAG)
+        for scaffale in temp_mag.scaffali:
+            s_rect = plt.Rectangle((scaffale['x_min'], scaffale['y_min']), 
+                                   scaffale['x_max'] - scaffale['x_min'], 
+                                   scaffale['y_max'] - scaffale['y_min'], 
+                                   fill=True, color='lightgray', alpha=0.7, zorder=2)
+            ax_mappa.add_patch(s_rect)
+            
+        # Per far comparire gli scaffali almeno "una volta" nella legenda, uso un trucco invisibile
+        ax_mappa.scatter([], [], c='lightgray', marker='s', s=100, label='Scaffali Metallici')
         
         # Plot Base Stations
         bs_x = [b['x'] for b in self.base_stations]
@@ -1277,7 +1317,10 @@ class DeploymentPlanner:
         # Plot Base Ricarica
         ax_mappa.scatter([self.base_ricarica['x']], [self.base_ricarica['y']], c='magenta', marker='P', s=250, edgecolors='black', label='Base Ricarica Droni', zorder=6)
         
-        ax_mappa.set_title("Mappa Topologica: Nodi 6G nel Magazzino", fontsize=14, fontweight='bold')
+        titolo_base = "Mappa Topologica: Nodi 6G nel Magazzino"
+        titolo_completo = f"{titolo_base}\n{titolo_custom}" if titolo_custom else titolo_base
+        ax_mappa.set_title(titolo_completo, fontsize=14, fontweight='bold')
+        
         ax_mappa.set_xlabel("Lunghezza X (m)")
         ax_mappa.set_ylabel("Larghezza Y (m)")
         # La legenda verrà posizionata nel pannello di destra
@@ -1427,9 +1470,10 @@ if __name__ == "__main__":
             print("2. [Test 2] Resilienza Rete e Guasto RIS")
             print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
             print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
+            print("5. [Strumento Tesi] Genera Batch 3 Cartine Topologiche (Casi A, B, C)")
             print("0. Esci")
             
-            scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
+            scelta = input(" -> Quale test vuoi eseguire? (1-5, 0 per uscire): ")
             
             # Garantiamo che il DB sia sempre caricato prima del test
             db = DatabaseManager('telemetria.db')
@@ -1448,6 +1492,19 @@ if __name__ == "__main__":
             elif scelta == '4':
                 engine.test4_confronto_energetico()
                 plotter.plot_risparmio_energetico()
+            elif scelta == '5':
+                print("\n=== [TESI] Generazione Automatica Batch Cartine Topologiche ===")
+                casi = [
+                    {"nome": "Caso_A", "titolo": "Layout A -> Magazzino di Piccole Dimensioni", "L": 50, "W": 40, "H": 10},
+                    {"nome": "Caso_B", "titolo": "Layout B -> Magazzino di Medie Dimensioni", "L": 100, "W": 100, "H": 10},
+                    {"nome": "Caso_C", "titolo": "Layout C -> Magazzino di Grandi Dimensioni", "L": 250, "W": 140, "H": 15}
+                ]
+                for caso in casi:
+                    print(f"=> Elaborazione {caso['nome']} ({caso['L']}x{caso['W']}x{caso['H']} m)")
+                    planner = DeploymentPlanner(caso['L'], caso['W'], caso['H'])
+                    filename = f"plot_deployment_bom_{caso['nome']}.png"
+                    planner.genera_dashboard(filename, titolo_custom=caso['titolo'])
+                print("\n=== Tutte le 3 cartine sono state generate ed esportate con successo! ===")
             else:
                 print("Uscita...")
             
