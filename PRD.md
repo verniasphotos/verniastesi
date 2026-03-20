@@ -93,5 +93,34 @@ Il sistema deve fornire un'astrazione visiva ai *raw-data* telemetrici estratti 
   - *Scopo*: Esporre il *Benchmark* quantitativo sui benefici ecologici e computazionali.
   - *Output visivo*: Istogramma aggregato in kW tramite `SUM(Consumo_W)`. Asse X raggruppa su magazzino A, B, C comparando doppiamente la colonna termica *Always-On* (Tradizionale - rosso) con la contrazione estrema dei kW in Run 2 (Schema Proposto/Euristico - verde).
 
+## 10. Modulo 9: Deployment Dinamico e Visualizzazione Topologica (Interactive BoM)
+
+### Descrizione dell'Obiettivo
+Questo modulo evolve il simulatore da un approccio statico a uno scalabile e parametrico. Il sistema è progettato per accettare in input le dimensioni tridimensionali fisiche di un generico magazzino logistico e calcolare in maniera autonoma la **Distinta Base (BoM - Bill of Materials)** dell'hardware di rete necessario. L'output finale è una dashboard visiva che presenta la **mappa topologica** dell'infrastruttura a sinistra e il **report quantitativo** esatto sulla destra.
+
+### Variabili di Input
+L'algoritmo riceve dall'utente i seguenti parametri strutturali:
+- **L_MAG**: Lunghezza del magazzino (in metri).
+- **W_MAG**: Larghezza del magazzino (in metri).
+- **H_MAG**: Altezza del magazzino (in metri).
+
+### Logica di Calcolo e Regole Ingegneristiche (Deployment)
+Basandosi sui limiti fisici di propagazione del segnale impostati nel Modulo 1, l'algoritmo posiziona l'hardware seguendo queste regole:
+
+- **Base Station (BS):** Considerato un raggio efficace `R_BS = 50.0 m`, il sistema calcola se è sufficiente una singola BS (per aree fino a 10.000 mq) posizionata al centro geometrico, oppure se è necessaria una griglia di BS per superfici maggiori.
+- **RIS a Parete (Wall-mounted):** Considerato un raggio efficace `R_RIS = 15.0 m`, l'algoritmo posiziona i pannelli lungo l'intero perimetro del magazzino, distanziandoli in modo ottimale (es. ogni 30 metri) per garantire la riflessione del segnale nei corridoi perimetrali.
+- **RIS a Soffitto (Ceiling-mounted):** Il sistema calcola una maglia a griglia (es. 30×30 m) e posiziona le RIS in sospensione per garantire la copertura verticale (Line-Of-Sight) alla flotta di droni in volo sopra o tra gli scaffali.
+- **Super Server (Controller):** Quantità bloccata a **1 istanza**, posizionata tipicamente alle coordinate di origine o adiacente alla BS principale per minimizzare la latenza di rete fissa.
+
+### Interfaccia di Output (UI e Mappa)
+Il modulo genera un'interfaccia divisa in due sezioni:
+
+- **Area di Plottaggio (Sinistra):** Una mappa 2D (vista top-down) renderizzata tramite `matplotlib` che illustra i confini del magazzino e la distribuzione spaziale dei nodi. Ogni dispositivo è identificato da marker specifici (es. ★ verde = Server, ▲ rosso = BS, ■/● azzurri = RIS).
+- **Pannello BoM (Destra):** Una sezione di testo/tabella ancorata alla destra del grafico che espone in chiaro i risultati del calcolo algoritmico:
+  - Dimensioni totali e Area (mq).
+  - Numero esatto di Base Station installate.
+  - Numero esatto di RIS a parete e RIS a soffitto necessarie.
+  - Totale dell'hardware e numero di Super Server (1).
+
 ---
 **Azione per l'IA:** Conferma di aver letto il PRD, riassumi in 2 righe l'obiettivo e chiedimi quale file vuoi che sviluppiamo per primo.

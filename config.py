@@ -1148,7 +1148,169 @@ class DataPlotter:
         plt.close()
 
 # ==========================================
-# MODULO 9: SIMULAZIONE DINAMICA (IL LOOP)
+# MODULO 9: DEPLOYMENT DINAMICO E VISUALIZZAZIONE TOPOLOGICA
+# ==========================================
+
+class DeploymentPlanner:
+    """
+    Calcola autonomamente la Distinta Base (BoM) dell'hardware di rete
+    in base alle dimensioni fisiche del magazzino e genera una dashboard
+    topologica visiva (Mappa 2D + Report BoM).
+    """
+    def __init__(self, l_mag, w_mag, h_mag):
+        self.L_MAG = l_mag
+        self.W_MAG = w_mag
+        self.H_MAG = h_mag
+        self.area_mq = l_mag * w_mag
+        
+        # Strutture dati per i nodi
+        self.base_stations = []
+        self.ris_parete = []
+        self.ris_soffitto = []
+        self.server = None
+        
+        self._esegui_deployment()
+        
+    def _esegui_deployment(self):
+        # 1. Deployment Server (1 istanza fissa a coordinate 0,0)
+        self.server = {'x': 0.0, 'y': 0.0, 'z': 0.0}
+        
+        # 2. Deployment Base Stations
+        # Se l'area è <= 10.000, basta una BS al centro
+        if self.area_mq <= 10000:
+            self.base_stations.append({'x': self.L_MAG / 2.0, 'y': self.W_MAG / 2.0, 'z': self.H_MAG})
+        else:
+            # Griglia di BS
+            passo_bs = R_BS * 2.0  # sovrapposizione limite
+            n_x = max(1, math.ceil(self.L_MAG / passo_bs))
+            n_y = max(1, math.ceil(self.W_MAG / passo_bs))
+            
+            p_x = self.L_MAG / n_x
+            p_y = self.W_MAG / n_y
+            
+            for ix in range(n_x):
+                for iy in range(n_y):
+                    self.base_stations.append({
+                        'x': (p_x / 2.0) + ix * p_x,
+                        'y': (p_y / 2.0) + iy * p_y,
+                        'z': self.H_MAG
+                    })
+
+        # 3. Deployment RIS a Parete (Lungo il perimetro)
+        passo_ris_parete = R_RIS * 2.0 # Es. 30 metri
+        
+        # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
+        for x in np.arange(0, self.L_MAG, passo_ris_parete):
+            self.ris_parete.append({'x': x, 'y': 0.0, 'z': self.H_MAG / 2.0})
+            self.ris_parete.append({'x': x, 'y': self.W_MAG, 'z': self.H_MAG / 2.0})
+            
+        # Lato Sinistro (X=0) e Destro (X=L_MAG) (escludendo gli angoli già coperti)
+        for y in np.arange(passo_ris_parete, self.W_MAG, passo_ris_parete):
+            self.ris_parete.append({'x': 0.0, 'y': y, 'z': self.H_MAG / 2.0})
+            self.ris_parete.append({'x': self.L_MAG, 'y': y, 'z': self.H_MAG / 2.0})
+            
+        # 4. Deployment RIS a Soffitto (A griglia interna)
+        passo_ris_soffitto = R_RIS * 2.0
+        n_ris_x = max(1, math.ceil(self.L_MAG / passo_ris_soffitto))
+        n_ris_y = max(1, math.ceil(self.W_MAG / passo_ris_soffitto))
+        
+        pr_x = self.L_MAG / n_ris_x
+        pr_y = self.W_MAG / n_ris_y
+        
+        for ix in range(n_ris_x):
+            for iy in range(n_ris_y):
+                self.ris_soffitto.append({
+                     'x': (pr_x / 2.0) + ix * pr_x,
+                     'y': (pr_y / 2.0) + iy * pr_y,
+                     'z': self.H_MAG - 0.5
+                })
+
+    def get_bom_report(self):
+        return {
+            'L_MAG': self.L_MAG,
+            'W_MAG': self.W_MAG,
+            'H_MAG': self.H_MAG,
+            'AREA': self.area_mq,
+            'N_SERVER': 1,
+            'N_BS': len(self.base_stations),
+            'N_RIS_PARETE': len(self.ris_parete),
+            'N_RIS_SOFFITTO': len(self.ris_soffitto),
+            'TOT_HARDWARE': 1 + len(self.base_stations) + len(self.ris_parete) + len(self.ris_soffitto)
+        }
+
+    def genera_dashboard(self, filename="plot_deployment_bom.png"):
+        print(f" > Generazione {filename} in corso ...")
+        fig, (ax_mappa, ax_bom) = plt.subplots(1, 2, figsize=(14, 7), gridspec_kw={'width_ratios': [2, 1]})
+        
+        # --- AX MAPPA (Sinistra) ---
+        ax_mappa.set_xlim(-10, self.L_MAG + 10)
+        ax_mappa.set_ylim(-10, self.W_MAG + 10)
+        
+        # Perimetro Magazzino
+        rect = plt.Rectangle((0, 0), self.L_MAG, self.W_MAG, fill=False, color='black', linewidth=2)
+        ax_mappa.add_patch(rect)
+        
+        # Plot Base Stations
+        bs_x = [b['x'] for b in self.base_stations]
+        bs_y = [b['y'] for b in self.base_stations]
+        ax_mappa.scatter(bs_x, bs_y, c='red', marker='^', s=150, label='Base Station (BS)', zorder=5)
+        
+        # Plot RIS Parete
+        risp_x = [r['x'] for r in self.ris_parete]
+        risp_y = [r['y'] for r in self.ris_parete]
+        ax_mappa.scatter(risp_x, risp_y, c='#3498db', marker='s', s=80, label='RIS Parete', zorder=4)
+        
+        # Plot RIS Soffitto
+        riss_x = [r['x'] for r in self.ris_soffitto]
+        riss_y = [r['y'] for r in self.ris_soffitto]
+        ax_mappa.scatter(riss_x, riss_y, c='#2ecc71', marker='o', s=80, label='RIS Soffitto', zorder=4)
+        
+        # Plot Server
+        ax_mappa.scatter([self.server['x']], [self.server['y']], c='gold', marker='*', s=300, edgecolors='black', label='Super Server', zorder=6)
+        
+        ax_mappa.set_title("Mappa Topologica: Nodi 6G nel Magazzino", fontsize=14, fontweight='bold')
+        ax_mappa.set_xlabel("Lunghezza X (m)")
+        ax_mappa.set_ylabel("Larghezza Y (m)")
+        ax_mappa.legend(loc='upper right', bbox_to_anchor=(1.05, 1.05))
+        ax_mappa.grid(True, linestyle='--', alpha=0.5)
+        ax_mappa.set_aspect('equal', 'box')
+        
+        # --- AX BOM REPORT (Destra) ---
+        ax_bom.axis('off') # Nascondi gli assi
+        bom = self.get_bom_report()
+        
+        testo_bom = (
+            " DISTINTA BASE HARDWARE (BoM)\n"
+            "=================================\n\n"
+            f" [Dimensioni Magazzino]\n"
+            f"  - Lunghezza: {bom['L_MAG']:.1f} m\n"
+            f"  - Larghezza: {bom['W_MAG']:.1f} m\n"
+            f"  - Altezza:   {bom['H_MAG']:.1f} m\n"
+            f"  - Area:      {bom['AREA']:,.0f} mq\n\n"
+            " [Infrastruttura di Rete]\n"
+            f"  - Super Server:         {bom['N_SERVER']}\n"
+            f"  - Base Station (BS):    {bom['N_BS']}\n"
+            f"  - Pannelli RIS Parete:  {bom['N_RIS_PARETE']}\n"
+            f"  - Pannelli RIS Soffitto:{bom['N_RIS_SOFFITTO']}\n"
+            "---------------------------------\n"
+            f" >> TOTALE COMPONENTI:   {bom['TOT_HARDWARE']}\n\n"
+            " [Impostazioni Deploy]\n"
+            f"  - Raggio BS limit: {R_BS}m\n"
+            f"  - Passo RIS limit: {R_RIS*2.0}m\n"
+        )
+        
+        # Sfondo per testo
+        bbox_props = dict(boxstyle="round,pad=1", fc="#f8f9fa", ec="#ced4da", lw=2)
+        ax_bom.text(0.05, 0.5, testo_bom, fontsize=12, fontfamily='monospace', 
+                    verticalalignment='center', bbox=bbox_props)
+        
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300)
+        plt.close()
+
+
+# ==========================================
+# MODULO 10: SIMULAZIONE DINAMICA (IL LOOP)
 # ==========================================
 
 # Esecuzione del programma di configurazione magazzino 6G
@@ -1170,6 +1332,11 @@ if __name__ == "__main__":
         print("\n... Generazione ambiente 3D in corso ...")
         ambiente = Magazzino(lunghezza=input_l, larghezza=input_w, altezza=input_h)
         bom = ambiente.get_bom()
+        
+        # Generazione Mappa Topologica BoM Automatica (Modulo 9)
+        planner = DeploymentPlanner(input_l, input_w, input_h)
+        planner.genera_dashboard()
+        print("\n [!] Dashboard 'plot_deployment_bom.png' generata con successo in background!")
       
         # 3. Raccomandazione Flotta Droni
         # Costruiamo una logica empirica:
