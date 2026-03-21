@@ -233,16 +233,22 @@ class Magazzino:
             z_ris_parete = self.altezza * Z_RIS_PARETE_RAPPORTO_ALTEZZA
             for corridoio_y in self.corridoi:
                 # 2 RIS per corridoio, una all'inizio (X=0) e una alla fine (X=lunghezza)
-                self.ris_parete.append({
-                    'id': id_ris, 'tipo': 'parete_start',
-                    'x': 0.0, 'y': corridoio_y, 'z': z_ris_parete
-                })
-                id_ris += 1
-                self.ris_parete.append({
-                    'id': id_ris, 'tipo': 'parete_end',
-                    'x': self.lunghezza, 'y': corridoio_y, 'z': z_ris_parete
-                })
-                id_ris += 1
+                # Filtering geometrico: Pruning se troppo vicine (<= 5.0m) a una Base Station
+                vicino_bs_start = any(math.sqrt((0.0 - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 5.0 for bs in self.base_stations)
+                if not vicino_bs_start:
+                    self.ris_parete.append({
+                        'id': id_ris, 'tipo': 'parete_start',
+                        'x': 0.0, 'y': corridoio_y, 'z': z_ris_parete
+                    })
+                    id_ris += 1
+                    
+                vicino_bs_end = any(math.sqrt((self.lunghezza - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 5.0 for bs in self.base_stations)
+                if not vicino_bs_end:
+                    self.ris_parete.append({
+                        'id': id_ris, 'tipo': 'parete_end',
+                        'x': self.lunghezza, 'y': corridoio_y, 'z': z_ris_parete
+                    })
+                    id_ris += 1
         
         # Base Station (ibrida): Inietta i nodi BS nella lista ris_soffitto se attivato
         if BS_E_ANCHE_RIS:
@@ -1178,7 +1184,7 @@ class DeploymentPlanner:
         
         self._esegui_deployment()
         
-    def _is_too_close_to_bs(self, x, y, soglia=10.0):
+    def _is_too_close_to_bs(self, x, y, soglia=5.0):
         # Evita configurazioni adiacenti in cui la BS maschera/rende ridondante la RIS stessa
         for bs in self.base_stations:
             distanza = math.sqrt((x - bs['x'])**2 + (y - bs['y'])**2)
