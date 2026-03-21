@@ -21,36 +21,21 @@ RUMORE_BIANCO = -100.0       # Potenza del rumore di fondo nel magazzino logisti
 #Parametri Cinematici dei Droni
 V_DRONE = 3.0              # Velocità di volo costante del Drone in m/s (≈ 10.8 km/h)
 DT = 0.1                   # Passo temporale della simulazione (1 step = 0.1 secondi)
+MIN_DISTANZA_ANTICOLLISIONE = 1.5  # Distanza minima (metri) tra due droni nello stesso tubo di volo.
 
 #Parametri della Batteria drone
 BATTERY_MAX = 100.0        # Capacità massima della batteria del drone (%)
 BATTERY_RTH_THRESHOLD = 20.0 # Soglia RTH (Return To Home): il drone torna alla base se scende sotto questo valore (%)
 CONSUMO_BATTERIA_DT = 0.05 # Percentuale batteria consumata ad ogni step temporale  
 
-# Modalità di Volo dei Droni e Sicurezza
-# Il drone può operare in due modalità distinte (ora scelte AUTOMATICAMENTE dal simulatore in base all'area):
-# 'FISSO'       = Magazzini Piccoli/Medi. Il drone vola sempre alla stessa altezza fissa nei corridoi.
-#                 Si alza/abbassa SOLO quando arriva allo scaffale target per raccogliere il pacco.
-# 'MULTILIVELLO'= Magazzini Grandi. Il drone vola su corridoi orizzontali a quote multiple (una per ogni livello mensola).
-
+# Modalità di Volo dei Droni e distanza minima di sicurezza
 Z_DRONE_FISSO = 1.0           # Altezza di crociera fissa per la modalità 'FISSO' (metri)
                                # (Generalmente il corridoio al primo livello del pavimento)
 
-# Anti-Collisione Droni
-# Regola UNIVERSALE (valida per FISSO e su ogni singolo livello del MULTILIVELLO). 
-# È fondamentale che il Controller garantisca una distanza minima orizzontale
-# tra un drone e l'altro per evitare sovrapposizioni fisiche nella stessa corsia.
-# Questo vincolo è critico per calcolare la saturazione del magazzino.
-MIN_DISTANZA_ANTICOLLISIONE = 1.5  # Distanza minima (metri) tra due droni nello stesso tubo di volo.
-                                   # Il Controller in devices.py non assegnerà a un drone
-                                   # una posizione target se un altro drone è già entro questa distanza.
 
 # ------------------------------------------
 # PARAMETRI BS-RIS
 # ------------------------------------------
-
-# La Base Station (BS) è in modalità ibrida: ricevitore + RIS
-BS_E_ANCHE_RIS = True      # Flag: True = la BS può operare anche come nodo RIS
 
 # Consumi Energetici dei Pannelli RIS (Watt)
 P_SLEEP = 0.5              # Consumo a riposo: pannello in ascolto ma inattivo (W)
@@ -63,6 +48,9 @@ Z_BS_OFFSET_DAL_SOFFITTO = 0.3     # BS a soffitto: offset (in metri) sotto l'in
 Z_RIS_SOFFITTO_OFFSET = 0.1        # RIS a soffitto: offset (in metri) sotto l'intradosso
 Z_RIS_PARETE_RAPPORTO_ALTEZZA = 0.5 # RIS a parete: frazione dell'altezza totale (0.5 = metà parete)
 
+# La Base Station (BS) è in modalità ibrida: ricevitore + RIS
+BS_E_ANCHE_RIS = True      # la BS può operare anche come nodo RIS
+
 #Abilitazione RIS per modalità di volo -> Controlla quali tipi di RIS vengono deployate in base alla modalità drone scelta.
 
 RIS_SOFFITTO_ABILITATA = True       # Sempre True: 1 RIS a soffitto per corridoio, per il tracking XY
@@ -70,8 +58,6 @@ RIS_PARETE_ABILITATA_FISSO = False  # In modalità FISSO la quota è nota → pa
 RIS_PARETE_ABILITATA_MULTILIVELLO = True # In MULTILIVELLO serve la parete per discriminare la quota Z
 
 # Ottimizzazione Copertura (minimizzare il numero di RIS/BS) 
-# Il sistema calcolerà il numero minimo di RIS/BS per coprire l'intera area del magazzino.
-# La logica: piazzo la prima RIS, calcolo la sua area coperta, piazzo la prossima dove la copertura finisce.
 COPERTURA_TARGET = 1.0             # Frazione dell'area da coprire (1.0 = 100%): obiettivo piena copertura
 SOGLIA_OVERLAP_RIS = 0.10          # Overlap massimo accettato tra due RIS adiacenti (10%).
                                    # Troppo overlap = RIS sprecate; troppo poco = buchi di copertura.
@@ -96,7 +82,6 @@ MARGINE_SICUREZZA_DRONE = 0.15 # Margine di sicurezza aggiuntivo sopra la mensol
 # Limiti Stress Test
 MAX_RIS_CALLS_PER_DT = 10  # Massimo numero di attivazioni RIS gestibili dal server in un singolo DT (0.1s)
                            # Superato questo limite -> la rete va in Breakdown (condizione di stop test)
-
 
 
 # ==========================================
@@ -236,8 +221,8 @@ class Magazzino:
                 id_ris += 1
 
         # Decisione Intelligente: Modalità di Volo
-        # Se il magazzino e' >= 10.000 mq, si attiva il MULTILIVELLO per gestire flotte grandi
-        if self.area_mq >= 10000:
+        # Se il magazzino e' > 10.000 mq (Caso C), si attiva il MULTILIVELLO per gestire flotte grandi
+        if self.area_mq > 10000:
             self.modalita_volo = 'MULTILIVELLO'
         else:
             self.modalita_volo = 'FISSO'
@@ -256,6 +241,15 @@ class Magazzino:
                 self.ris_parete.append({
                     'id': id_ris, 'tipo': 'parete_end',
                     'x': self.lunghezza, 'y': corridoio_y, 'z': z_ris_parete
+                })
+                id_ris += 1
+        
+        # Base Station (ibrida): Inietta i nodi BS nella lista ris_soffitto se attivato
+        if BS_E_ANCHE_RIS:
+            for bs in self.base_stations:
+                self.ris_soffitto.append({
+                    'id': id_ris, 'tipo': 'ibrida_bs',
+                    'x': bs['x'], 'y': bs['y'], 'z': bs['z']
                 })
                 id_ris += 1
         
@@ -1221,8 +1215,8 @@ class DeploymentPlanner:
                     })
 
         # 3. Deployment RIS a Parete (Lungo il perimetro)
-        # Solo in modalità MULTILIVELLO (>= 10.000 mq)
-        if self.area_mq >= 10000:
+        # Solo in modalità MULTILIVELLO (> 10.000 mq, es. Caso C)
+        if self.area_mq > 10000:
             passo_ris_parete = R_RIS * 2.0 # Es. 30 metri
             
             # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
