@@ -211,14 +211,20 @@ class Magazzino:
         if RIS_SOFFITTO_ABILITATA:
             z_ris_soffitto = self.altezza - Z_RIS_SOFFITTO_OFFSET
             for corridoio_y in self.corridoi:
-                self.ris_soffitto.append({
-                    'id': id_ris,
-                    'tipo': 'soffitto',
-                    'x': self.lunghezza / 2.0, # Centrata sulla lunghezza
-                    'y': corridoio_y,          # Centrata sul corridoio
-                    'z': z_ris_soffitto
-                })
-                id_ris += 1
+                # Filtering geometrico: Pruning se troppo vicine (<= 15.0m) a una Base Station
+                rx = self.lunghezza / 2.0
+                ry = corridoio_y
+                vicino_bs = any(math.sqrt((rx - bs['x'])**2 + (ry - bs['y'])**2) <= 15.0 for bs in self.base_stations)
+                
+                if not vicino_bs:
+                    self.ris_soffitto.append({
+                        'id': id_ris,
+                        'tipo': 'soffitto',
+                        'x': rx,
+                        'y': ry,
+                        'z': z_ris_soffitto
+                    })
+                    id_ris += 1
 
         # Decisione Intelligente: Modalità di Volo
         # Se il magazzino e' > 10.000 mq (Caso C), si attiva il MULTILIVELLO per gestire flotte grandi
@@ -233,8 +239,8 @@ class Magazzino:
             z_ris_parete = self.altezza * Z_RIS_PARETE_RAPPORTO_ALTEZZA
             for corridoio_y in self.corridoi:
                 # 2 RIS per corridoio, una all'inizio (X=0) e una alla fine (X=lunghezza)
-                # Filtering geometrico: Pruning se troppo vicine (<= 5.0m) a una Base Station
-                vicino_bs_start = any(math.sqrt((0.0 - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 5.0 for bs in self.base_stations)
+                # Filtering geometrico: Pruning se troppo vicine (<= 15.0m) a una Base Station
+                vicino_bs_start = any(math.sqrt((0.0 - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 15.0 for bs in self.base_stations)
                 if not vicino_bs_start:
                     self.ris_parete.append({
                         'id': id_ris, 'tipo': 'parete_start',
@@ -242,7 +248,7 @@ class Magazzino:
                     })
                     id_ris += 1
                     
-                vicino_bs_end = any(math.sqrt((self.lunghezza - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 5.0 for bs in self.base_stations)
+                vicino_bs_end = any(math.sqrt((self.lunghezza - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 15.0 for bs in self.base_stations)
                 if not vicino_bs_end:
                     self.ris_parete.append({
                         'id': id_ris, 'tipo': 'parete_end',
@@ -785,11 +791,10 @@ class SimulationEngine:              # Motore di simulazione
     def _create_layout(self, mq): 
         if mq == 2000:
             return Magazzino(lunghezza=50, larghezza=40, altezza=10) # Caso A
-        elif mq == 10000:
-            return Magazzino(lunghezza=100, larghezza=100, altezza=10) # Caso B
         elif mq == 35000:
             return Magazzino(lunghezza=250, larghezza=140, altezza=15) # Caso C
         else:
+            # Default: Caso B (Medio) - Gestisce i 10.000mq o input imprevisti
             return Magazzino(lunghezza=100, larghezza=100, altezza=10)
 
     # Inizializza droni       
@@ -1184,7 +1189,7 @@ class DeploymentPlanner:
         
         self._esegui_deployment()
         
-    def _is_too_close_to_bs(self, x, y, soglia=5.0):
+    def _is_too_close_to_bs(self, x, y, soglia=15.0):
         # Evita configurazioni adiacenti in cui la BS maschera/rende ridondante la RIS stessa
         for bs in self.base_stations:
             distanza = math.sqrt((x - bs['x'])**2 + (y - bs['y'])**2)
@@ -1470,10 +1475,9 @@ if __name__ == "__main__":
             print("2. [Test 2] Resilienza Rete e Guasto RIS")
             print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
             print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
-            print("5. [Strumento Tesi] Genera Batch 3 Cartine Topologiche (Casi A, B, C)")
             print("0. Esci")
             
-            scelta = input(" -> Quale test vuoi eseguire? (1-5, 0 per uscire): ")
+            scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
             
             # Garantiamo che il DB sia sempre caricato prima del test
             db = DatabaseManager('telemetria.db')
@@ -1492,19 +1496,6 @@ if __name__ == "__main__":
             elif scelta == '4':
                 engine.test4_confronto_energetico()
                 plotter.plot_risparmio_energetico()
-            elif scelta == '5':
-                print("\n=== [TESI] Generazione Automatica Batch Cartine Topologiche ===")
-                casi = [
-                    {"nome": "Caso_A", "titolo": "Layout A -> Magazzino di Piccole Dimensioni", "L": 50, "W": 40, "H": 10},
-                    {"nome": "Caso_B", "titolo": "Layout B -> Magazzino di Medie Dimensioni", "L": 100, "W": 100, "H": 10},
-                    {"nome": "Caso_C", "titolo": "Layout C -> Magazzino di Grandi Dimensioni", "L": 250, "W": 140, "H": 15}
-                ]
-                for caso in casi:
-                    print(f"=> Elaborazione {caso['nome']} ({caso['L']}x{caso['W']}x{caso['H']} m)")
-                    planner = DeploymentPlanner(caso['L'], caso['W'], caso['H'])
-                    filename = f"plot_deployment_bom_{caso['nome']}.png"
-                    planner.genera_dashboard(filename, titolo_custom=caso['titolo'])
-                print("\n=== Tutte le 3 cartine sono state generate ed esportate con successo! ===")
             else:
                 print("Uscita...")
             
