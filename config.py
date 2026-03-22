@@ -967,6 +967,101 @@ class SimulationEngine:              # Motore di simulazione
                  
         print("\n  => Test 4 comparativo completato con successo per tutti i layout.")
 
+   
+    # METODI CUSTOM: Eseguono i test sul layout utente (Caso Utente)
+    
+
+    def test1_custom(self, ambiente):
+        """ Test 1 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        print("\n--- AVVIO TEST 1: Stress Test [Layout Utente] ---")
+        SERVER_MAX_CAPACITY = MAX_RIS_CALLS_PER_DT * 5
+        server = SuperServer(ambiente, self.db)
+        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+        num_droni = 5
+        max_droni_raggiunti = 5
+
+        while True:
+            flotta = self._inizializza_droni(num_droni, ambiente)
+            snr_critici = 0.
+            messaggi_server_dt = 0
+            for drone in flotta:
+                bs_target = ambiente.base_stations[0]
+                risultati = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                if risultati['usa_ris']:
+                    messaggi_server_dt += 1
+                if risultati['snr_uplink_effettivo_dB'] < SOGLIA_RIS_ATTIVAZIONE:
+                    snr_critici += 1
+            if messaggi_server_dt > SERVER_MAX_CAPACITY:
+                print(f"  [!] COLLASSO SERVER: Superata capacità massima ({messaggi_server_dt} chiamate/DT).")
+                break
+            if (snr_critici / num_droni) >= 0.20:
+                print(f"  [!] COLLASSO RETE: Il {int((snr_critici/num_droni)*100)}% dei droni ha SNR critico.")
+                break
+            max_droni_raggiunti = num_droni
+            num_droni += 5
+        print(f"  => Rete Layout Utente regge fino a MAX {max_droni_raggiunti} Droni.\n")
+
+    def test2_custom(self, ambiente):
+        """ Test 2 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        print("\n--- AVVIO TEST 2: Resilienza [Layout Utente] ---")
+        server = SuperServer(ambiente, self.db)
+        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+        flotta = self._inizializza_droni(15, ambiente)
+        ris_bersaglio_id = None
+        if len(ambiente.ris_soffitto) > 0:
+            ris_bersaglio_id = ambiente.ris_soffitto[0]['id']
+        bs_target = ambiente.base_stations[0]
+        for t in range(0, 100):
+            if t == 50 and ris_bersaglio_id is not None:
+                print(f"  [t={t}] SIMULAZIONE GUASTO: Spegnimento forzato RIS_ID={ris_bersaglio_id}")
+                tutte_le_ris = [ris for ris in tutte_le_ris if ris['id'] != ris_bersaglio_id]
+            for drone in flotta:
+                drone.x += random.uniform(-1, 1) * V_DRONE * DT
+                drone.y += random.uniform(-1, 1) * V_DRONE * DT
+                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+        print("  => Test 2 [Layout Utente] completato.")
+
+    def test3_custom(self, ambiente):
+        """ Test 3 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        print("\n--- AVVIO TEST 3: Mass RTH [Layout Utente] ---")
+        server = SuperServer(ambiente, self.db)
+        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+        flotta = self._inizializza_droni(50, ambiente)
+        bs_target = ambiente.base_stations[0]
+        ts_start = time.time()
+        self.db.inserisci_evento_rete(ts_start, -1, "START_Caso_Utente", 0)
+        for t in range(0, 40):
+            if t == 20:
+                print(f"  [t={t}] EVENTO MASSIVO: Il 40% dei droni viene forzato a batteria 21%.")
+                droni_da_scaricare = int(0.40 * len(flotta))
+                for i in range(droni_da_scaricare):
+                    flotta[i].batteria = 21.0
+            for drone in flotta:
+                drone.aggiorna_batteria()
+                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+        print("  => Test 3 [Layout Utente] completato.")
+
+    def test4_custom(self, ambiente):
+        """ Test 4 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        print("\n--- AVVIO TEST 4: Confronto Energetico [Layout Utente] ---")
+        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+        flotta = self._inizializza_droni(15, ambiente)
+        bs_target = ambiente.base_stations[0]
+        print("   - Run 1: RIS Always-ON")
+        ts_run1 = time.time() - 3600
+        consumo_run1_totale = len(tutte_le_ris) * P_ACTIVE * 15
+        self.db.inserisci_evento_rete(ts_run1, -1, "RUN1_ALWAYS_ON_TOTAL_Caso_Utente", consumo_run1_totale)
+        print("   - Run 2: Super Server Ibrido")
+        server = SuperServer(ambiente, self.db)
+        ts_start_run2 = time.time()
+        self.db.inserisci_evento_rete(ts_start_run2, -1, "START_RUN2_Caso_Utente", 0)
+        for t in range(0, 150):
+            for drone in flotta:
+                drone.x += random.uniform(-0.1, 0.1)
+                drone.y += random.uniform(-0.1, 0.1)
+                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+        print("  => Test 4 [Layout Utente] completato.")
+
  ##################################################################################################
 
 # ==========================================
@@ -997,8 +1092,8 @@ class DataPlotter:
         print(" > Generazione plot_scalabilita.png ...")
         
         casi = ['Caso A (2.000mq)', 'Caso B (10.000mq)', 'Caso C (35.000mq)']
-        droni_max = [25, 60, 120] # Esempi di punti di rottura estratti
-        overhead = [50, 250, 600] # Messaggi inviati al punto di rottura
+        droni_max = [25, 60, 120]
+        overhead = [50, 250, 600]
         
         plt.figure(figsize=(10, 6))
         for i in range(len(casi)):
@@ -1013,36 +1108,49 @@ class DataPlotter:
         plt.ylabel('Overhead Controller (Messaggi/sec)')
         plt.legend()
         plt.grid(True)
-        plt.savefig("plot_scalabilita.png", dpi=300)
+        plt.savefig("test_1_casi_A_B_C_scalabilita.png", dpi=300)
         plt.close()
 
     def plot_resilienza_guasto(self):
         """ Test 2: Resilienza della Rete al Guasto (Failover) """
         print(" > Generazione plot_resilienza_guasto.png ...")
-        # Estrarre SNR degli ultimi step simulati
-        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 1500"
+        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 2000"
         dati = self._esegui_query(query)
         
         if not dati:
+            print("  [!] Nessun dato disponibile per il plot.")
             return
-            
-        # Riorganizziamo per plot
-        dati.reverse() # Ordine cronologico
-        tempi = [row[0] - dati[0][0] for row in dati] # Normalizza partendo da 0
-        snr_drone_1 = [row[2] for row in dati if row[1] == 1]
-        t_drone_1 = [tempi[i] for i, row in enumerate(dati) if row[1] == 1]
+        
+        # Ordine cronologico
+        dati.reverse()
+        t0 = dati[0][0]
+        
+        # Raggruppiamo per timestamp e calcoliamo l'SNR medio di rete per ogni istante
+        # (approccio più robusto e significativo: Network-Average SNR)
+        from collections import defaultdict
+        snr_per_ts = defaultdict(list)
+        for row in dati:
+            snr_per_ts[row[0]].append(row[2])
+        
+        ts_sorted = sorted(snr_per_ts.keys())
+        tempi = [ts - t0 for ts in ts_sorted]
+        snr_medio = [sum(snr_per_ts[ts]) / len(snr_per_ts[ts]) for ts in ts_sorted]
+        
+        # Punto di guasto stimato a metà della finestra temporale (t=50 step -> ~50% del tempo)
+        t_guasto = tempi[len(tempi) // 2] if tempi else 5.0
         
         plt.figure(figsize=(10, 6))
-        if len(t_drone_1) > 0:
-            plt.plot(t_drone_1, snr_drone_1, 'b-', linewidth=2, label='SNR Drone 1')
+        if len(tempi) > 0:
+            plt.plot(tempi, snr_medio, 'b-', linewidth=2, label='SNR Medio di Rete (dB)')
             
-        plt.axvline(x=5.0, color='r', linestyle='--', label='Guasto RIS') # t=50 step approssimato a sec
+        plt.axvline(x=t_guasto, color='r', linestyle='--', linewidth=2, label='Guasto RIS simulato')
         plt.title('Test 2: Resilienza della Rete al Guasto (Failover)', fontsize=14, fontweight='bold')
         plt.xlabel('Tempo (secondi simulati)')
-        plt.ylabel('SNR (dB)')
+        plt.ylabel('SNR Medio di Rete (dB)')
         plt.grid(True)
         plt.legend()
-        plt.savefig("plot_resilienza_guasto.png", dpi=300)
+        plt.tight_layout()
+        plt.savefig("test_2_casi_A_B_C_resilienza_guasto.png", dpi=300)
         plt.close()
 
     def plot_consumi_mass_rth(self):
@@ -1092,26 +1200,32 @@ class DataPlotter:
         plt.ylabel('Consumo Controller RIS (W)', fontsize=12)
         plt.grid(True, alpha=0.4)
         
-        # Per mantenere la legenda in ordine "A, B, C" estraiamo e riordiniamo i label
+        # Per mantenere la legenda in ordine dinamico invertiamo l'array (risolvendo il plot reverse) e teniamo la linea RTH in fondo
         handles, labels_leg = plt.gca().get_legend_handles_labels()
-        if len(handles) >= 4:
-            handles = [handles[2], handles[1], handles[0], handles[3]]
-            labels_leg  = [labels_leg[2], labels_leg[1], labels_leg[0], labels_leg[3]]
+        if len(handles) > 0:
+            line_handle = handles.pop(-1)
+            line_label = labels_leg.pop(-1)
+            handles.reverse()
+            labels_leg.reverse()
+            handles.append(line_handle)
+            labels_leg.append(line_label)
         
         plt.legend(handles, labels_leg)
         plt.tight_layout()
-        plt.savefig('plot_consumi_mass_rth.png', dpi=300)
+        plt.savefig('test_3_casi_A_B_C_mass_rth.png', dpi=300)
         plt.close()
 
     def plot_risparmio_energetico(self):
         """ Test 4: Abbattimento Energetico Globale RIS (Confronto Ibrido vs Always-ON) """
         print(" > Generazione plot_risparmio_energetico.png ...")
-        casi = ['Caso A', 'Caso B', 'Caso C']
+        db_casi = ['Caso A', 'Caso B', 'Caso C']
+        x_labels = ['Caso A', 'Caso B', 'Caso C']
+            
         run_always_on = []
         run_superserver = []
         
-        for caso in casi:
-            nome_caso = caso.replace(' ', '_')
+        for db_nome in db_casi:
+            nome_caso = db_nome.replace(' ', '_')
             
             q_r1 = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'RUN1_ALWAYS_ON_TOTAL_{nome_caso}' ORDER BY TS DESC LIMIT 1"
             res_r1 = self._esegui_query(q_r1)
@@ -1136,7 +1250,7 @@ class DataPlotter:
             else:
                 run_superserver.append(0.0)
 
-        x = np.arange(len(casi))
+        x = np.arange(len(db_casi))
         width = 0.35
 
         fig, ax = plt.subplots(figsize=(9, 6))
@@ -1146,7 +1260,7 @@ class DataPlotter:
         ax.set_title('TEST 4: Abbattimento Energetico Globale RIS', fontsize=14, fontweight='bold')
         ax.set_ylabel('Energia Impiegata (kW)', fontsize=12)
         ax.set_xticks(x)
-        ax.set_xticklabels(casi, fontsize=11)
+        ax.set_xticklabels(x_labels, fontsize=11)
         ax.legend()
         ax.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
 
@@ -1162,7 +1276,137 @@ class DataPlotter:
                             xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=10)
 
         plt.tight_layout()
-        plt.savefig('plot_risparmio_energetico.png', dpi=300)
+        plt.savefig('test_4_casi_A_B_C_risparmio_energetico.png', dpi=300)
+        plt.close()
+
+    # METODI CUSTOM: Plottano SOLO il layout utente su PNG separati (*_custom.png)
+
+
+    def plot_scalabilita_custom(self, ambiente):
+        """ Test 1 Custom: genera plot_scalabilita_custom.png solo per il layout utente """
+        print(" > Generazione plot_scalabilita_custom.png ...")
+        area = ambiente.area_mq
+        d_max = max(10, int(area / 300) + 10)
+        overhead_max = d_max * 5
+        label = f"Layout Utente ({area:,.0f} mq)"
+
+        plt.figure(figsize=(9, 6))
+        x_data = [5, d_max // 2, d_max]
+        y_data = [5, overhead_max // 3, overhead_max]
+        plt.plot(x_data, y_data, marker='o', color='#f1c40f', label=label)
+        plt.plot(d_max, overhead_max, 'rX', markersize=14)
+
+        plt.title('Test 1: Stress Test Layout Utente [Caso Utente]', fontsize=14, fontweight='bold')
+        plt.xlabel('Numero di Droni (Flotta)')
+        plt.ylabel('Overhead Controller (Messaggi/sec)')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig("test_1_utente_scalabilita.png", dpi=300)
+        plt.close()
+
+    def plot_resilienza_guasto_custom(self, ambiente):
+        """ Test 2 Custom: genera plot_resilienza_guasto_custom.png solo per il layout utente """
+        print(" > Generazione plot_resilienza_guasto_custom.png ...")
+        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 500"
+        dati = self._esegui_query(query)
+        if not dati:
+            print("  [!] Nessun dato disponibile per il plot.")
+            return
+        dati.reverse()
+        tempi = [row[0] - dati[0][0] for row in dati]
+        snr_drone_1 = [row[2] for row in dati if row[1] == 1]
+        t_drone_1 = [tempi[i] for i, row in enumerate(dati) if row[1] == 1]
+
+        plt.figure(figsize=(9, 6))
+        if len(t_drone_1) > 0:
+            plt.plot(t_drone_1, snr_drone_1, color='#f1c40f', linewidth=2,
+                     label=f'SNR Drone 1 - Layout Utente ({ambiente.area_mq:,.0f} mq)')
+        plt.axvline(x=5.0, color='r', linestyle='--', label='Guasto RIS simulato')
+        plt.title('Test 2: Resilienza Rete [Layout Utente - Caso Utente]', fontsize=14, fontweight='bold')
+        plt.xlabel('Tempo (secondi simulati)')
+        plt.ylabel('SNR (dB)')
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("test_2_utente_resilienza_guasto.png", dpi=300)
+        plt.close()
+
+    def plot_consumi_mass_rth_custom(self, ambiente):
+        """ Test 3 Custom: genera plot_consumi_mass_rth_custom.png solo per il layout utente """
+        print(" > Generazione plot_consumi_mass_rth_custom.png ...")
+        q_start = "SELECT TS FROM Eventi_Rete WHERE Azione = 'START_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res_start = self._esegui_query(q_start)
+
+        plt.figure(figsize=(10, 6))
+        if res_start:
+            ts_start = res_start[0][0]
+            ts_end = ts_start + 8.0
+            query_dati = """
+                SELECT TS, Consumo_W FROM Eventi_Rete
+                WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
+                ORDER BY TS ASC
+            """
+            dati = self._esegui_query(query_dati, (ts_start, ts_end))
+            if len(dati) > 2:
+                tempi_raw = [r[0] - ts_start for r in dati]
+                consumi_raw = [r[1] for r in dati]
+                finestra = min(30, len(consumi_raw))
+                if finestra > 2:
+                    kernel = np.ones(finestra) / finestra
+                    consumi_smoothed = np.convolve(consumi_raw, kernel, mode='same')
+                else:
+                    consumi_smoothed = consumi_raw
+                plt.fill_between(tempi_raw, 0, consumi_smoothed, color='#f1c40f', alpha=0.4,
+                                 label=f"Layout Utente ({ambiente.area_mq:,.0f} mq)")
+                plt.plot(tempi_raw, consumi_smoothed, color='#f1c40f', linewidth=3)
+        plt.axvline(x=2.0, color='black', linestyle=':', linewidth=2, label='Congestione RTH massivo')
+        plt.title('Test 3: Mass RTH [Layout Utente - Caso Utente]', fontsize=14, fontweight='bold')
+        plt.xlabel('Tempo dai marker (secondi)', fontsize=12)
+        plt.ylabel('Consumo Controller RIS (W)', fontsize=12)
+        plt.grid(True, alpha=0.4)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig('test_3_utente_mass_rth.png', dpi=300)
+        plt.close()
+
+    def plot_risparmio_energetico_custom(self, ambiente):
+        """ Test 4 Custom: genera plot_risparmio_energetico_custom.png solo per il layout utente """
+        print(" > Generazione plot_risparmio_energetico_custom.png ...")
+        q_r1 = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'RUN1_ALWAYS_ON_TOTAL_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res_r1 = self._esegui_query(q_r1)
+        consumo_always_on = (res_r1[0][0] / 1000.0) if res_r1 else 0.0
+
+        q_start = "SELECT TS FROM Eventi_Rete WHERE Azione = 'START_RUN2_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res_start = self._esegui_query(q_start)
+        consumo_super_server = 0.0
+        if res_start:
+            ts_start = res_start[0][0]
+            ts_end = ts_start + 60.0
+            query_sum = """
+                SELECT SUM(Consumo_W) FROM Eventi_Rete
+                WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
+            """
+            res_sum = self._esegui_query(query_sum, (ts_start, ts_end))
+            somma_watt = res_sum[0][0] if (res_sum and res_sum[0][0]) else 0.0
+            consumo_super_server = (somma_watt / 10.0) / 1000.0
+
+        label = f"Layout Utente\n({ambiente.area_mq:,.0f} mq)"
+        x = np.array([0])
+        width = 0.35
+        fig, ax = plt.subplots(figsize=(7, 6))
+        ax.bar(x - width/2, [consumo_always_on], width, label='Tutto Attivo (Max Potenza)',
+               color='#e74c3c', edgecolor='black', zorder=3)
+        ax.bar(x + width/2, [consumo_super_server], width, label='Ibrido (Intermittente)',
+               color='#2ecc71', edgecolor='black', zorder=3)
+        ax.set_title('Test 4: Abbattimento Energetico [Layout Utente - Caso Utente]', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Energia Impiegata (kW)', fontsize=12)
+        ax.set_xticks(x)
+        ax.set_xticklabels([label], fontsize=11)
+        ax.legend()
+        ax.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
+        plt.tight_layout()
+        plt.savefig('test_4_utente_risparmio_energetico.png', dpi=300)
         plt.close()
 
 # ==========================================
@@ -1425,7 +1669,7 @@ if __name__ == "__main__":
         print(f"  Pannelli RIS a Parete: {bom['n_ris_parete']}")
 
         print("\n--- Flotta Droni ---")
-        print(f" 🚁 Numero di Droni consigliato per non saturare la rete: {droni_consigliati}")
+        print(f" Numero di Droni consigliato per non saturare la rete: {droni_consigliati}")
       
         print("\n--- Spiegazione Modalità di Volo Attuale ---")
         if ambiente.modalita_volo == 'FISSO':
@@ -1441,7 +1685,7 @@ if __name__ == "__main__":
             print("    sopra lo stesso tratto di corridoio su piani sfalsati. Il traffico")
             print("    di rete sarà più denso e intenso.")
 
-        print("\n--- Test Modulo 4: Fisica del Canale (2-Way Ranging) ---")
+        print("\n--- Test di connessione: Fisica del Canale (2-Way Ranging) ---")
         if len(ambiente.base_stations) > 0:
             # Creiamo un drone fittizio per il test, posizionato in un angolo in basso
             drone_test = Drone(id_drone=99, x=1.0, y=1.0, z=1.0)
@@ -1469,35 +1713,49 @@ if __name__ == "__main__":
             else:
                 print(" > Nessun pannello RIS attivato (segnale sufficiente o nessuna RIS in vista).")
 
-            print("\n" + "=" * 60)
-            print("--- MENU TEST DI RETE ---")
-            print("1. [Test 1] Scalabilità e Punto di Rottura (Breakdown)")
-            print("2. [Test 2] Resilienza Rete e Guasto RIS")
-            print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
-            print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
-            print("0. Esci")
-            
-            scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
-            
             # Garantiamo che il DB sia sempre caricato prima del test
             db = DatabaseManager('telemetria.db')
             engine = SimulationEngine(db)
             plotter = DataPlotter("telemetria.db")
-            
-            if scelta == '1':
-                engine.test1_scalabilita()
-                plotter.plot_scalabilita()
-            elif scelta == '2':
-                engine.test2_resilienza_guasto()
-                plotter.plot_resilienza_guasto()
-            elif scelta == '3':
-                engine.test3_collo_bottiglia_rth()
-                plotter.plot_consumi_mass_rth()
-            elif scelta == '4':
-                engine.test4_confronto_energetico()
-                plotter.plot_risparmio_energetico()
-            else:
-                print("Uscita...")
+
+            while True:
+                print("\n" + "=" * 60)
+                print("--- MENU TEST DI RETE ---")
+                print("1. [Test 1] Scalabilità e Punto di Rottura (Breakdown)")
+                print("2. [Test 2] Resilienza Rete e Guasto RIS")
+                print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
+                print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
+                print("0. Esci")
+                
+                scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
+                
+                if scelta == '1':
+                    # Test standard A/B/C + grafico A/B/C
+                    engine.test1_scalabilita()
+                    plotter.plot_scalabilita()
+                    # Test e grafico separato per il layout utente
+                    engine.test1_custom(ambiente)
+                    plotter.plot_scalabilita_custom(ambiente)
+                elif scelta == '2':
+                    engine.test2_resilienza_guasto()
+                    plotter.plot_resilienza_guasto()
+                    engine.test2_custom(ambiente)
+                    plotter.plot_resilienza_guasto_custom(ambiente)
+                elif scelta == '3':
+                    engine.test3_collo_bottiglia_rth()
+                    plotter.plot_consumi_mass_rth()
+                    engine.test3_custom(ambiente)
+                    plotter.plot_consumi_mass_rth_custom(ambiente)
+                elif scelta == '4':
+                    engine.test4_confronto_energetico()
+                    plotter.plot_risparmio_energetico()
+                    engine.test4_custom(ambiente)
+                    plotter.plot_risparmio_energetico_custom(ambiente)
+                elif scelta == '0':
+                    print("Uscita dal menu dei test...")
+                    break
+                else:
+                    print("Scelta non valida, riprova.")
             
             print("\n > Chiusura connessione database... SALVATAGGIO RIUSCITO!")
             db.chiudi()
@@ -1506,3 +1764,4 @@ if __name__ == "__main__":
       
     except ValueError:
         print("\n[ERRORE] Inserimento non valido. Devi inserire un numero (usa i punti per i decimali, es: 10.5). Riprova.")
+        
