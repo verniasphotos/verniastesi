@@ -42,6 +42,10 @@ P_SLEEP = 0.5              # Consumo a riposo: pannello in ascolto ma inattivo (
 P_PASSIVE = 5.0            # Consumo in modalità passiva: pannello riflette segnali senza amplificarli (W)
 P_ACTIVE = 50.0            # Consumo in modalità attiva: pannello amplifica e ridirige il segnale (W)
 
+# Consumi Energetici della Base Station (Watt)
+P_BS_IDLE = 10.0           # Consumo a riposo della BS: in ascolto ma non sta inoltrando pacchetti (W)
+P_BS_FORWARDING = 30.0     # Consumo della BS quando sta attivamente inoltrando pacchetti al SuperServer (W)
+
 # Parametri di posizionamento delle RIS e BS (soffitto e parete)
 
 Z_BS_OFFSET_DAL_SOFFITTO = 0.3     # BS a soffitto: offset (in metri) sotto l'intradosso
@@ -194,12 +198,7 @@ class Magazzino:
                 x_bs = (self.lunghezza / 2.0) if n_bs_x == 1 else (passo_x / 2.0) + (ix * passo_x)
                 y_bs = (self.larghezza / 2.0) if n_bs_y == 1 else (passo_y / 2.0) + (iy * passo_y)
                 
-                self.base_stations.append({
-                    'id': id_bs,
-                    'x': x_bs,
-                    'y': y_bs,
-                    'z': z_bs
-                })
+                self.base_stations.append(BaseStation(id_bs=id_bs, x=x_bs, y=y_bs, z=z_bs))
                 id_bs += 1
 
         # Pannelli RIS (Reconfigurable Intelligent Surfaces)
@@ -214,7 +213,7 @@ class Magazzino:
                 # Filtering geometrico: Pruning se troppo vicine (<= 15.0m) a una Base Station
                 rx = self.lunghezza / 2.0
                 ry = corridoio_y
-                vicino_bs = any(math.sqrt((rx - bs['x'])**2 + (ry - bs['y'])**2) <= 15.0 for bs in self.base_stations)
+                vicino_bs = any(math.sqrt((rx - bs.x)**2 + (ry - bs.y)**2) <= 15.0 for bs in self.base_stations)
                 
                 if not vicino_bs:
                     self.ris_soffitto.append({
@@ -240,7 +239,7 @@ class Magazzino:
             for corridoio_y in self.corridoi:
                 # 2 RIS per corridoio, una all'inizio (X=0) e una alla fine (X=lunghezza)
                 # Filtering geometrico: Pruning se troppo vicine (<= 15.0m) a una Base Station
-                vicino_bs_start = any(math.sqrt((0.0 - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 15.0 for bs in self.base_stations)
+                vicino_bs_start = any(math.sqrt((0.0 - bs.x)**2 + (corridoio_y - bs.y)**2) <= 15.0 for bs in self.base_stations)
                 if not vicino_bs_start:
                     self.ris_parete.append({
                         'id': id_ris, 'tipo': 'parete_start',
@@ -248,7 +247,7 @@ class Magazzino:
                     })
                     id_ris += 1
                     
-                vicino_bs_end = any(math.sqrt((self.lunghezza - bs['x'])**2 + (corridoio_y - bs['y'])**2) <= 15.0 for bs in self.base_stations)
+                vicino_bs_end = any(math.sqrt((self.lunghezza - bs.x)**2 + (corridoio_y - bs.y)**2) <= 15.0 for bs in self.base_stations)
                 if not vicino_bs_end:
                     self.ris_parete.append({
                         'id': id_ris, 'tipo': 'parete_end',
@@ -256,13 +255,10 @@ class Magazzino:
                     })
                     id_ris += 1
         
-        # Base Station (ibrida): Inietta i nodi BS nella lista ris_soffitto se attivato
+        # Base Station (ibrida): Inietta i nodi BS nella lista ris_soffitto come oggetti firmati
         if BS_E_ANCHE_RIS:
             for bs in self.base_stations:
-                self.ris_soffitto.append({
-                    'id': id_ris, 'tipo': 'ibrida_bs',
-                    'x': bs['x'], 'y': bs['y'], 'z': bs['z']
-                })
+                self.ris_soffitto.append(bs.to_ris_dict())
                 id_ris += 1
         
     # 2. BOM : documento che dice quanti pezzi fisici servono per costruire un progetto
@@ -498,6 +494,80 @@ class RIS:
             
         return pacchetto
 
+
+class BaseStation:
+    """
+    Rappresenta la Base Station 6G del magazzino.
+    Opera in modalità IBRIDA: è sia il ricevitore radio primario della rete
+    sia un nodo RIS (riflessione/amplificazione attiva) con raggio R_BS = 50 m.
+    Espone un metodo dedicato per inoltrare i pacchetti ricevuti al SuperServer.
+    """
+    def __init__(self, id_bs, x, y, z):
+        self.id_bs = id_bs
+        self.x = x
+        self.y = y
+        self.z = z
+        self.stato_ris = 'sleep'      # Modalità RIS integrata: 'sleep', 'passive', 'active'
+        self.pacchetti_inoltrati = 0  # Contatore cumulativo pacchetti inoltrati al SuperServer
+
+    def cambia_stato_ris(self, nuovo_stato):
+        """ Il Controller cambia lo stato della componente RIS integrata nella BS """
+        stati_validi = ['sleep', 'passive', 'active']
+        if nuovo_stato in stati_validi:
+            self.stato_ris = nuovo_stato
+
+    def get_consumo(self):
+        """
+        Restituisce il consumo totale in Watt della BS in modalità ibrida.
+        - 'sleep':   solo il consumo base di ascolto (P_BS_IDLE)
+        - 'passive': la BS sta inoltrandol con la RIS in riflessione passiva
+        - 'active':  la BS amplifica il segnale (P_BS_FORWARDING + P_ACTIVE)
+        """
+        if self.stato_ris == 'sleep':
+            return P_BS_IDLE
+        elif self.stato_ris == 'passive':
+            return P_BS_FORWARDING
+        elif self.stato_ris == 'active':
+            return P_BS_FORWARDING + P_ACTIVE  # Modalità massima: forwarding + amplificazione RIS
+        return P_BS_IDLE
+
+    def ricevi_e_inoltra(self, pacchetto):
+        """
+        [FORWARDING AL SUPERSERVER]
+        La BS riceve il pacchetto (direttamente dal drone o riflesso da una RIS),
+        appone la propria firma nel tracciamento multi-hop e prepara il dato
+        per il SuperServer centrale.
+        Se opera in modalità RIS attiva (BS_E_ANCHE_RIS=True), amplifica di +10 dBm.
+        """
+        pacchetto.aggiungi_hop_bs(self.id_bs)
+        if self.stato_ris == 'active' and BS_E_ANCHE_RIS:
+            pacchetto.tx_power += 10.0  # Guadagno amplificazione RIS ibrida
+        self.pacchetti_inoltrati += 1
+        return pacchetto  # Pacchetto firmato, pronto per il SuperServer
+
+    def to_dict(self):
+        """
+        Restituisce un dizionario per compatibilità con le funzioni esistenti
+        (es. esegui_2way_ranging) che si aspettano {'id', 'x', 'y', 'z'}.
+        """
+        return {'id': self.id_bs, 'x': self.x, 'y': self.y, 'z': self.z}
+
+    def to_ris_dict(self):
+        """
+        Restituisce un dizionario RIS-compatibile per essere inserito
+        nella lista ris_soffitto quando BS_E_ANCHE_RIS è attivo.
+        """
+        return {
+            'id': f'BS_{self.id_bs}',
+            'tipo': 'ibrida_bs',
+            'x': self.x, 'y': self.y, 'z': self.z
+        }
+
+    def __repr__(self):
+        return (f"<BaseStation ID={self.id_bs} @ ({self.x:.1f},{self.y:.1f},{self.z:.1f}) "
+                f"| stato_RIS={self.stato_ris} | Pacchetti inoltrati={self.pacchetti_inoltrati}>")
+
+
 # ==========================================
 # MODULO 4: FISICA DEL CANALE E PROPAGAZIONE
 # ==========================================
@@ -522,6 +592,9 @@ def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
     2) Downlink (ACK): La BS risponde al drone confermando la ricezione
     Se uno dei due fallisce (es. l'ACK si perde tra gli scaffali), si cerca una RIS in aiuto.
     """
+    # Compatibilità: accetta sia un oggetto BaseStation sia un dizionario legacy
+    if isinstance(bs_dict, BaseStation):
+        bs_dict = bs_dict.to_dict()
     p_drone = (drone.x, drone.y, drone.z)
     p_bs = (bs_dict['x'], bs_dict['y'], bs_dict['z'])
     
@@ -759,7 +832,15 @@ class SuperServer:
                 consumo_w=consumo_attuale
             )
             
-        # 4. SALVATAGGIO LOG DRONE (Telemetria del Veicolo)
+        # 4. FORWARDING AL SUPERSERVER (via BS ibrida)
+        # Se il collegamento è riuscito e bs_target è un oggetto BaseStation,
+        # il pacchetto viene generato e firmato dalla BS prima di arrivare al Server.
+        if risultati['connesso'] and isinstance(bs_target, BaseStation):
+            pacchetto_fw = drone.genera_pacchetto("SIM", drone.x, drone.y, drone.z)
+            bs_target.ricevi_e_inoltra(pacchetto_fw)
+            bs_target.cambia_stato_ris('passive')  # La BS passa da sleep a passive durante il forwarding
+
+        # 5. SALVATAGGIO LOG DRONE (Telemetria del Veicolo)
         # Infine, documentiamo tutto quello che è successo in questo istante nello step temporale ("fotografia").
         self.db.inserisci_telemetria(
             ts=ts_attuale,
@@ -857,51 +938,116 @@ class SimulationEngine:              # Motore di simulazione
                 
             print(f"  => Risultato {nome_caso}: Rete regge fino a MAX {max_droni_raggiunti} Droni.\n")
 
-    # Test 2: resilienza e tolleranza ai guasti (simulazione guasto RIS)
-    def test2_resilienza_guasto(self): 
-        print("\n--- AVVIO TEST 2: Resilienza e Tolleranza ai Guasti ---")
-        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000} # Dimensioni magazzino (mq)
-        
-        offset_drone = 0 # Offset per distinguere i log nel database tra i vari casi
-        for nome_caso, mq in casi_mq.items():                            # Ciclo sui casi
-            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")               # Stampa nome caso e dimensione magazzino
-            ambiente = self._create_layout(mq)                           # Crea layout magazzino
-            server = SuperServer(ambiente, self.db)                      # Inizializza server
-            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete   # Lista di tutte le RIS
-            
-            # Assegniamo ID univoci per distinguere i log nel database tra i vari casi
-            flotta = self._inizializza_droni(15, ambiente)                # Inizializza droni
-            for d in flotta:
-                d.id_drone += offset_drone                                # Assegna ID univoci
-            
-            # Scegliamo una RIS bersaglio da "rompere" (prendiamo la prima a soffitto se esiste)
-            ris_bersaglio_id = None
-            if len(ambiente.ris_soffitto) > 0:                              # Se esiste una RIS a soffitto
-                ris_bersaglio_id = ambiente.ris_soffitto[0]['id']           # Assegna ID della RIS bersaglio
-                
-            bs_target = ambiente.base_stations[0]                           # Base Station bersaglio
-            
-            # Simulazione 100 step per ciascun caso
-            for t in range(0, 100): 
-                if t == 50 and ris_bersaglio_id is not None:
-                    print(f"  [t={t}] 💥 SIMULAZIONE GUASTO ({nome_caso}): Spegnimento forzato RIS_ID={ris_bersaglio_id}")
-                    # "Rompiamo" la RIS rimuovendola dalla lista
-                    tutte_le_ris = [ris for ris in tutte_le_ris if ris['id'] != ris_bersaglio_id] # Rimuove RIS bersaglio
-                    
-                for drone in flotta:
-                    drone.x += random.uniform(-1, 1) * V_DRONE * DT # Aggiorna posizione drone
-                    drone.y += random.uniform(-1, 1) * V_DRONE * DT # Aggiorna posizione drone
-                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris) # Riceve telemetria
-            
-            offset_drone += 100 # Incremento per il caso successivo 
-        
-        print("\n  => Test 2 completato per tutti i layout. (Controlla il plot relativo).")
-
-    # Test 3: Analisi Energetica sui Transitori di Emergenza Sincrona ("Mass RTH")
-    def test3_collo_bottiglia_rth(self):
-        print("\n--- AVVIO TEST 3: Collo di Bottiglia (Mass RTH) ---")
+    # Test 2: Resilienza con Heatmap SNR (griglia 2D PRIMA/DOPO guasto RIS)
+    def test2_resilienza_guasto(self):
+        print("\n--- AVVIO TEST 2: Resilienza e Tolleranza ai Guasti (Heatmap SNR) ---")
         casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
-        
+
+        offset_drone = 0
+        for nome_caso, mq in casi_mq.items():
+            print(f"\n> Esecuzione {nome_caso} ({mq} mq)")
+            ambiente = self._create_layout(mq)
+            server = SuperServer(ambiente, self.db)
+            tutte_le_ris_full = ambiente.ris_soffitto + ambiente.ris_parete
+
+            # Identifichiamo il cluster di RIS bersaglio (simulazione blackout di zona)
+            ris_guaste_ids = []
+            ris_guaste_pos = []
+            vere_ris_soffitto = [r for r in ambiente.ris_soffitto if r.get('tipo', '') != 'ibrida_bs']
+            if len(vere_ris_soffitto) > 0:
+                n_guasti = min(4, len(vere_ris_soffitto))
+                for i in range(n_guasti):
+                    ris_guaste_ids.append(vere_ris_soffitto[i]['id'])
+                    ris_guaste_pos.append([vere_ris_soffitto[i]['x'], vere_ris_soffitto[i]['y']])
+            bs_target = ambiente.base_stations[0]
+
+            # --- CALCOLO GRIGLIA SNR PRIMA DEL GUASTO ---
+            print(f"  > Campionamento griglia SNR PRIMA del guasto...")
+            passo = max(2.0, ambiente.lunghezza / 30.0)  # Risoluzione griglia adattiva
+            xs = list(range(int(passo), int(ambiente.lunghezza), int(passo)))
+            ys = list(range(int(passo), int(ambiente.larghezza), int(passo)))
+            drone_griglia = Drone(id_drone=999, x=0, y=0, z=Z_DRONE_FISSO)
+
+            snr_before = []
+            for gy in ys:
+                riga = []
+                for gx in xs:
+                    drone_griglia.x = float(gx)
+                    drone_griglia.y = float(gy)
+                    res = esegui_2way_ranging(drone_griglia, bs_target, ambiente, tutte_le_ris_full)
+                    riga.append(res['snr_uplink_effettivo_dB'])
+                snr_before.append(riga)
+
+            # --- RIMOZIONE RIS BERSAGLIO ---
+            tutte_le_ris_guasto = [r for r in tutte_le_ris_full if r['id'] not in ris_guaste_ids]
+            print(f"  [GUASTO MULTIPLO] Spegnimento forzato di {len(ris_guaste_ids)} RIS: {ris_guaste_ids}")
+
+            # --- CALCOLO GRIGLIA SNR DOPO IL GUASTO ---
+            print(f"  > Campionamento griglia SNR DOPO il guasto...")
+            snr_after = []
+            for gy in ys:
+                riga = []
+                for gx in xs:
+                    drone_griglia.x = float(gx)
+                    drone_griglia.y = float(gy)
+                    res = esegui_2way_ranging(drone_griglia, bs_target, ambiente, tutte_le_ris_guasto)
+                    riga.append(res['snr_uplink_effettivo_dB'])
+                snr_after.append(riga)
+
+            # Salviamo le griglie serializzate come marker nel DB per il plotter
+            import json
+            ts_now = time.time()
+            label_b = f"HEATMAP_BEFORE_{nome_caso.replace(' ', '_')}"
+            label_a = f"HEATMAP_AFTER_{nome_caso.replace(' ', '_')}"
+            # Posizione RIS guaste e BS per il marker sul plot
+            # Scaffali compatti: [x_min, y_min, x_max, y_max]
+            scaffali_compact = [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali]
+            # Tutte le RIS: [x, y, tipo]
+            ris_tutte = [[r['x'], r['y'], r.get('tipo', 'soffitto')] for r in tutte_le_ris_full]
+            # Tutte le BS: [x, y]
+            bs_tutte = [[bs.x if hasattr(bs, 'x') else bs['x'], bs.y if hasattr(bs, 'y') else bs['y']] for bs in ambiente.base_stations]
+            # Usa le posizioni BOM (DeploymentPlanner) per i marker del plot — stessa griglia 2D del disegno BOM
+            bom_planner = DeploymentPlanner(ambiente.lunghezza, ambiente.larghezza, ambiente.altezza)
+            ris_tutte_bom   = [[r['x'], r['y'], 'soffitto'] for r in bom_planner.ris_soffitto] + \
+                               [[r['x'], r['y'], 'parete'] for r in bom_planner.ris_parete]
+            bs_tutte_bom    = [[bs['x'], bs['y']] for bs in bom_planner.base_stations]
+            ris_tutte = ris_tutte_bom
+            bs_tutte  = bs_tutte_bom
+            # Remap ris_guaste_pos alle coordinate BOM (prime N RIS soffitto della griglia BOM)
+            n_guaste = len(ris_guaste_ids)
+            bom_soffitto_pos = [[r['x'], r['y']] for r in bom_planner.ris_soffitto]
+            ris_guaste_pos_bom = bom_soffitto_pos[:n_guaste] if n_guaste <= len(bom_soffitto_pos) else bom_soffitto_pos
+            ris_guaste_pos = ris_guaste_pos_bom
+            payload_common = {'xs': xs, 'ys': ys, 'L': ambiente.lunghezza, 'W': ambiente.larghezza,
+                              'ris_guaste_pos': ris_guaste_pos, 'mq': mq,
+                              'scaffali': scaffali_compact, 'ris_tutte': ris_tutte, 'bs_tutte': bs_tutte}
+            payload_b = {**payload_common, 'snr': snr_before}
+            payload_a = {**payload_common, 'snr': snr_after}
+            self.db.inserisci_evento_rete(ts_now,     -2, label_b, json.dumps(payload_b))
+            self.db.inserisci_evento_rete(ts_now+0.01,-2, label_a, json.dumps(payload_a))
+
+            # Simulazione classica per il DB drone (serve per la CDF)
+            flotta = self._inizializza_droni(15, ambiente)
+            for d in flotta:
+                d.id_drone += offset_drone
+            tutte_le_ris = list(tutte_le_ris_full)  # copia fresca
+            for t in range(0, 100):
+                if t == 50 and len(ris_guaste_ids) > 0:
+                    tutte_le_ris = [r for r in tutte_le_ris if r['id'] not in ris_guaste_ids]
+                for drone in flotta:
+                    drone.x += random.uniform(-1, 1) * V_DRONE * DT
+                    drone.y += random.uniform(-1, 1) * V_DRONE * DT
+                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+            offset_drone += 100
+
+        print("\n  => Test 2 completato per tutti i layout. Heatmap e CDF pronte.")
+
+    # Test 3: Analisi Energetica su Transitori Mass RTH (Dual-Axis: Batteria vs Attivazioni RIS)
+    def test3_collo_bottiglia_rth(self):
+        print("\n--- AVVIO TEST 3: Collo di Bottiglia (Mass RTH) - Dual Axis ---")
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
+        import json
+
         for nome_caso, mq in casi_mq.items():
             print(f"\n> Esecuzione {nome_caso} ({mq} mq)")
             ambiente = self._create_layout(mq)
@@ -909,27 +1055,43 @@ class SimulationEngine:              # Motore di simulazione
             tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
             flotta = self._inizializza_droni(50, ambiente)
             bs_target = ambiente.base_stations[0]
-            
-            # Marker nel DB per separare i dati dei 3 casi nel plot
-            ts_start = time.time() # Timestamp di inizio simulazione
-            # Inseriamo un log fittizio per Run 1 nel database per il plotter
+
+            ts_start = time.time()
             self.db.inserisci_evento_rete(ts_start, -1, f"START_{nome_caso.replace(' ', '_')}", 0)
-            
+
+            # Collezioniamo dati per step: batteria media, min, max e conteggio attivazioni RIS
+            steps_data = []  # lista di dizionari {step, batt_media, batt_min, batt_max, ris_attivazioni}
+
             for t in range(0, 40):
                 if t == 20:
-                    print(f"  [t={t}] ⚠️ EVENTO MASSIVO ({nome_caso}): Il 40% dei droni viene forzato a batteria 21%.")
+                    print(f"  [t={t}] ⚠ EVENTO MASSIVO ({nome_caso}): Il 40% dei droni viene forzato a batteria 21%.")
                     droni_da_scaricare = int(0.40 * len(flotta))
                     for i in range(droni_da_scaricare):
                         flotta[i].batteria = 21.0
-                        
+
+                ris_attivate_questo_step = 0
+                livelli_batteria = []
                 for drone in flotta:
-                    drone.aggiorna_batteria() # Questo farà scattare la soglia del 20% subito dopo t=20
-                    server.ricevi_telemetria(drone, bs_target, tutte_le_ris) # Riceve telemetria
-                    
-            # Pausa per separare i timestamp dei 3 casi in modo chiaro nel DB
+                    drone.aggiorna_batteria()
+                    res = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                    livelli_batteria.append(drone.batteria)
+                    if res.get('usa_ris', False):
+                        ris_attivate_questo_step += 1
+
+                steps_data.append({
+                    'step': t,
+                    'batt_media': sum(livelli_batteria) / len(livelli_batteria),
+                    'batt_min': min(livelli_batteria),
+                    'batt_max': max(livelli_batteria),
+                    'ris_attivazioni': ris_attivate_questo_step
+                })
+
+            # Salviamo i dati serializzati come marker nel DB per il plotter dual-axis
+            label_data = f"DUALAXIS_{nome_caso.replace(' ', '_')}"
+            self.db.inserisci_evento_rete(time.time(), -3, label_data, json.dumps(steps_data))
             time.sleep(0.5)
-                
-        print("\n  => Test 3 completato per tutti i layout. (Tantissime RIS dovrebbero essersi attivate in RTH).")
+
+        print("\n  => Test 3 completato. Dati dual-axis pronti per il plot.")
 
     # Test 4 di confronto energetico
     def test4_confronto_energetico(self):
@@ -1002,19 +1164,74 @@ class SimulationEngine:              # Motore di simulazione
         print(f"  => Rete Layout Utente regge fino a MAX {max_droni_raggiunti} Droni.\n")
 
     def test2_custom(self, ambiente):
-        """ Test 2 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        """ Test 2 Custom: Heatmap SNR PRIMA/DOPO guasto per il layout personalizzato """
+        import json
         print("\n--- AVVIO TEST 2: Resilienza [Layout Utente] ---")
         server = SuperServer(ambiente, self.db)
-        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
-        flotta = self._inizializza_droni(15, ambiente)
-        ris_bersaglio_id = None
-        if len(ambiente.ris_soffitto) > 0:
-            ris_bersaglio_id = ambiente.ris_soffitto[0]['id']
+        tutte_le_ris_full = ambiente.ris_soffitto + ambiente.ris_parete
+        ris_guaste_ids = []
+        ris_guaste_pos = []
+        vere_ris_soffitto = [r for r in ambiente.ris_soffitto if r.get('tipo', '') != 'ibrida_bs']
+        if len(vere_ris_soffitto) > 0:
+            n_guasti = min(4, len(vere_ris_soffitto))
+            for i in range(n_guasti):
+                ris_guaste_ids.append(vere_ris_soffitto[i]['id'])
+                ris_guaste_pos.append([vere_ris_soffitto[i]['x'], vere_ris_soffitto[i]['y']])
         bs_target = ambiente.base_stations[0]
+
+        # Griglia SNR PRIMA del guasto
+        passo = max(2.0, ambiente.lunghezza / 25.0)
+        xs = list(range(int(passo), int(ambiente.lunghezza), int(passo)))
+        ys = list(range(int(passo), int(ambiente.larghezza), int(passo)))
+        drone_g = Drone(id_drone=998, x=0, y=0, z=Z_DRONE_FISSO)
+        snr_before = []
+        for gy in ys:
+            riga = []
+            for gx in xs:
+                drone_g.x, drone_g.y = float(gx), float(gy)
+                res = esegui_2way_ranging(drone_g, bs_target, ambiente, tutte_le_ris_full)
+                riga.append(res['snr_uplink_effettivo_dB'])
+            snr_before.append(riga)
+
+        # Rimozione RIS e griglia SNR DOPO il guasto
+        tutte_le_ris_guasto = [r for r in tutte_le_ris_full if r['id'] not in ris_guaste_ids]
+        snr_after = []
+        for gy in ys:
+            riga = []
+            for gx in xs:
+                drone_g.x, drone_g.y = float(gx), float(gy)
+                res = esegui_2way_ranging(drone_g, bs_target, ambiente, tutte_le_ris_guasto)
+                riga.append(res['snr_uplink_effettivo_dB'])
+            snr_after.append(riga)
+
+        ts_now = time.time()
+        scaffali_compact = [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali]
+        ris_tutte = [[r['x'], r['y'], r.get('tipo', 'soffitto')] for r in tutte_le_ris_full]
+        bs_tutte = [[bs.x if hasattr(bs, 'x') else bs['x'], bs.y if hasattr(bs, 'y') else bs['y']] for bs in ambiente.base_stations]
+        # Usa le posizioni BOM (DeploymentPlanner) per i marker del plot — stessa griglia 2D del disegno BOM
+        bom_planner = DeploymentPlanner(ambiente.lunghezza, ambiente.larghezza, ambiente.altezza)
+        ris_tutte_bom   = [[r['x'], r['y'], 'soffitto'] for r in bom_planner.ris_soffitto] + \
+                           [[r['x'], r['y'], 'parete'] for r in bom_planner.ris_parete]
+        bs_tutte_bom    = [[bs['x'], bs['y']] for bs in bom_planner.base_stations]
+        ris_tutte = ris_tutte_bom
+        bs_tutte  = bs_tutte_bom
+        # Remap ris_guaste_pos alle coordinate BOM (prime N RIS soffitto della griglia BOM)
+        n_guaste = len(ris_guaste_ids)
+        bom_soffitto_pos = [[r['x'], r['y']] for r in bom_planner.ris_soffitto]
+        ris_guaste_pos_bom = bom_soffitto_pos[:n_guaste] if n_guaste <= len(bom_soffitto_pos) else bom_soffitto_pos
+        ris_guaste_pos = ris_guaste_pos_bom
+        payload_common = {'xs': xs, 'ys': ys, 'L': ambiente.lunghezza, 'W': ambiente.larghezza,
+                          'ris_guaste_pos': ris_guaste_pos, 'mq': ambiente.area_mq,
+                          'scaffali': scaffali_compact, 'ris_tutte': ris_tutte, 'bs_tutte': bs_tutte}
+        self.db.inserisci_evento_rete(ts_now,     -2, "HEATMAP_BEFORE_Caso_Utente", json.dumps({**payload_common, 'snr': snr_before}))
+        self.db.inserisci_evento_rete(ts_now+0.01,-2, "HEATMAP_AFTER_Caso_Utente",  json.dumps({**payload_common, 'snr': snr_after}))
+
+        # Simulazione classica per CDF
+        flotta = self._inizializza_droni(15, ambiente)
+        tutte_le_ris = list(tutte_le_ris_full)
         for t in range(0, 100):
-            if t == 50 and ris_bersaglio_id is not None:
-                print(f"  [t={t}] SIMULAZIONE GUASTO: Spegnimento forzato RIS_ID={ris_bersaglio_id}")
-                tutte_le_ris = [ris for ris in tutte_le_ris if ris['id'] != ris_bersaglio_id]
+            if t == 50 and len(ris_guaste_ids) > 0:
+                tutte_le_ris = [r for r in tutte_le_ris if r['id'] not in ris_guaste_ids]
             for drone in flotta:
                 drone.x += random.uniform(-1, 1) * V_DRONE * DT
                 drone.y += random.uniform(-1, 1) * V_DRONE * DT
@@ -1022,7 +1239,8 @@ class SimulationEngine:              # Motore di simulazione
         print("  => Test 2 [Layout Utente] completato.")
 
     def test3_custom(self, ambiente):
-        """ Test 3 eseguito SOLO sul layout personalizzato dell'utente (Caso Utente) """
+        """ Test 3 Custom: Dual-Axis Batteria vs Attivazioni RIS per il layout personalizzato """
+        import json
         print("\n--- AVVIO TEST 3: Mass RTH [Layout Utente] ---")
         server = SuperServer(ambiente, self.db)
         tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
@@ -1030,15 +1248,27 @@ class SimulationEngine:              # Motore di simulazione
         bs_target = ambiente.base_stations[0]
         ts_start = time.time()
         self.db.inserisci_evento_rete(ts_start, -1, "START_Caso_Utente", 0)
+
+        steps_data = []
         for t in range(0, 40):
             if t == 20:
                 print(f"  [t={t}] EVENTO MASSIVO: Il 40% dei droni viene forzato a batteria 21%.")
                 droni_da_scaricare = int(0.40 * len(flotta))
                 for i in range(droni_da_scaricare):
                     flotta[i].batteria = 21.0
+            ris_attivate = 0
+            livelli = []
             for drone in flotta:
                 drone.aggiorna_batteria()
-                server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                res = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                livelli.append(drone.batteria)
+                if res.get('usa_ris', False):
+                    ris_attivate += 1
+            steps_data.append({'step': t, 'batt_media': sum(livelli)/len(livelli),
+                                'batt_min': min(livelli), 'batt_max': max(livelli),
+                                'ris_attivazioni': ris_attivate})
+
+        self.db.inserisci_evento_rete(time.time(), -3, "DUALAXIS_Caso_Utente", json.dumps(steps_data))
         print("  => Test 3 [Layout Utente] completato.")
 
     def test4_custom(self, ambiente):
@@ -1112,105 +1342,149 @@ class DataPlotter:
         plt.close()
 
     def plot_resilienza_guasto(self):
-        """ Test 2: Resilienza della Rete al Guasto (Failover) """
+        """ Test 2: Resilienza — Griglia 3×3 Heatmap (PRIMA | DOPO | LEGENDA per ogni Caso) """
         print(" > Generazione plot_resilienza_guasto.png ...")
-        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 2000"
-        dati = self._esegui_query(query)
-        
-        if not dati:
-            print("  [!] Nessun dato disponibile per il plot.")
-            return
-        
-        # Ordine cronologico
-        dati.reverse()
-        t0 = dati[0][0]
-        
-        # Raggruppiamo per timestamp e calcoliamo l'SNR medio di rete per ogni istante
-        # (approccio più robusto e significativo: Network-Average SNR)
-        from collections import defaultdict
-        snr_per_ts = defaultdict(list)
-        for row in dati:
-            snr_per_ts[row[0]].append(row[2])
-        
-        ts_sorted = sorted(snr_per_ts.keys())
-        tempi = [ts - t0 for ts in ts_sorted]
-        snr_medio = [sum(snr_per_ts[ts]) / len(snr_per_ts[ts]) for ts in ts_sorted]
-        
-        # Punto di guasto stimato a metà della finestra temporale (t=50 step -> ~50% del tempo)
-        t_guasto = tempi[len(tempi) // 2] if tempi else 5.0
-        
-        plt.figure(figsize=(10, 6))
-        if len(tempi) > 0:
-            plt.plot(tempi, snr_medio, 'b-', linewidth=2, label='SNR Medio di Rete (dB)')
+        import json
+        import matplotlib.patches as patches
+        casi = ['Caso_A', 'Caso_B', 'Caso_C']
+        labels = {'Caso_A': 'Caso A (2.000 mq)', 'Caso_B': 'Caso B (10.000 mq)', 'Caso_C': 'Caso C (35.000 mq)'}
+
+        fig = plt.figure(figsize=(20, 18))
+        gs = fig.add_gridspec(3, 3, width_ratios=[1, 1, 0.25])
+
+        for row, caso in enumerate(casi):
+            q_b = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'HEATMAP_BEFORE_{caso}' ORDER BY TS DESC LIMIT 1"
+            q_a = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'HEATMAP_AFTER_{caso}' ORDER BY TS DESC LIMIT 1"
+            res_b = self._esegui_query(q_b)
+            res_a = self._esegui_query(q_a)
+            if not res_b or not res_a:
+                continue
+
+            data_b = json.loads(str(res_b[0][0]))
+            data_a = json.loads(str(res_a[0][0]))
+            X, Y = np.meshgrid(data_b['xs'], data_b['ys'])
+            Z_b = np.array(data_b['snr'])
+            Z_a = np.array(data_a['snr'])
+
+            # Estrai metadati
+            ris_guaste_pos = data_b.get('ris_guaste_pos', [])
+            scaffali = data_b.get('scaffali', [])
+            ris_tutte = data_b.get('ris_tutte', [])
+            bs_tutte = data_b.get('bs_tutte', [])
+            L = data_b.get('L', max(data_b['xs']))
+            W = data_b.get('W', max(data_b['ys']))
             
-        plt.axvline(x=t_guasto, color='r', linestyle='--', linewidth=2, label='Guasto RIS simulato')
-        plt.title('Test 2: Resilienza della Rete al Guasto (Failover)', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo (secondi simulati)')
-        plt.ylabel('SNR Medio di Rete (dB)')
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
+            # Calcolo vmax/vmin reali per questa heatmap
+            z_min = min(np.min(Z_b), np.min(Z_a)) - 2
+            z_max = max(np.max(Z_b), np.max(Z_a)) + 2
+
+            ax_leg = fig.add_subplot(gs[row, 2])
+            ax_leg.axis('off')
+            ax_leg.add_patch(patches.Rectangle((0, 0), 1, 1, transform=ax_leg.transAxes, visible=False))  # dummy
+            # Stessi simboli delle cartine BOM
+            ax_leg.plot([], [], 's', color='#d0d0d0', markersize=18, alpha=0.8, label='Scaffali Metallici\n(Gabbia di Faraday)')
+            ax_leg.plot([], [], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, label='Base Station 6G\n(Tx Principale)')
+            ax_leg.plot([], [], 'o', color='green', markersize=10, label='RIS Soffitto\n(Beamforming Attivo)')
+            ax_leg.plot([], [], 's', color='blue', markersize=10, label='RIS Parete\n(Guida Laterale)')
+            ax_leg.plot([], [], 'x', color='cyan', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
+            ax_leg.legend(loc='center left', fontsize=11, frameon=False, title='LEGENDA (come BOM)', title_fontsize=12)
+
+            for col, (Z, titolo) in enumerate([(Z_b, 'PRIMA del Guasto'), (Z_a, 'DOPO il Guasto')]):
+                ax = fig.add_subplot(gs[row, col])
+                
+                # Heatmap background
+                im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max)
+                # Contour lines
+                contours = ax.contour(X, Y, Z, levels=8, colors='black', linewidths=0.5, alpha=0.5)
+                ax.clabel(contours, inline=True, fontsize=8, fmt='%1.0f dB')
+                
+                fig.colorbar(im, ax=ax, label='SNR (dB)', shrink=0.85, pad=0.02)
+
+                # Disegna scaffali
+                for s in scaffali:
+                    rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                             linewidth=1, edgecolor='none', facecolor='#d0d0d0', alpha=0.6, zorder=5)
+                    ax.add_patch(rect)
+                
+                # Disegna RIS soffitto (cerchio verde) e RIS parete (quadrato blu) — stessi simboli BOM
+                for r in ris_tutte:
+                    tipo_r = r[2] if len(r) > 2 else 'soffitto'
+                    is_guasta = any(math.isclose(r[0], g[0]) and math.isclose(r[1], g[1]) for g in ris_guaste_pos)
+                    # Nel PRIMA: mostra sempre tutto funzionante
+                    # Nel DOPO: le guaste spariscono dal simbolo normale (verranno ridisegnate come X)
+                    if col == 0 or not is_guasta:
+                        if 'parete' in tipo_r:
+                            ax.plot(r[0], r[1], 's', color='blue', markersize=9, markeredgewidth=1.5, zorder=10)
+                        else:
+                            ax.plot(r[0], r[1], 'o', color='green', markersize=9, markeredgewidth=1.5, zorder=10)
+
+                # Disegna Base Stations (triangolo giallo)
+                for bs in bs_tutte:
+                    ax.plot(bs[0], bs[1], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, zorder=11)
+                    
+                # Disegna X ciano per ogni RIS guasta nel 'DOPO'
+                if col == 1:
+                    for g in ris_guaste_pos:
+                        ax.plot(g[0], g[1], 'x', color='cyan', markersize=22, markeredgewidth=3, zorder=13)
+
+                n_guaste = len(ris_guaste_pos) if col == 1 else 0
+                n_ok = len(ris_tutte) - n_guaste
+                ax.set_title(f"{labels[caso]} — {titolo}\n(RIS Attive: {n_ok} | RIS Guaste: {n_guaste} | BS: {len(bs_tutte)})", fontsize=12, fontweight='bold')
+                ax.set_xlabel('Lunghezza Magazzino (m)', fontsize=11)
+                ax.set_ylabel('Larghezza Magazzino (m)', fontsize=11)
+                ax.set_xlim(0, L)
+                ax.set_ylim(0, W)
+                ax.set_aspect('equal' if L / W < 3 else 'auto')
+
+        fig.suptitle('TEST 2: Resilienza — Radio Coverage Map PRIMA e DOPO Guasto RIS', fontsize=20, fontweight='bold', y=0.98)
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.savefig("test_2_casi_A_B_C_resilienza_guasto.png", dpi=300)
         plt.close()
 
     def plot_consumi_mass_rth(self):
-        """ Test 3: Assorbimento Energetico in Emergenza (Mass-RTH) """
+        """ Test 3: Assorbimento Energetico Mass-RTH (Dual Axis Batteria vs RIS) """
         print(" > Generazione plot_consumi_mass_rth.png ...")
+        import json
         casi = ['Caso_A', 'Caso_B', 'Caso_C']
-        labels = ['Caso A', 'Caso B', 'Caso C']
-        colori = ['#3498db', '#2ecc71', '#e74c3c']
         
-        plt.figure(figsize=(12, 6))
-        
-        # Iteriamo partendo dal C per disegnare le aree grandi dietro e le piccole (A, B) in primo piano
-        for i in reversed(range(len(casi))):
-            caso = casi[i]
-            q_start = f"SELECT TS FROM Eventi_Rete WHERE Azione = 'START_{caso}' ORDER BY TS DESC LIMIT 1"
-            res_start = self._esegui_query(q_start)
-            
-            if res_start:
-                ts_start = res_start[0][0]
-                ts_end = ts_start + 8.0 
-                
-                query_dati = '''
-                    SELECT TS, Consumo_W FROM Eventi_Rete 
-                    WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
-                    ORDER BY TS ASC
-                '''
-                dati = self._esegui_query(query_dati, (ts_start, ts_end))
-                
-                if len(dati) > 5:
-                    tempi_raw = [riga[0] - ts_start for riga in dati]
-                    consumi_raw = [riga[1] for riga in dati]
-                    
-                    finestra = min(30, len(consumi_raw)) # Ridotta da 50 a 30 per non spianare troppo i picchi
-                    if finestra > 2:
-                        kernel = np.ones(finestra) / finestra
-                        consumi_smoothed = np.convolve(consumi_raw, kernel, mode='same')
-                    else:
-                        consumi_smoothed = consumi_raw
-                        
-                    # Abbassiamo l'alpha a 0.25 e posizioniamo in modo intelligente lo zorder
-                    plt.fill_between(tempi_raw, 0, consumi_smoothed, color=colori[i], alpha=0.25, label=labels[i])
-                    plt.plot(tempi_raw, consumi_smoothed, color=colori[i], linewidth=3, zorder=5-i)
+        # Plot 3 sottografici (uno per layout)
+        fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+        if not isinstance(axes, np.ndarray):
+            axes = [axes]
 
-        plt.axvline(x=2.0, ymin=0, ymax=0.75, color='black', linestyle=':', linewidth=2, label='Congestione RTH massivo', zorder=10)
-        plt.title('TEST 3: Assorbimento Energetico Mass-RTH', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo dai marker (secondi)', fontsize=12)
-        plt.ylabel('Consumo Controller RIS (W)', fontsize=12)
-        plt.grid(True, alpha=0.4)
-        
-        # Per mantenere la legenda in ordine dinamico invertiamo l'array (risolvendo il plot reverse) e teniamo la linea RTH in fondo
-        handles, labels_leg = plt.gca().get_legend_handles_labels()
-        if len(handles) > 0:
-            line_handle = handles.pop(-1)
-            line_label = labels_leg.pop(-1)
-            handles.reverse()
-            labels_leg.reverse()
-            handles.append(line_handle)
-            labels_leg.append(line_label)
-        
-        plt.legend(handles, labels_leg)
+        for i, caso in enumerate(casi):
+            ax1 = axes[i]
+            q = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'DUALAXIS_{caso}' ORDER BY TS DESC LIMIT 1"
+            res = self._esegui_query(q)
+            if res:
+                data = json.loads(res[0][0])
+                steps = [d['step'] for d in data]
+                batt = [d['batt_media'] for d in data]
+                batt_min = [d['batt_min'] for d in data]
+                batt_max = [d['batt_max'] for d in data]
+                ris_act = [d['ris_attivazioni'] for d in data]
+
+                # Asse Sinistro: Batteria (Linea Blu)
+                color1 = '#2980b9'
+                ax1.set_ylabel(f'Batteria {caso.replace("_"," ")} (%)', color=color1, fontweight='bold')
+                ax1.fill_between(steps, batt_min, batt_max, color=color1, alpha=0.2)
+                ax1.plot(steps, batt, color=color1, linewidth=2, label='Batt. Media')
+                ax1.tick_params(axis='y', labelcolor=color1)
+                ax1.set_ylim(0, 105)
+
+                # Asse Destro: RIS attivate (Barre Rosse)
+                ax2 = ax1.twinx()
+                color2 = '#e74c3c'
+                ax2.set_ylabel('RIS Attivate', color=color2, fontweight='bold')
+                ax2.bar(steps, ris_act, color=color2, alpha=0.6, width=1.0, label='RIS ON')
+                ax2.tick_params(axis='y', labelcolor=color2)
+                ax2.set_ylim(0, max(max(ris_act)+5, 10))
+
+                ax1.axvline(x=20, color='black', linestyle='--', label='Trigger Mass RTH')
+                ax1.grid(True, alpha=0.3)
+
+        axes[-1].set_xlabel('Tempo (Step Simulazione)', fontsize=12, fontweight='bold')
+        fig.suptitle('TEST 3: Correlazione Crisi Energetica vs Attivazioni RIS', fontsize=16, fontweight='bold')
         plt.tight_layout()
         plt.savefig('test_3_casi_A_B_C_mass_rth.png', dpi=300)
         plt.close()
@@ -1306,67 +1580,139 @@ class DataPlotter:
         plt.close()
 
     def plot_resilienza_guasto_custom(self, ambiente):
-        """ Test 2 Custom: genera plot_resilienza_guasto_custom.png solo per il layout utente """
+        """ Test 2 Custom: Heatmap 2D PRIMA/DOPO con marker (Layout Utente) """
         print(" > Generazione plot_resilienza_guasto_custom.png ...")
-        query = "SELECT TS, ID_Drone, SNR FROM Telemetria_Droni ORDER BY TS DESC LIMIT 500"
-        dati = self._esegui_query(query)
-        if not dati:
-            print("  [!] Nessun dato disponibile per il plot.")
-            return
-        dati.reverse()
-        tempi = [row[0] - dati[0][0] for row in dati]
-        snr_drone_1 = [row[2] for row in dati if row[1] == 1]
-        t_drone_1 = [tempi[i] for i, row in enumerate(dati) if row[1] == 1]
+        import json
+        import matplotlib.patches as patches
+        q_b = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'HEATMAP_BEFORE_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        q_a = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'HEATMAP_AFTER_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res_b = self._esegui_query(q_b)
+        res_a = self._esegui_query(q_a)
 
-        plt.figure(figsize=(9, 6))
-        if len(t_drone_1) > 0:
-            plt.plot(t_drone_1, snr_drone_1, color='#f1c40f', linewidth=2,
-                     label=f'SNR Drone 1 - Layout Utente ({ambiente.area_mq:,.0f} mq)')
-        plt.axvline(x=5.0, color='r', linestyle='--', label='Guasto RIS simulato')
-        plt.title('Test 2: Resilienza Rete [Layout Utente - Caso Utente]', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo (secondi simulati)')
-        plt.ylabel('SNR (dB)')
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
+        if not res_b or not res_a:
+            print("  [!] Dati Heatmap Custom non trovati nel DB.")
+            return
+
+        data_b = json.loads(str(res_b[0][0]))
+        data_a = json.loads(str(res_a[0][0]))
+        X, Y = np.meshgrid(data_b['xs'], data_b['ys'])
+        Z_b = np.array(data_b['snr'])
+        Z_a = np.array(data_a['snr'])
+        
+        # Estrai metadati
+        ris_guaste_pos = data_b.get('ris_guaste_pos', [])
+        scaffali = data_b.get('scaffali', [])
+        ris_tutte = data_b.get('ris_tutte', [])
+        bs_tutte = data_b.get('bs_tutte', [])
+        L = data_b.get('L', max(data_b['xs']))
+        W = data_b.get('W', max(data_b['ys']))
+        mq = data_b.get('mq', ambiente.area_mq)
+
+        # Calcolo vmax/vmin reali per questa heatmap
+        z_min = min(np.min(Z_b), np.min(Z_a)) - 2
+        z_max = max(np.max(Z_b), np.max(Z_a)) + 2
+
+        fig = plt.figure(figsize=(20, 6))
+        gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 0.25])
+
+        ax_leg = fig.add_subplot(gs[0, 2])
+        ax_leg.axis('off')
+        ax_leg.add_patch(patches.Rectangle((0, 0), 1, 1, transform=ax_leg.transAxes, visible=False))  # dummy
+        ax_leg.plot([], [], 's', color='#d0d0d0', markersize=18, alpha=0.8, label='Scaffali Metallici\n(Gabbia di Faraday)')
+        ax_leg.plot([], [], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, label='Base Station 6G\n(Tx Principale)')
+        ax_leg.plot([], [], 'o', color='green', markersize=10, label='RIS Soffitto\n(Beamforming Attivo)')
+        ax_leg.plot([], [], 's', color='blue', markersize=10, label='RIS Parete\n(Guida Laterale)')
+        ax_leg.plot([], [], 'x', color='cyan', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
+        ax_leg.legend(loc='center left', fontsize=11, frameon=False, title='LEGENDA (come BOM)', title_fontsize=12)
+
+        for col, (Z, titolo) in enumerate([(Z_b, 'PRIMA del Guasto'), (Z_a, 'DOPO il Guasto')]):
+            ax = fig.add_subplot(gs[0, col])
+            
+            # Heatmap background
+            im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max)
+            # Contour lines
+            contours = ax.contour(X, Y, Z, levels=8, colors='black', linewidths=0.5, alpha=0.5)
+            ax.clabel(contours, inline=True, fontsize=8, fmt='%1.0f dB')
+            
+            fig.colorbar(im, ax=ax, label='SNR (dB)', shrink=0.85, pad=0.02)
+
+            # Disegna scaffali
+            for s in scaffali:
+                rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                         linewidth=1, edgecolor='none', facecolor='#d0d0d0', alpha=0.6, zorder=5)
+                ax.add_patch(rect)
+                
+            # Disegna RIS soffitto (cerchio verde) e RIS parete (quadrato blu) — stessi simboli BOM
+            for r in ris_tutte:
+                tipo_r = r[2] if len(r) > 2 else 'soffitto'
+                is_guasta = any(math.isclose(r[0], g[0]) and math.isclose(r[1], g[1]) for g in ris_guaste_pos)
+                if col == 0 or not is_guasta:
+                    if 'parete' in tipo_r:
+                        ax.plot(r[0], r[1], 's', color='blue', markersize=9, markeredgewidth=1.5, zorder=10)
+                    else:
+                        ax.plot(r[0], r[1], 'o', color='green', markersize=9, markeredgewidth=1.5, zorder=10)
+
+            # Disegna Base Stations (triangolo giallo)
+            for bs in bs_tutte:
+                ax.plot(bs[0], bs[1], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, zorder=11)
+                
+            # Disegna X ciano per ogni RIS guasta nel 'DOPO'
+            if col == 1:
+                for g in ris_guaste_pos:
+                    ax.plot(g[0], g[1], 'x', color='cyan', markersize=22, markeredgewidth=3, zorder=13)
+
+            n_guaste = len(ris_guaste_pos) if col == 1 else 0
+            n_ok = len(ris_tutte) - n_guaste
+            ax.set_title(f"Layout Utente ({mq:,.0f} mq) — {titolo}\n(RIS Attive: {n_ok} | RIS Guaste: {n_guaste} | BS: {len(bs_tutte)})", fontsize=12, fontweight='bold')
+            ax.set_xlabel('Lunghezza Magazzino (m)', fontsize=11)
+            ax.set_ylabel('Larghezza Magazzino (m)', fontsize=11)
+            ax.set_xlim(0, L)
+            ax.set_ylim(0, W)
+            ax.set_aspect('equal' if L / W < 3 else 'auto')
+
+        fig.suptitle('TEST 2: Resilienza — Radio Coverage Map [Layout Utente]', fontsize=15, fontweight='bold')
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.savefig("test_2_utente_resilienza_guasto.png", dpi=300)
         plt.close()
 
     def plot_consumi_mass_rth_custom(self, ambiente):
-        """ Test 3 Custom: genera plot_consumi_mass_rth_custom.png solo per il layout utente """
+        """ Test 3 Custom: Dual-Axis Batteria vs Attivazioni RIS (Layout Utente) """
         print(" > Generazione plot_consumi_mass_rth_custom.png ...")
-        q_start = "SELECT TS FROM Eventi_Rete WHERE Azione = 'START_Caso_Utente' ORDER BY TS DESC LIMIT 1"
-        res_start = self._esegui_query(q_start)
+        import json
+        q = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'DUALAXIS_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res = self._esegui_query(q)
 
-        plt.figure(figsize=(10, 6))
-        if res_start:
-            ts_start = res_start[0][0]
-            ts_end = ts_start + 8.0
-            query_dati = """
-                SELECT TS, Consumo_W FROM Eventi_Rete
-                WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
-                ORDER BY TS ASC
-            """
-            dati = self._esegui_query(query_dati, (ts_start, ts_end))
-            if len(dati) > 2:
-                tempi_raw = [r[0] - ts_start for r in dati]
-                consumi_raw = [r[1] for r in dati]
-                finestra = min(30, len(consumi_raw))
-                if finestra > 2:
-                    kernel = np.ones(finestra) / finestra
-                    consumi_smoothed = np.convolve(consumi_raw, kernel, mode='same')
-                else:
-                    consumi_smoothed = consumi_raw
-                plt.fill_between(tempi_raw, 0, consumi_smoothed, color='#f1c40f', alpha=0.4,
-                                 label=f"Layout Utente ({ambiente.area_mq:,.0f} mq)")
-                plt.plot(tempi_raw, consumi_smoothed, color='#f1c40f', linewidth=3)
-        plt.axvline(x=2.0, color='black', linestyle=':', linewidth=2, label='Congestione RTH massivo')
-        plt.title('Test 3: Mass RTH [Layout Utente - Caso Utente]', fontsize=14, fontweight='bold')
-        plt.xlabel('Tempo dai marker (secondi)', fontsize=12)
-        plt.ylabel('Consumo Controller RIS (W)', fontsize=12)
-        plt.grid(True, alpha=0.4)
-        plt.legend()
-        plt.tight_layout()
+        if not res:
+            return
+
+        data = json.loads(res[0][0])
+        steps = [d['step'] for d in data]
+        batt = [d['batt_media'] for d in data]
+        batt_min = [d['batt_min'] for d in data]
+        batt_max = [d['batt_max'] for d in data]
+        ris_act = [d['ris_attivazioni'] for d in data]
+
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        color1 = '#2980b9'
+        ax1.set_ylabel(f'Batteria Layout Utente (%)', color=color1, fontweight='bold')
+        ax1.fill_between(steps, batt_min, batt_max, color=color1, alpha=0.2)
+        ax1.plot(steps, batt, color=color1, linewidth=2, label='Batt. Media')
+        ax1.tick_params(axis='y', labelcolor=color1)
+        ax1.set_ylim(0, 105)
+
+        ax2 = ax1.twinx()
+        color2 = '#e74c3c'
+        ax2.set_ylabel('RIS Attivate (Count)', color=color2, fontweight='bold')
+        ax2.bar(steps, ris_act, color=color2, alpha=0.6, width=1.0, label='RIS ON')
+        ax2.tick_params(axis='y', labelcolor=color2)
+        ax2.set_ylim(0, max(max(ris_act)+5, 10))
+
+        ax1.axvline(x=20, color='black', linestyle='--', label='Trigger Mass RTH')
+        ax1.grid(True, alpha=0.3)
+        ax1.set_xlabel('Tempo (Step Simulazione)', fontsize=12, fontweight='bold')
+        plt.title('TEST 3: Mass RTH (Correlazione Batteria-RIS) Custom', fontsize=14, fontweight='bold')
+
+        fig.tight_layout()
         plt.savefig('test_3_utente_mass_rth.png', dpi=300)
         plt.close()
 
@@ -1548,7 +1894,7 @@ class DeploymentPlanner:
         # Plot Base Stations
         bs_x = [b['x'] for b in self.base_stations]
         bs_y = [b['y'] for b in self.base_stations]
-        ax_mappa.scatter(bs_x, bs_y, c='red', marker='^', s=150, label='Base Station (BS)', zorder=5)
+        ax_mappa.scatter(bs_x, bs_y, c='yellow', edgecolors='black', linewidths=1.0, marker='^', s=150, label='Base Station (BS)', zorder=5)
         
         # Plot RIS Parete
         risp_x = [r['x'] for r in self.ris_parete]
@@ -1697,7 +2043,7 @@ if __name__ == "__main__":
             risultati_ranging = esegui_2way_ranging(drone_test, bs_target, ambiente, tutte_le_ris)
             
             print(f" Posizione Drone: X={drone_test.x:.1f}, Y={drone_test.y:.1f}, Z={drone_test.z:.1f}")
-            print(f" Posizione BS(0): X={bs_target['x']:.1f}, Y={bs_target['y']:.1f}, Z={bs_target['z']:.1f}")
+            print(f" Posizione BS(0): X={bs_target.x:.1f}, Y={bs_target.y:.1f}, Z={bs_target.z:.1f}")
             print(f" > Distanza Drone-BS: {risultati_ranging['distanza_m']:.2f} metri")
             print(f" > Scaffali attraversati: {risultati_ranging['ostacoli_n']}")
             print(f" > Attenuazione totale: {risultati_ranging['attenuazione_totale_dB']:.1f} dB")
