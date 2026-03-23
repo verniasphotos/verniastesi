@@ -1011,7 +1011,7 @@ class SimulationEngine:              # Motore di simulazione
             ris_tutte_bom   = [[r['x'], r['y'], 'soffitto'] for r in bom_planner.ris_soffitto] + \
                                [[r['x'], r['y'], 'parete'] for r in bom_planner.ris_parete]
             bs_tutte_bom    = [[bs['x'], bs['y']] for bs in bom_planner.base_stations]
-            ris_tutte = ris_tutte_bom
+            ris_tutte = ris_tutte_bom # Usa le posizioni BOM per i marker del plot
             bs_tutte  = bs_tutte_bom
             # Remap ris_guaste_pos alle coordinate BOM (prime N RIS soffitto della griglia BOM)
             n_guaste = len(ris_guaste_ids)
