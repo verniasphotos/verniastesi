@@ -646,8 +646,8 @@ def esegui_2way_ranging(drone, bs_dict, magazzino, ris_list=None):
     }
     
     # 6. Logica RIS (Specchi Intelligenti)
-    # Se il collegamento diretto si è rotto e abbiamo RIS disponibili, cerchiamo un percorso riflettivo in LOS
-    if not connessione_diretta_ok and ris_list and len(ris_list) > 0:
+    # Se il collegamento diretto si è rotto o è degradato (sotto SOGLIA_RIS_ATTIVAZIONE) e abbiamo RIS disponibili
+    if (not connessione_diretta_ok or snr_limitante < SOGLIA_RIS_ATTIVAZIONE) and ris_list and len(ris_list) > 0:
         miglior_snr_uplink = snr_limitante
         miglior_snr_downlink = snr_downlink
         miglior_ris = None
@@ -964,8 +964,8 @@ class SimulationEngine:              # Motore di simulazione
             # --- CALCOLO GRIGLIA SNR PRIMA DEL GUASTO ---
             print(f"  > Campionamento griglia SNR PRIMA del guasto...")
             passo = max(2.0, ambiente.lunghezza / 30.0)  # Risoluzione griglia adattiva
-            xs = list(range(int(passo), int(ambiente.lunghezza), int(passo)))
-            ys = list(range(int(passo), int(ambiente.larghezza), int(passo)))
+            xs = [0] + list(range(int(passo), int(ambiente.lunghezza), int(passo))) + [int(ambiente.lunghezza)]
+            ys = [0] + list(range(int(passo), int(ambiente.larghezza), int(passo))) + [int(ambiente.larghezza)]
             drone_griglia = Drone(id_drone=999, x=0, y=0, z=Z_DRONE_FISSO)
 
             snr_before = []
@@ -1181,8 +1181,8 @@ class SimulationEngine:              # Motore di simulazione
 
         # Griglia SNR PRIMA del guasto
         passo = max(2.0, ambiente.lunghezza / 25.0)
-        xs = list(range(int(passo), int(ambiente.lunghezza), int(passo)))
-        ys = list(range(int(passo), int(ambiente.larghezza), int(passo)))
+        xs = [0] + list(range(int(passo), int(ambiente.lunghezza), int(passo))) + [int(ambiente.lunghezza)]
+        ys = [0] + list(range(int(passo), int(ambiente.larghezza), int(passo))) + [int(ambiente.larghezza)]
         drone_g = Drone(id_drone=998, x=0, y=0, z=Z_DRONE_FISSO)
         snr_before = []
         for gy in ys:
@@ -1292,6 +1292,52 @@ class SimulationEngine:              # Motore di simulazione
                 server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
         print("  => Test 4 [Layout Utente] completato.")
 
+    def _genera_percorso_ottimizzato(self, start, goal, corridoi, lunghezza_mag):
+        """
+        Genera un percorso ottimizzato tra 'start' e 'goal' navigando solo nei corridoi.
+        Il drone:
+        1. Entra nel corridoio più vicino alla sua Y attuale
+        2. Si sposta orizzontalmente verso la X del goal
+        3. Cambia corridoio a Y crescente/decrescente verso il corridoio del goal
+        4. Raggiunge il goal lungo il corridoio finale
+        Restituisce una lista di waypoints (x, y).
+        """
+        if not corridoi:
+            return [start, goal]
+
+        sx, sy = start
+        gx, gy = goal
+        waypoints = []
+
+        # Corridoio di partenza (il più vicino alla Y di partenza)
+        corridoio_start = min(corridoi, key=lambda c: abs(c - sy))
+        # Corridoio di arrivo (il più vicino alla Y del goal)
+        corridoio_goal  = min(corridoi, key=lambda c: abs(c - gy))
+
+        # 1. Raggiungi il corridoio di partenza
+        waypoints.append((sx, corridoio_start))
+
+        # 2. Se i due corridoi sono diversi, percorri i corridoi intermedi in sequenza
+        if corridoio_start != corridoio_goal:
+            corridoi_sorted = sorted(corridoi)
+            idx_start = corridoi_sorted.index(corridoio_start)
+            idx_goal  = corridoi_sorted.index(corridoio_goal)
+            step_dir  = 1 if idx_goal > idx_start else -1
+            # Usa le pareti del magazzino come "via di transito" tra corridoi adiacenti
+            for idx in range(idx_start, idx_goal, step_dir):
+                y_curr = corridoi_sorted[idx]
+                y_next = corridoi_sorted[idx + step_dir]
+                # Vai all'estremità destra per transitare al corridoio successivo
+                waypoints.append((lunghezza_mag, y_curr))
+                waypoints.append((lunghezza_mag, y_next))
+
+        # 3. Percorri il corridoio del goal fino alla X del goal
+        waypoints.append((gx, corridoio_goal))
+        # 4. Raggiungi il goal
+        waypoints.append((gx, gy))
+
+        return waypoints
+
     def test5_digital_twin(self):
         """ Test 5: Simulazione Digital Twin Animato (Tracking Real-Time) """
         print("\n--- AVVIO TEST 5: Digital Twin Animato (Tracking Real-Time) ---")
@@ -1304,33 +1350,38 @@ class SimulationEngine:              # Motore di simulazione
             server = SuperServer(ambiente, self.db)
             tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
             bs_target = ambiente.base_stations[0]
-            
-            drone = Drone(id_drone=555, x=0.0, y=0.0, z=Z_DRONE_FISSO)
-            
-            # Generazione Traiettoria Serpentina (UAV)
-            waypoints = []
-            direzione = 1
-            for y_c in ambiente.corridoi:
-                start_x = 0.0 if direzione == 1 else ambiente.lunghezza
-                end_x = ambiente.lunghezza if direzione == 1 else 0.0
-                waypoints.append((start_x, y_c))
-                waypoints.append((end_x, y_c))
-                direzione *= -1
-                
-            drone.x, drone.y = waypoints[0]
+
+            # --- Posizioni BOM (coerenti con le mappe topologiche) ---
+            bom_planner = DeploymentPlanner(ambiente.lunghezza, ambiente.larghezza, ambiente.altezza)
+            bs_bom  = [[b['x'], b['y']] for b in bom_planner.base_stations]
+            ris_bom = [[r['x'], r['y'], i] for i, r in enumerate(bom_planner.ris_soffitto + bom_planner.ris_parete)]
+
+            # --- Percorso Ottimizzato: Base → Mensola Target → Base ---
+            base_ricarica = (ambiente.lunghezza / 2.0, 0.0)
+            scaffale_target = random.choice(ambiente.scaffali)
+            # Centro dello scaffale target
+            xt = (scaffale_target['x_min'] + scaffale_target['x_max']) / 2.0
+            # Il corridoio adiacente allo scaffale (bordo superiore)
+            yt = min(ambiente.corridoi, key=lambda c: abs(c - scaffale_target['y_max']))
+            print(f"  > Mensola target: scaffale {scaffale_target['id']} @ ({xt:.1f}, {yt:.1f})")
+
+            waypoints = ([base_ricarica] +
+                         self._genera_percorso_ottimizzato(base_ricarica, (xt, yt), ambiente.corridoi, ambiente.lunghezza) +
+                         self._genera_percorso_ottimizzato((xt, yt), base_ricarica, ambiente.corridoi, ambiente.lunghezza))
+
+            drone = Drone(id_drone=555, x=base_ricarica[0], y=base_ricarica[1], z=Z_DRONE_FISSO)
             frames_data = []
             wp_idx = 1
-            max_steps = 1500
+            max_steps = 2000
             step = 0
-            
+
             while wp_idx < len(waypoints) and step < max_steps:
                 target_x, target_y = waypoints[wp_idx]
                 arrivato = drone.muovi_verso(target_x, target_y, drone.z)
                 if arrivato:
                     wp_idx += 1
-                
+
                 res = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
-                
                 frames_data.append({
                     'step': step,
                     'drone': {'x': drone.x, 'y': drone.y},
@@ -1339,14 +1390,17 @@ class SimulationEngine:              # Motore di simulazione
                     'snr': res['snr_uplink_effettivo_dB']
                 })
                 step += 1
-                
+
             ts_now = time.time()
             data_payload = {
                 'L': ambiente.lunghezza,
                 'W': ambiente.larghezza,
                 'scaffali': [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali],
-                'bs': [[b.x if hasattr(b,'x') else b['x'], b.y if hasattr(b,'y') else b['y']] for b in ambiente.base_stations],
-                'ris': [[r['x'], r['y'], r.get('id')] for r in tutte_le_ris],
+                'bs':  bs_bom,
+                'ris': ris_bom,
+                'scaffale_target': [scaffale_target['x_min'], scaffale_target['y_min'],
+                                    scaffale_target['x_max'], scaffale_target['y_max']],
+                'base_ricarica': list(base_ricarica),
                 'frames': frames_data
             }
             self.db.inserisci_evento_rete(ts_now, -5, f"DIGITAL_TWIN_{nome_caso.replace(' ', '_')}", json.dumps(data_payload))
@@ -1359,22 +1413,31 @@ class SimulationEngine:              # Motore di simulazione
         server = SuperServer(ambiente, self.db)
         tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
         bs_target = ambiente.base_stations[0]
-        drone = Drone(id_drone=556, x=0.0, y=0.0, z=Z_DRONE_FISSO)
-        waypoints = []
-        direzione = 1
-        for y_c in ambiente.corridoi:
-            start_x = 0.0 if direzione == 1 else ambiente.lunghezza
-            end_x = ambiente.lunghezza if direzione == 1 else 0.0
-            waypoints.append((start_x, y_c))
-            waypoints.append((end_x, y_c))
-            direzione *= -1
-            
-        if len(waypoints) > 0:
-            drone.x, drone.y = waypoints[0]
+
+        # --- Posizioni BOM (coerenti con le mappe topologiche) ---
+        bom_planner = DeploymentPlanner(ambiente.lunghezza, ambiente.larghezza, ambiente.altezza)
+        bs_bom  = [[b['x'], b['y']] for b in bom_planner.base_stations]
+        ris_bom = [[r['x'], r['y'], i] for i, r in enumerate(bom_planner.ris_soffitto + bom_planner.ris_parete)]
+
+        # --- Percorso Ottimizzato: Base → Mensola Target → Base ---
+        base_ricarica = (ambiente.lunghezza / 2.0, 0.0)
+        if not ambiente.scaffali:
+            print("  [!] Nessun scaffale trovato nel layout utente. Test 5 annullato.")
+            return
+        scaffale_target = random.choice(ambiente.scaffali)
+        xt = (scaffale_target['x_min'] + scaffale_target['x_max']) / 2.0
+        yt = min(ambiente.corridoi, key=lambda c: abs(c - scaffale_target['y_max'])) if ambiente.corridoi else ambiente.larghezza / 2.0
+        print(f"  > Mensola target: scaffale {scaffale_target['id']} @ ({xt:.1f}, {yt:.1f})")
+
+        waypoints = ([base_ricarica] +
+                     self._genera_percorso_ottimizzato(base_ricarica, (xt, yt), ambiente.corridoi, ambiente.lunghezza) +
+                     self._genera_percorso_ottimizzato((xt, yt), base_ricarica, ambiente.corridoi, ambiente.lunghezza))
+
+        drone = Drone(id_drone=556, x=base_ricarica[0], y=base_ricarica[1], z=Z_DRONE_FISSO)
         frames_data = []
         wp_idx = 1
         step = 0
-        while wp_idx < len(waypoints) and step < 1500:
+        while wp_idx < len(waypoints) and step < 2000:
             target_x, target_y = waypoints[wp_idx]
             arrivato = drone.muovi_verso(target_x, target_y, drone.z)
             if arrivato: wp_idx += 1
@@ -1387,13 +1450,16 @@ class SimulationEngine:              # Motore di simulazione
                 'snr': res['snr_uplink_effettivo_dB']
             })
             step += 1
-            
+
         ts_now = time.time()
         payload = {
             'L': ambiente.lunghezza, 'W': ambiente.larghezza,
             'scaffali': [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali],
-            'bs': [[b.x if hasattr(b,'x') else b['x'], b.y if hasattr(b,'y') else b['y']] for b in ambiente.base_stations],
-            'ris': [[r['x'], r['y'], r.get('id')] for r in tutte_le_ris],
+            'bs':  bs_bom,
+            'ris': ris_bom,
+            'scaffale_target': [scaffale_target['x_min'], scaffale_target['y_min'],
+                                 scaffale_target['x_max'], scaffale_target['y_max']],
+            'base_ricarica': list(base_ricarica),
             'frames': frames_data
         }
         self.db.inserisci_evento_rete(ts_now, -5, "DIGITAL_TWIN_Caso_Utente", json.dumps(payload))
@@ -1493,14 +1559,14 @@ class DataPlotter:
             ax_leg.plot([], [], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, label='Base Station 6G\n(Tx Principale)')
             ax_leg.plot([], [], 'o', color='green', markersize=10, label='RIS Soffitto\n(Beamforming Attivo)')
             ax_leg.plot([], [], 's', color='blue', markersize=10, label='RIS Parete\n(Guida Laterale)')
-            ax_leg.plot([], [], 'x', color='cyan', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
+            ax_leg.plot([], [], 'x', color='#FF2200', markeredgecolor='black', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
             ax_leg.legend(loc='center left', fontsize=11, frameon=False, title='LEGENDA (come BOM)', title_fontsize=12)
 
             for col, (Z, titolo) in enumerate([(Z_b, 'PRIMA del Guasto'), (Z_a, 'DOPO il Guasto')]):
                 ax = fig.add_subplot(gs[row, col])
                 
                 # Heatmap background
-                im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max)
+                im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max, extend='both')
                 # Contour lines
                 contours = ax.contour(X, Y, Z, levels=8, colors='black', linewidths=0.5, alpha=0.5)
                 ax.clabel(contours, inline=True, fontsize=8, fmt='%1.0f dB')
@@ -1532,7 +1598,7 @@ class DataPlotter:
                 # Disegna X ciano per ogni RIS guasta nel 'DOPO'
                 if col == 1:
                     for g in ris_guaste_pos:
-                        ax.plot(g[0], g[1], 'x', color='cyan', markersize=22, markeredgewidth=3, zorder=13)
+                        ax.plot(g[0], g[1], 'x', color='#FF2200', markeredgecolor='black', markersize=22, markeredgewidth=3, zorder=13)
 
                 n_guaste = len(ris_guaste_pos) if col == 1 else 0
                 n_ok = len(ris_tutte) - n_guaste
@@ -1729,14 +1795,14 @@ class DataPlotter:
         ax_leg.plot([], [], '^', color='yellow', markeredgecolor='black', markersize=14, markeredgewidth=1, label='Base Station 6G\n(Tx Principale)')
         ax_leg.plot([], [], 'o', color='green', markersize=10, label='RIS Soffitto\n(Beamforming Attivo)')
         ax_leg.plot([], [], 's', color='blue', markersize=10, label='RIS Parete\n(Guida Laterale)')
-        ax_leg.plot([], [], 'x', color='cyan', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
+        ax_leg.plot([], [], 'x', color='#FF2200', markeredgecolor='black', markersize=18, markeredgewidth=3, label='RIS Guasta\n(Offline / Blackout)')
         ax_leg.legend(loc='center left', fontsize=11, frameon=False, title='LEGENDA (come BOM)', title_fontsize=12)
 
         for col, (Z, titolo) in enumerate([(Z_b, 'PRIMA del Guasto'), (Z_a, 'DOPO il Guasto')]):
             ax = fig.add_subplot(gs[0, col])
             
             # Heatmap background
-            im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max)
+            im = ax.contourf(X, Y, Z, levels=30, cmap='coolwarm', vmin=z_min, vmax=z_max, extend='both')
             # Contour lines
             contours = ax.contour(X, Y, Z, levels=8, colors='black', linewidths=0.5, alpha=0.5)
             ax.clabel(contours, inline=True, fontsize=8, fmt='%1.0f dB')
@@ -1766,7 +1832,7 @@ class DataPlotter:
             # Disegna X ciano per ogni RIS guasta nel 'DOPO'
             if col == 1:
                 for g in ris_guaste_pos:
-                    ax.plot(g[0], g[1], 'x', color='cyan', markersize=22, markeredgewidth=3, zorder=13)
+                    ax.plot(g[0], g[1], 'x', color='#FF2200', markeredgecolor='black', markersize=22, markeredgewidth=3, zorder=13)
 
             n_guaste = len(ris_guaste_pos) if col == 1 else 0
             n_ok = len(ris_tutte) - n_guaste
@@ -1858,6 +1924,14 @@ class DataPlotter:
         ax.set_xticklabels([label], fontsize=11)
         ax.legend()
         ax.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
+        # Annotazione valore sopra le barre (anche per la barra verde quasi a zero)
+        for rect in ax.patches:
+            height = rect.get_height()
+            if height >= 0:
+                ax.annotate(f'{height:.2f} kW',
+                            xy=(rect.get_x() + rect.get_width() / 2, height),
+                            xytext=(0, 4), textcoords="offset points",
+                            ha='center', va='bottom', fontsize=10, fontweight='bold')
         plt.tight_layout()
         plt.savefig('test_4_utente_risparmio_energetico.png', dpi=300)
         plt.close()
@@ -1890,13 +1964,21 @@ class DataPlotter:
             ax.set_xlim(0, L)
             ax.set_ylim(0, W)
             ax.set_aspect('equal' if L/W < 3 else 'auto')
-            ax.set_title(f'Digital Twin Real-Time Tracking - {caso.replace("_", " ")}', fontsize=14, fontweight='bold')
+            ax.set_title(f'Digital Twin - Picking Ottimizzato - {caso.replace("_", " ")}', fontsize=14, fontweight='bold')
             ax.set_xlabel('X (m)')
             ax.set_ylabel('Y (m)')
             
+            scaffale_target = data.get('scaffale_target')
+            base_ricarica = data.get('base_ricarica')
+
             for s in scaffali:
-                rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
-                                         linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
+                # Se è lo scaffale target, disegnalo arancione
+                if scaffale_target and s == scaffale_target:
+                    rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                             linewidth=1, edgecolor='red', facecolor='orange', alpha=0.9, zorder=3)
+                else:
+                    rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                             linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
                 ax.add_patch(rect)
                 
             scatter_bs = ax.scatter([b[0] for b in base_stations], [b[1] for b in base_stations], 
@@ -1907,15 +1989,22 @@ class DataPlotter:
             else:
                 scatter_ris = ax.scatter([], [], c='red', marker='o', s=80, zorder=5, edgecolors='black')
                 
+            if base_ricarica:
+                ax.scatter([base_ricarica[0]], [base_ricarica[1]], c='magenta', marker='P', s=200, zorder=4, edgecolors='black')
+
             scia_x, scia_y = [], []
             line_scia, = ax.plot([], [], c='#FF00FF', alpha=0.5, linewidth=2, zorder=3)
             scatter_drone = ax.scatter([], [], c='#FF00FF', marker='o', s=100, zorder=6, edgecolors='white', linewidths=1.5)
             
             ax.plot([], [], 's', color='#404040', label='Scaffali Metallici')
-            ax.plot([], [], '^', color='red', label='BS / RIS (Sleep: 0.5W)')
-            ax.plot([], [], '^', color='green', label='BS / RIS (Active: 5W-50W)')
+            if scaffale_target:
+                ax.plot([], [], 's', color='orange', markeredgecolor='red', label='Scaffale Target (Missione)')
+            ax.plot([], [], '^', color='red', label='BS / RIS (Sleep)')
+            ax.plot([], [], '^', color='green', label='BS / RIS (Active)')
             ax.plot([], [], 'o', color='#FF00FF', label='UAV (Drone)')
-            ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=4, fontsize=9)
+            if base_ricarica:
+                ax.plot([], [], 'P', color='magenta', markeredgecolor='black', label='Base Ricarica')
+            ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=9)
             
             def init():
                 line_scia.set_data([], [])
@@ -1978,13 +2067,20 @@ class DataPlotter:
         ax.set_xlim(0, L)
         ax.set_ylim(0, W)
         ax.set_aspect('equal' if L/W < 3 else 'auto')
-        ax.set_title(f'Digital Twin Real-Time Tracking - Layout Utente', fontsize=14, fontweight='bold')
+        ax.set_title(f'Digital Twin - Picking Ottimizzato - Layout Utente', fontsize=14, fontweight='bold')
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         
+        scaffale_target = data.get('scaffale_target')
+        base_ricarica = data.get('base_ricarica')
+
         for s in scaffali:
-            rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
-                                     linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
+            if scaffale_target and s == scaffale_target:
+                rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                         linewidth=1, edgecolor='red', facecolor='orange', alpha=0.9, zorder=3)
+            else:
+                rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                         linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
             ax.add_patch(rect)
             
         scatter_bs = ax.scatter([b[0] for b in base_stations], [b[1] for b in base_stations], 
@@ -1995,15 +2091,22 @@ class DataPlotter:
         else:
             scatter_ris = ax.scatter([], [], c='red', marker='o', s=80, zorder=5, edgecolors='black')
             
+        if base_ricarica:
+            ax.scatter([base_ricarica[0]], [base_ricarica[1]], c='magenta', marker='P', s=200, zorder=4, edgecolors='black')
+
         scia_x, scia_y = [], []
         line_scia, = ax.plot([], [], c='#FF00FF', alpha=0.5, linewidth=2, zorder=3)
         scatter_drone = ax.scatter([], [], c='#FF00FF', marker='o', s=100, zorder=6, edgecolors='white', linewidths=1.5)
         
         ax.plot([], [], 's', color='#404040', label='Scaffali Metallici')
-        ax.plot([], [], '^', color='red', label='BS / RIS (Sleep: 0.5W)')
-        ax.plot([], [], '^', color='green', label='BS / RIS (Active: 5W-50W)')
+        if scaffale_target:
+            ax.plot([], [], 's', color='orange', markeredgecolor='red', label='Scaffale Target (Missione)')
+        ax.plot([], [], '^', color='red', label='BS / RIS (Sleep)')
+        ax.plot([], [], '^', color='green', label='BS / RIS (Active)')
         ax.plot([], [], 'o', color='#FF00FF', label='UAV (Drone)')
-        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=4, fontsize=9)
+        if base_ricarica:
+            ax.plot([], [], 'P', color='magenta', markeredgecolor='black', label='Base Ricarica')
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=9)
         
         def init():
             line_scia.set_data([], [])
@@ -2278,6 +2381,20 @@ if __name__ == "__main__":
         planner = DeploymentPlanner(input_l, input_w, input_h)
         planner.genera_dashboard()
         print("\n [!] Dashboard 'plot_deployment_bom.png' generata con successo in background!")
+
+        # Generazione mappe topologiche per i casi standard A, B, C (aggiornamento colore BS)
+        casi_std = [
+            ('Caso_A', 50,  40,  10, 'Piccole Dimensioni (50x40m)'),
+            ('Caso_B', 100, 100, 12, 'Medie Dimensioni (100x100m)'),
+            ('Caso_C', 250, 140, 15, 'Grandi Dimensioni (250x140m)'),
+        ]
+        for nome, l, w, h, desc in casi_std:
+            p_std = DeploymentPlanner(l, w, h)
+            p_std.genera_dashboard(
+                filename=f"plot_deployment_bom_{nome}.png",
+                titolo_custom=f"Layout {nome[-1]} -> Magazzino di {desc}"
+            )
+        print(" [!] Mappe topologiche Layout A/B/C rigenerate con BS gialla.")
       
         # 3. Raccomandazione Flotta Droni
         # Costruiamo una logica empirica:
