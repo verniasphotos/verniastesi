@@ -1292,6 +1292,113 @@ class SimulationEngine:              # Motore di simulazione
                 server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
         print("  => Test 4 [Layout Utente] completato.")
 
+    def test5_digital_twin(self):
+        """ Test 5: Simulazione Digital Twin Animato (Tracking Real-Time) """
+        print("\n--- AVVIO TEST 5: Digital Twin Animato (Tracking Real-Time) ---")
+        import json
+        casi_mq = {'Caso A': 2000, 'Caso B': 10000, 'Caso C': 35000}
+        
+        for nome_caso, mq in casi_mq.items():
+            print(f"> Simulazione traiettoria {nome_caso} ({mq} mq)")
+            ambiente = self._create_layout(mq)
+            server = SuperServer(ambiente, self.db)
+            tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+            bs_target = ambiente.base_stations[0]
+            
+            drone = Drone(id_drone=555, x=0.0, y=0.0, z=Z_DRONE_FISSO)
+            
+            # Generazione Traiettoria Serpentina (UAV)
+            waypoints = []
+            direzione = 1
+            for y_c in ambiente.corridoi:
+                start_x = 0.0 if direzione == 1 else ambiente.lunghezza
+                end_x = ambiente.lunghezza if direzione == 1 else 0.0
+                waypoints.append((start_x, y_c))
+                waypoints.append((end_x, y_c))
+                direzione *= -1
+                
+            drone.x, drone.y = waypoints[0]
+            frames_data = []
+            wp_idx = 1
+            max_steps = 1500
+            step = 0
+            
+            while wp_idx < len(waypoints) and step < max_steps:
+                target_x, target_y = waypoints[wp_idx]
+                arrivato = drone.muovi_verso(target_x, target_y, drone.z)
+                if arrivato:
+                    wp_idx += 1
+                
+                res = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+                
+                frames_data.append({
+                    'step': step,
+                    'drone': {'x': drone.x, 'y': drone.y},
+                    'ris_active': res['id_ris_scelta'] if res.get('usa_ris', False) else None,
+                    'bs_active': res['connesso'] and not res.get('usa_ris', False),
+                    'snr': res['snr_uplink_effettivo_dB']
+                })
+                step += 1
+                
+            ts_now = time.time()
+            data_payload = {
+                'L': ambiente.lunghezza,
+                'W': ambiente.larghezza,
+                'scaffali': [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali],
+                'bs': [[b.x if hasattr(b,'x') else b['x'], b.y if hasattr(b,'y') else b['y']] for b in ambiente.base_stations],
+                'ris': [[r['x'], r['y'], r.get('id')] for r in tutte_le_ris],
+                'frames': frames_data
+            }
+            self.db.inserisci_evento_rete(ts_now, -5, f"DIGITAL_TWIN_{nome_caso.replace(' ', '_')}", json.dumps(data_payload))
+            print(f"  => Dati Digital Twin {nome_caso} salvati ({step} fotogrammi).")
+            
+    def test5_custom(self, ambiente):
+        """ Test 5 Custom: Digital Twin Animato per il layout personalizzato """
+        import json
+        print("\n--- AVVIO TEST 5: Digital Twin [Layout Utente] ---")
+        server = SuperServer(ambiente, self.db)
+        tutte_le_ris = ambiente.ris_soffitto + ambiente.ris_parete
+        bs_target = ambiente.base_stations[0]
+        drone = Drone(id_drone=556, x=0.0, y=0.0, z=Z_DRONE_FISSO)
+        waypoints = []
+        direzione = 1
+        for y_c in ambiente.corridoi:
+            start_x = 0.0 if direzione == 1 else ambiente.lunghezza
+            end_x = ambiente.lunghezza if direzione == 1 else 0.0
+            waypoints.append((start_x, y_c))
+            waypoints.append((end_x, y_c))
+            direzione *= -1
+            
+        if len(waypoints) > 0:
+            drone.x, drone.y = waypoints[0]
+        frames_data = []
+        wp_idx = 1
+        step = 0
+        while wp_idx < len(waypoints) and step < 1500:
+            target_x, target_y = waypoints[wp_idx]
+            arrivato = drone.muovi_verso(target_x, target_y, drone.z)
+            if arrivato: wp_idx += 1
+            res = server.ricevi_telemetria(drone, bs_target, tutte_le_ris)
+            frames_data.append({
+                'step': step,
+                'drone': {'x': drone.x, 'y': drone.y},
+                'ris_active': res['id_ris_scelta'] if res.get('usa_ris', False) else None,
+                'bs_active': res['connesso'] and not res.get('usa_ris', False),
+                'snr': res['snr_uplink_effettivo_dB']
+            })
+            step += 1
+            
+        ts_now = time.time()
+        payload = {
+            'L': ambiente.lunghezza, 'W': ambiente.larghezza,
+            'scaffali': [[s['x_min'], s['y_min'], s['x_max'], s['y_max']] for s in ambiente.scaffali],
+            'bs': [[b.x if hasattr(b,'x') else b['x'], b.y if hasattr(b,'y') else b['y']] for b in ambiente.base_stations],
+            'ris': [[r['x'], r['y'], r.get('id')] for r in tutte_le_ris],
+            'frames': frames_data
+        }
+        self.db.inserisci_evento_rete(ts_now, -5, "DIGITAL_TWIN_Caso_Utente", json.dumps(payload))
+        print(f"  => Dati Digital Twin [Layout Utente] salvati ({step} fotogrammi).")
+
  ##################################################################################################
 
 # ==========================================
@@ -1755,6 +1862,187 @@ class DataPlotter:
         plt.savefig('test_4_utente_risparmio_energetico.png', dpi=300)
         plt.close()
 
+    def plot_digital_twin(self):
+        """ Test 5: Rendering Grafico Animato Digital Twin (MP4/GIF) """
+        print(" > Generazione video Digital Twin Animato (MP4/GIF) ... (Richiederà qualche minuto)")
+        import json
+        import matplotlib.patches as patches
+        import matplotlib.animation as animation
+        
+        casi = ['Caso_A', 'Caso_B', 'Caso_C']
+        
+        for caso in casi:
+            q = f"SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'DIGITAL_TWIN_{caso}' ORDER BY TS DESC LIMIT 1"
+            res = self._esegui_query(q)
+            if not res:
+                continue
+                
+            print(f"   - Rendering video per {caso.replace('_', ' ')} ...")
+            data = json.loads(str(res[0][0]))
+            L, W = data['L'], data['W']
+            frames, scaffali = data['frames'], data['scaffali']
+            base_stations, ris_tutte = data['bs'], data['ris']
+            
+            if len(frames) > 400:
+                frames = frames[::len(frames)//400] # Decima i frame per accelerare l'export
+                
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.set_xlim(0, L)
+            ax.set_ylim(0, W)
+            ax.set_aspect('equal' if L/W < 3 else 'auto')
+            ax.set_title(f'Digital Twin Real-Time Tracking - {caso.replace("_", " ")}', fontsize=14, fontweight='bold')
+            ax.set_xlabel('X (m)')
+            ax.set_ylabel('Y (m)')
+            
+            for s in scaffali:
+                rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                         linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
+                ax.add_patch(rect)
+                
+            scatter_bs = ax.scatter([b[0] for b in base_stations], [b[1] for b in base_stations], 
+                                     c='red', marker='^', s=150, zorder=5, edgecolors='black')
+            if len(ris_tutte) > 0:                         
+                scatter_ris = ax.scatter([r[0] for r in ris_tutte], [r[1] for r in ris_tutte], 
+                                         c='red', marker='o', s=80, zorder=5, edgecolors='black')
+            else:
+                scatter_ris = ax.scatter([], [], c='red', marker='o', s=80, zorder=5, edgecolors='black')
+                
+            scia_x, scia_y = [], []
+            line_scia, = ax.plot([], [], c='#FF00FF', alpha=0.5, linewidth=2, zorder=3)
+            scatter_drone = ax.scatter([], [], c='#FF00FF', marker='o', s=100, zorder=6, edgecolors='white', linewidths=1.5)
+            
+            ax.plot([], [], 's', color='#404040', label='Scaffali Metallici')
+            ax.plot([], [], '^', color='red', label='BS / RIS (Sleep: 0.5W)')
+            ax.plot([], [], '^', color='green', label='BS / RIS (Active: 5W-50W)')
+            ax.plot([], [], 'o', color='#FF00FF', label='UAV (Drone)')
+            ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=4, fontsize=9)
+            
+            def init():
+                line_scia.set_data([], [])
+                scatter_drone.set_offsets(np.empty((0, 2)))
+                return line_scia, scatter_drone, scatter_ris, scatter_bs
+                
+            def update(frame):
+                dx, dy = frame['drone']['x'], frame['drone']['y']
+                scia_x.append(dx)
+                scia_y.append(dy)
+                line_scia.set_data(scia_x[-20:], scia_y[-20:])
+                scatter_drone.set_offsets(np.c_[dx, dy])
+                
+                c_ris = ['red'] * len(ris_tutte)
+                attiva_id = frame['ris_active']
+                if attiva_id is not None:
+                    for i, r in enumerate(ris_tutte):
+                        if r[2] == attiva_id:
+                            c_ris[i] = 'green'
+                            break
+                if len(ris_tutte) > 0:
+                    scatter_ris.set_facecolors(c_ris)
+                
+                bs_c = ['green' if frame['bs_active'] else 'red'] * len(base_stations)
+                scatter_bs.set_facecolors(bs_c)
+                
+                return line_scia, scatter_drone, scatter_ris, scatter_bs
+                
+            ani = animation.FuncAnimation(fig, update, frames=frames, init_func=init, blit=True, interval=50)
+            
+            try:
+                writer = animation.FFMpegWriter(fps=20, metadata=dict(artist='Thesis Simulator'), bitrate=1800)
+                ani.save(f"test_5_digital_twin_{caso}.mp4", writer=writer)
+            except Exception:
+                print(f"   [!] FFMpeg non disponibile. Salvo come GIF animata: test_5_digital_twin_{caso}.gif")
+                ani.save(f"test_5_digital_twin_{caso}.gif", writer='pillow', fps=20)
+                
+            plt.close(fig)
+
+    def plot_digital_twin_custom(self, ambiente):
+        """ Test 5 Custom: Rendering Grafico Animato Digital Twin per Layout Utente """
+        print(" > Generazione video Digital Twin Animato [Layout Utente] ...")
+        import json
+        import matplotlib.patches as patches
+        import matplotlib.animation as animation
+        
+        q = "SELECT Consumo_W FROM Eventi_Rete WHERE Azione = 'DIGITAL_TWIN_Caso_Utente' ORDER BY TS DESC LIMIT 1"
+        res = self._esegui_query(q)
+        if not res: return
+            
+        data = json.loads(str(res[0][0]))
+        L, W = data['L'], data['W']
+        frames, scaffali = data['frames'], data['scaffali']
+        base_stations, ris_tutte = data['bs'], data['ris']
+        
+        if len(frames) > 400:
+            frames = frames[::len(frames)//400]
+            
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim(0, L)
+        ax.set_ylim(0, W)
+        ax.set_aspect('equal' if L/W < 3 else 'auto')
+        ax.set_title(f'Digital Twin Real-Time Tracking - Layout Utente', fontsize=14, fontweight='bold')
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        
+        for s in scaffali:
+            rect = patches.Rectangle((s[0], s[1]), s[2]-s[0], s[3]-s[1], 
+                                     linewidth=0, facecolor='#404040', alpha=0.9, zorder=2)
+            ax.add_patch(rect)
+            
+        scatter_bs = ax.scatter([b[0] for b in base_stations], [b[1] for b in base_stations], 
+                                 c='red', marker='^', s=150, zorder=5, edgecolors='black')
+        if len(ris_tutte) > 0:
+            scatter_ris = ax.scatter([r[0] for r in ris_tutte], [r[1] for r in ris_tutte], 
+                                     c='red', marker='o', s=80, zorder=5, edgecolors='black')
+        else:
+            scatter_ris = ax.scatter([], [], c='red', marker='o', s=80, zorder=5, edgecolors='black')
+            
+        scia_x, scia_y = [], []
+        line_scia, = ax.plot([], [], c='#FF00FF', alpha=0.5, linewidth=2, zorder=3)
+        scatter_drone = ax.scatter([], [], c='#FF00FF', marker='o', s=100, zorder=6, edgecolors='white', linewidths=1.5)
+        
+        ax.plot([], [], 's', color='#404040', label='Scaffali Metallici')
+        ax.plot([], [], '^', color='red', label='BS / RIS (Sleep: 0.5W)')
+        ax.plot([], [], '^', color='green', label='BS / RIS (Active: 5W-50W)')
+        ax.plot([], [], 'o', color='#FF00FF', label='UAV (Drone)')
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=4, fontsize=9)
+        
+        def init():
+            line_scia.set_data([], [])
+            scatter_drone.set_offsets(np.empty((0, 2)))
+            return line_scia, scatter_drone, scatter_ris, scatter_bs
+            
+        def update(frame):
+            dx, dy = frame['drone']['x'], frame['drone']['y']
+            scia_x.append(dx)
+            scia_y.append(dy)
+            line_scia.set_data(scia_x[-20:], scia_y[-20:])
+            scatter_drone.set_offsets(np.c_[dx, dy])
+            
+            c_ris = ['red'] * len(ris_tutte)
+            attiva_id = frame['ris_active']
+            if attiva_id is not None:
+                for i, r in enumerate(ris_tutte):
+                    if r[2] == attiva_id:
+                        c_ris[i] = 'green'
+                        break
+            if len(ris_tutte) > 0:
+                scatter_ris.set_facecolors(c_ris)
+            
+            bs_c = ['green' if frame['bs_active'] else 'red'] * len(base_stations)
+            scatter_bs.set_facecolors(bs_c)
+            
+            return line_scia, scatter_drone, scatter_ris, scatter_bs
+            
+        ani = animation.FuncAnimation(fig, update, frames=frames, init_func=init, blit=True, interval=50)
+        
+        try:
+            writer = animation.FFMpegWriter(fps=20, metadata=dict(artist='Thesis Simulator'), bitrate=1800)
+            ani.save("test_5_digital_twin_utente.mp4", writer=writer)
+        except Exception:
+            print("   [!] FFMpeg non disponibile. Salvo come GIF animata: test_5_digital_twin_utente.gif")
+            ani.save("test_5_digital_twin_utente.gif", writer='pillow', fps=20)
+            
+        plt.close(fig)
+
 # ==========================================
 # MODULO 9: DEPLOYMENT DINAMICO E VISUALIZZAZIONE TOPOLOGICA
 # ==========================================
@@ -2071,9 +2359,10 @@ if __name__ == "__main__":
                 print("2. [Test 2] Resilienza Rete e Guasto RIS")
                 print("3. [Test 3] Collo di Bottiglia (Mass RTH e congestione)")
                 print("4. [Test 4] Confronto Assorbimenti (Super Server vs Always-ON)")
+                print("5. [Test 5] Digital Twin Animato (Video Tracking Real-Time)")
                 print("0. Esci")
                 
-                scelta = input(" -> Quale test vuoi eseguire? (1-4, 0 per uscire): ")
+                scelta = input(" -> Quale test vuoi eseguire? (1-5, 0 per uscire): ")
                 
                 if scelta == '1':
                     # Test standard A/B/C + grafico A/B/C
@@ -2097,6 +2386,11 @@ if __name__ == "__main__":
                     plotter.plot_risparmio_energetico()
                     engine.test4_custom(ambiente)
                     plotter.plot_risparmio_energetico_custom(ambiente)
+                elif scelta == '5':
+                    engine.test5_digital_twin()
+                    plotter.plot_digital_twin()
+                    engine.test5_custom(ambiente)
+                    plotter.plot_digital_twin_custom(ambiente)
                 elif scelta == '0':
                     print("Uscita dal menu dei test...")
                     break

@@ -68,6 +68,39 @@ Ogni volta che vuoi avanzare, dimmi semplicemente quale Step eseguire (es. "Iniz
 - Creare script Python che leggono i dati dal nostro database `telemetria.db` per tracciare il percorso dei droni in 3D, scarica batteria e grafici a barre sui consumi della rete.
 **Task Finale per l'IA:** Spiega come Python, tramite `matplotlib`, crea le immagini. Spiega come lanciare lo script per vederli apparire a schermo e come esportarli e salvarli come foto in altissima definizione, pronti ad essere incollati in Microsoft Word o LaTeX per la tua Tesi.
 
+## Step 9: Simulazione Visuale Animata — Digital Twin con Tracking Real-Time (`config.py`)
+**Obiettivo:** Implementare un modulo di rendering grafico bidimensionale (vista top-down) che generi un **Digital Twin animato** dell'intero magazzino. L'animazione permette di validare visivamente l'efficienza dell'algoritmo euristico di power management osservando in tempo reale le transizioni di stato energetico (Sleep → Passive → Active) dei nodi BS e RIS in risposta al movimento di un drone UAV.
+
+**Parametri di Setup e Generazione Ambientale:**
+- Il modulo esegue **tre sessioni di simulazione separate**, basate sulle topologie generate dinamicamente dal Modulo 2:
+  - **Caso A** (Piccolo, 2.000 mq)
+  - **Caso B** (Medio, 10.000 mq)
+  - **Caso C** (Grande, 35.000 mq)
+- Per ogni scenario, il clutter (corsie e scaffali metallici) e il deployment delle antenne (BS e RIS) sono calcolati automaticamente in base alla volumetria.
+- Viene inizializzato un **singolo UAV** che segue una **traiettoria a serpentina** tra i corridoi, al fine di forzare continue transizioni tra visibilità diretta (LOS) e zone d'ombra (NLOS).
+
+**Logica di Ranging e RF Dinamica:**
+- Ad ogni step temporale (DT), il Super Server calcola il link budget a 3.5 GHz considerando il rumore termico di fondo (−100 dBm).
+- Se l'attenuazione causata dagli scaffali fa crollare l'SNR avvicinandolo alla sensibilità critica del ricevitore (−90 dBm) e superando la `SOGLIA_RIS_ATTIVAZIONE`, il controller interviene immediatamente "risvegliando" il dispositivo RIS più idoneo per garantire un LOS virtuale continuo.
+
+**Codifica Cromatica Tassativa (Interfaccia Visiva):**
+- **Ostacoli (Scaffalature):** Rettangoli grigio scuro (`#404040`).
+- **Drone (UAV):** Marker circolare in movimento (**magenta**, `#FF00FF`) con scia cinematica (trail).
+- **Stato SLEEP (0.5 W — Standby):** BS e nodi RIS inattivi → marker circolare **ROSSO** (`#FF0000`).
+- **Stato PASSIVE/ACTIVE (5 W / 50 W — On-Demand):** Dispositivo attivato dal Super Server → marker istantaneamente **VERDE** (`#00FF00`).
+
+**Output Atteso:**
+- Esportazione di **tre file video** (MP4 o GIF), uno per ciascun layout (A, B, C): `test_5_digital_twin_Caso_A.mp4`, `test_5_digital_twin_Caso_B.mp4`, `test_5_digital_twin_Caso_C.mp4`.
+- I video dimostrano empiricamente l'efficacia dell'architettura proposta: la mappa appare per la quasi totalità "spenta" (nodi rossi), evidenziando solo una **"bolla di copertura" locale** (nodi verdi) che accompagna dinamicamente il drone.
+- Ciò prova visivamente l'abbattimento dei consumi energetici rispetto a una rete Always-On tradizionale.
+
+**Cosa faremo:**
+- Aggiunta del metodo `test5_digital_twin()` alla classe `SimulationEngine`.
+- Utilizzo di `matplotlib.animation.FuncAnimation` per il rendering frame-by-frame.
+- Integrazione nel menu interattivo come opzione "5. [Test 5] Digital Twin Animato".
+
+**Task Finale per l'IA:** Spiega il funzionamento di `matplotlib.animation.FuncAnimation`, il significato di `init_func` e `update_func`, come si configura il frame rate (FPS) e come si esporta il video risultante tramite i writer `ffmpeg` o `pillow`. Spiega inoltre come il video dimostra in modo empirico il risparmio energetico del sistema proposto.
+
 ---
 
 ### Mettiamoci al lavoro!
