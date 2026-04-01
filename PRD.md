@@ -10,117 +10,76 @@ Il codice deve essere scritto in **Python puro** usando solo le librerie `numpy`
 # PRD: Simulatore 6G per Magazzino Logistico con Droni e RIS (Tesi Triennale)
 
 ## 1. Descrizione del Progetto
-Il software simula un "cervello centrale" (Controller) in un magazzino logistico dove operano droni 24/7. Poiché gli scaffali metallici bloccano il segnale (NLOS), il sistema usa protocolli simulati di 2-Way Ranging (2WAY) per stimare l'attenuazione del metallo e accende dinamicamente dei pannelli RIS ("specchi intelligenti") per far rimbalzare il segnale radio verso i droni, spegnendoli poi per risparmiare energia. Il simulatore testa il limite di rottura (stress test) della rete.
+Il software simula un "cervello centrale" (Controller) in un magazzino logistico dove operano droni 24/7. Poiché gli scaffali metallici bloccano il segnale (NLOS), il sistema usa protocolli simulati di 2-Way Ranging (2WAY) per stimare l'attenuazione del metallo e accende dinamicamente dei pannelli RIS ("specchi intelligenti") per far rimbalzare il segnale radio verso i droni, spegnendoli poi per risparmiare energia. Il simulatore testa il limite di rottura (stress test) della rete e include una visualizzazione topologica e un "Digital Twin" animato per testare la validità logistica dei percorsi. L'architettura è suddivisa rigorosamente in 10 moduli.
 
-## 2. Modulo 1: Costanti e Parametri (`config.py`)
-- Frequenza: `FREQ = 3.5e9` (3.5 GHz).
-- Potenza: `TX_POWER_DRONE = 20` (dBm).
-- Cinematica: `V_DRONE = 3.0` (m/s), `DT = 0.1` (s).
-- Batteria: `BATTERY_MAX = 100.0`, `BATTERY_RTH_THRESHOLD = 20.0` (soglia per ritorno alla base). Consumo stimato per ciclo DT: `0.05`.
-- Consumi RIS: `P_SLEEP = 0.5` (W), `P_PASSIVE = 5.0` (W), `P_ACTIVE = 50.0` (W).
-- Dimensioni: Scaffale `1.2m x 1.0m`.
-- Raggi operativi: `R_BS = 50.0` (m), `R_RIS = 15.0` (m).
+## 2. Modulo 1: Costanti e Parametri
+Definisce tutte le costanti ingegneristiche e le regole d'ambiente.
+- **Rete 6G**: `FREQ` (3.5 GHz), potenze di TX (Drone 20 dBm, BS 40 dBm), raggi operativi (`R_BS` 50m, `R_RIS` 15m), attenuazioni ostacoli (15 dB per scaffale), soglie SNR di attivazione RIS (5.0 dB) e rumore bianco (-100 dBm).
+- **Droni**: `V_DRONE` (3.0 m/s), simulazione `DT` (0.1 s). Ottimizzazione batteria e tolleranze RT (Return To Home al 20%). Volo in `Z_DRONE_FISSO`.
+- **BS/RIS**: Consumi operativi (`P_SLEEP` 0.5W, `P_PASSIVE` 5W, `P_ACTIVE` 50W, BS inoltro 30W), offset soffitto/parete. Supporto configurazioni per il multilivello e BS "ibride" (anche RIS).
+- **Scaffali e Limiti**: Dimensioni moduli (1.2x1.0m, luce 0.6m tra ripiani) e capacità del controller (`MAX_RIS_CALLS_PER_DT`).
 
-## 3. Modulo 2: Geometria e Hardware BoM (`environment.py`)
-- **Classe Magazzino**: Genera layout 3D dati `(L, W, H)`.
-- Calcola l'hardware necessario: N° di Base Station (BS), numero di livelli di volo in altezza, deployment delle RIS a parete e a griglia sul soffitto.
-- **Metodo `check_LOS_and_shielding(p1, p2)`**: Calcola geometricamente quante volte il segmento che unisce `p1` e `p2` interseca uno scaffale. Restituisce un intero (numero di ostacoli) per stimare lo spessore della schermatura.
+## 3. Modulo 2: Geometria e Magazzino
+Genera l'infrastruttura 3D (`Magazzino`) che fa da base alla sperimentazione.
+- **Parametri Costruttivi**: Accetta in input `L, W, H`, calcola piani utili/mensole ed estrae un array parametrico di scaffali (`C01-S05`) e corridoi fisici 3D.
+- **Algoritmo di Deployment 6G Originale**: Effettua loop su offset maglia per piazzare la Base Station ottimale, i pannelli RIS al soffitto (almeno 1 per corsia, controllando assenza di sovrapposizione con le BS) e le RIS a parete a inizio e fine corsia in caso di magazzini massivi (`MULTILIVELLO` > 10.000mq).
+- **Ray-casting e Ostacoli**: Metodo `check_LOS_and_shielding` getta un raggio geometrico 3D tra punto P1 (Tx) e punto P2 (Rx), calcolando quanti ostacoli metallici "buca", convertendoli in attenuatori.
 
-## 4. Modulo 3: Entità e Pacchetti di Rete (`devices.py`)
-- **Classe Pacchetto_Rete**:
-  - *Header*: `ID_Drone`, `TS` (Timestamp), `TX_Power`, `Battery_Level`.
-  - *Payload*: `Package_ID`, `Route_Target` (coordinate xyz).
-- **Classe Drone**:
-  - Stato interno (`IN_MISSIONE`, `RTH_RICARICA`).
-  - Funzione di movimento verso il target. La batteria decresce; se `<= 20.0`, il target diventa la Base Station.
-- **Classe RIS**:
-  - Stati: `sleep`, `passive`, `active`. Metodo per restituire il consumo attuale (W).
+## 4. Modulo 3: Entità della Simulazione e Hardware
+Codifica orientata agli oggetti OOP per gli elementi dinamici:
+- **`Pacchetto_Rete`**: Struttura header/payload del pacchetto informativo radio simulato. Supporta logging multi-hop per capire da dove rimbalza (firma drone, firma RIS, firma BS).
+- **`Drone`**: Entità autonoma. Include simulazione batteria (`aggiorna_batteria`), navigazione 3D deterministica verso un obiettivo con loop temporale ad avanzamento DT (`muovi_verso`) e logica switch missione `RTH_RICARICA`.
+- **`RIS`**: Gli Specchi di Rete. Espongono consumi attivi e passivi, e il core routing `inoltra_pacchetto` in grado di amplificare (+10 dBm) il segnale se in modalità attiva.
+- **`BaseStation`**: Hardware fisso recettore con capacità "ibrida" (assorbe ruoli di RIS). Usa il modulo `ricevi_e_inoltra` per accreditare log e far avanzare informazioni al master controller.
 
-## 5. Modulo 4: Propagazione e Ranging (`channel.py` / `config.py`)
-- **Metodo `esegui_2way_ranging(drone, bs, ris_list)`**:
-  - Simula lo scambio di pacchetti 2WAY (Handshake) tra Drone e BS.
-  - Usa `check_LOS_and_shielding` per capire quanti scaffali bloccano il segnale.
-  - Calcola l'attenuazione dinamica (la tecnica di ranging rileva la "schermatura" o NLOS severity basandosi sulla caduta di segnale attraverso gli scaffali).
-  - Simula l'Asimmetria: calcola l'**Uplink** (Drone -> BS a 20 dBm) e il **Downlink o ACK** (BS -> Drone a 40 dBm).
-  - Il valore di attenuazione diventa l'input vitale per decidere il livello di amplificazione: se l'Handshake fallisce (l'ACK non torna), il sistema cerca una RIS.
+## 5. Modulo 4: Fisica del Canale e Propagazione
+La matematica dietro il 6G. Esegue la funzione stand-alone `esegui_2way_ranging`.
+- Usa il `Free Space Path Loss` di Friis per il calo segnale base.
+- Somma il blocking dovuto agli scaffali dal modulo `Geometria`.
+- Analizza lo scambio dati Handshake (`Uplink` and `Downlink`). Calcola l'SNR asimmetrico.
+- Decodifica la migliore RIS di emergenza disponibile nel raggio vitale escludendo quelle senza Line-Of-Sight verso il Drone e la Base Station simultaneamente.
 
-## 6. Modulo 5: Server Tracking (`database.py`)
-- Gestione `sqlite3` in memoria o su file `telemetria.db`.
-- **Tabella 1 `Telemetria_Droni`**: `(TS, ID_Drone, X, Y, Z, SNR, Attenuazione_Ranging, Livello_Batteria, Stato_Missione)`.
-- **Tabella 2 `Eventi_Rete`**: `(TS, ID_RIS, Azione, Consumo_W)`.
-- Metodi per inserire dati a ogni step della simulazione.
+## 6. Modulo 5: Memoria del Sistema e Database
+Implementa classe `DatabaseManager` usando SQLite 3 file-based (`telemetria.db`):
+- Tabella `Telemetria_Droni`: traccia storicamente 9 parametri temporali per veicolo tra cui coordinate vettoriali 3D e degrado batteria.
+- Tabella `Eventi_Rete`: raccoglie la spesa di Watt/ora sul singolo RIS ed estrae dati cumulativi per log JSON complessi usati da matplotlib e digital twin. 
 
-## 7. Modulo 6: Controller Euristico (`controller.py`)
-- **Classe SuperServer**:
-  - Riceve il `Pacchetto_Rete` dal drone.
-  - Analizza l'attenuazione. Se il segnale è sotto una soglia di allerta (es. SNR < 5 dB):
-    - Cerca la RIS più vicina in LOS con il drone.
-    - Accende la RIS (modalità `passive` se l'attenuazione è media, `active` se l'attenuazione è severa).
-    - Salva l'evento in `Eventi_Rete`.
-  - Coordina i droni (invia comando RTH se batteria bassa) e spegne le RIS quando non servono.
+## 7. Modulo 6: Logica Decisionale Centralizzata (Controller)
+La direttiva Master (il `SuperServer`):
+- Espone il framework `ricevi_telemetria`.
+- Controlla emergenze batteria e switcha il drone in RTH.
+- Regola a caldo con euristiche i consumi delle RIS in modalità dinamica (`passive` vs `active` su thresholds precalcolati di emergenza SNR).
+- Salva log drone e di rete su DB.
 
-## 8. Modulo 7: Motore di Simulazione e Scenari di Test (`main.py`)
-- Crea funzioni per eseguire 4 test separati. Per ogni test, il loop temporale avanza a scatti di `DT`, muove i droni e fa intervenire il `SuperServer`.
-- **Test 1: Stress Test e Scalabilità (Punto di Rottura)**
-  - *Setup*: Inizializza Caso A (2000 mq), Caso B (10000 mq), Caso C (35000 mq).
-  - *Azione*: Inizia con 5 droni. Ogni N secondi simulati, aggiungi +5 droni alla flotta.
-  - *Condizione di Stop*: Ferma il test per un Caso quando i messaggi elaborati dal Server superano la capacità massima o quando il 20% dei droni ha un SNR sotto la soglia critica per più di 5 secondi (collasso). Registra il numero massimo di droni raggiunto.
-- **Test 2: Resilienza e Tolleranza ai Guasti (Fault Tolerance)**
-  - *Setup*: Caso B con 15 droni in un'area specifica.
-  - *Azione*: Fai girare la simulazione. All'istante t=50, simula un guasto spegnendo forzatamente la RIS più utilizzata in quel momento (es. stato = 'broken').
-  - *Attesa*: Il Controller deve registrare il calo di SNR, eseguire il failover e "svegliare" le RIS adiacenti.
-- **Test 3: Collo di Bottiglia "Cambio Turno" (Mass Return-To-Home)**
-  - *Setup*: Caso C con 50 droni.
-  - *Azione*: All'istante t=20, sovrascrivi forzatamente il livello di batteria del 40% dei droni portandolo al 21%.
-  - *Attesa*: Subito dopo scenderanno sotto il 20%. Il Server invierà a tutti l'ACK di RTH_RICARICA. Registra l'esplosione di traffico e le accensioni RIS per gestire questo sciame.
-- **Test 4: Confronto Energetico (La Baseline)**
-  - *Setup*: Caso B con 15 droni. Simulazione di 10 minuti.
-  - *Azione*: Esegui il run due volte. Run 1: spegni il Controller Euristico e tieni tutte le RIS sempre accese al massimo (50W). Run 2: usa il Controller Euristico (RIS in sleep a 0.5W, accese solo su richiesta).
+## 8. Modulo 7: Motore di Simulazione e Scenari di Test
+La suite `SimulationEngine` esegue cicli fisici iterativamente (sia set standard che per set custom dell'utente):
+- **Test 1 Scalabilità**: Tenta rottura server o crollo SNR aggiungendo sciami (+5 droni x step).
+- **Test 2 Resilienza (Heatmap)**: Simula guasto e blackout di 4 RIS a soffitto in scenari operativi. Calcola griglia 2D SNR PRIMA/DOPO per generare marker JSON da plot.
+- **Test 3 Mass RTH**: Spinge logiche dual-axis con 40% flotta scaricata artificialmente (al 21%) al secondo 20, forzando congestione massiva.
+- **Test 4 Efficienza**: Run di confronto Baseline "Always-ON 50W" contro il Sistema Dinamico proposto su simulazione 150 step (15 sec).
+- **Test 5 Digital Twin Animato**: Implementa logiche di picking ottimizzato (`_genera_percorso_ottimizzato`) in corsie rettilinee per un UAV, evitando diagonali in collisione. Rilascia JSON con step per animazioni. 
 
-## 9. Modulo 8: Visualizzazione Grafica Risultati (Data Plotting)
-Il sistema deve fornire un'astrazione visiva ai *raw-data* telemetrici estratti dal Database SQLite elaborandoli matematicamente per produrre quattro grafici in formato `.png`, iterando l'analisi spaziale sui tre volumi operativi (Caso A: 2.000mq, Caso B: 10.000mq, Caso C: 35.000mq). Regola ferrea: non leggere variabili in memoria, ma eseguire query `SELECT`.
+## 9. Modulo 8: Visualizzazione Grafica Risultati
+La classe `DataPlotter` interroga in logica query i marker JSON e DB generati e produce plot matplotlib:
+- `plot_scalabilita` (Linee + marker `X` rottura).
+- `plot_resilienza_guasto` (Heatmap contourf con disegno infrastruttura "identico alle BOM" con base gialla, RIS Soffitto verdi. Evidenzia grossa "X" rossa sul guasto).
+- `plot_consumi_mass_rth` (Plot a doppio asse: andamento min/max batteria e istogramma RIS).
+- `plot_risparmio_energetico` (Barre affiancate Rosso vs Verde per kW impiegati).
+- `plot_digital_twin` (Motore FFMpeg/Pillow per interpolare trajectorie e picking su planimetria dinamica).
 
-- **`plot_scalabilita.png`** (Grafico a Linee con Marker):
-  - *Scopo*: Visualizzare il punto critico di rottura all'aumentare vertiginoso della flotta.
-  - *Output visivo*: Asse X = Numero droni dispiegati. Asse Y = Messaggi processati/sec (Overhead). Traccia 3 rette ascendenti distinte per i tre Casi, terminanti con un marker speciale "x" rosso di collasso algoritmico della Rete.
-- **`plot_resilienza_guasto.png`** (Grafico a Serie Temporali Sovrapposte):
-  - *Scopo*: Dimostrare il rapido adattamento a percorsi di routing secondari in seguito allo spegnimento della RIS a soffitto.
-  - *Output visivo*: Asse X = Tempo normalizzato a `0`s. Asse Y = SNR (dB). Tre curve colorate mostrano il ping SNR ininterrotto di tre droni campione a seguito dell'intersezione col marcatore tratteggiato (*Guasto RIS*) posto a `t=5s`, attestando il failover.
-- **`plot_consumi_mass_rth.png`** (Grafico ad Aree / Serie Temporali Smoothed):
-  - *Scopo*: Evidenziare la stringente gestione del picco di erogazione in caso di massivo *Return-To-Home*.
-  - *Output visivo*: Asse X = Tempo sui Marker estratti (`START_Caso...`). Asse Y = Consumo istantaneo (W). Plotta tre aree (A, B, C) applicando un filtro "finestra mobile" di *smoothing* temporale a 50 campioni interpolando i record raw di eventi asincroni.
-- **`plot_risparmio_energetico.png`** (Grafico a Barre Raggruppate):
-  - *Scopo*: Esporre il *Benchmark* quantitativo sui benefici ecologici e computazionali.
-  - *Output visivo*: Istogramma aggregato in kW tramite `SUM(Consumo_W)`. Asse X raggruppa su magazzino A, B, C comparando doppiamente la colonna termica *Always-On* (Tradizionale - rosso) con la contrazione estrema dei kW in Run 2 (Schema Proposto/Euristico - verde).
+## 10. Modulo 9: Deployment Dinamico e Visualizzazione Topologica
+Il Planner `DeploymentPlanner` calcola l'hardware BOM del layout:
+- Previene collisioni (`_is_too_close_to_bs`).
+- Griglie Base Stations, deployment RIS (Soffitto e Parete).
+- Output affiancato: Dashboard visiva Mappa (`ax_mappa`) + Testo Testo Tabellato (`ax_bom`) contenente recap Magazzino e Infrastrutture di Rete.
 
-## 10. Modulo 9: Deployment Dinamico e Visualizzazione Topologica (Interactive BoM)
-
-### Descrizione dell'Obiettivo
-Questo modulo evolve il simulatore da un approccio statico a uno scalabile e parametrico. Il sistema è progettato per accettare in input le dimensioni tridimensionali fisiche di un generico magazzino logistico e calcolare in maniera autonoma la **Distinta Base (BoM - Bill of Materials)** dell'hardware di rete necessario. L'output finale è una dashboard visiva che presenta la **mappa topologica** dell'infrastruttura a sinistra e il **report quantitativo** esatto sulla destra.
-
-### Variabili di Input
-L'algoritmo riceve dall'utente i seguenti parametri strutturali:
-- **L_MAG**: Lunghezza del magazzino (in metri).
-- **W_MAG**: Larghezza del magazzino (in metri).
-- **H_MAG**: Altezza del magazzino (in metri).
-
-### Logica di Calcolo e Regole Ingegneristiche (Deployment)
-Basandosi sui limiti fisici di propagazione del segnale impostati nel Modulo 1, l'algoritmo posiziona l'hardware seguendo queste regole:
-
-- **Base Station (BS):** Considerato un raggio efficace `R_BS = 50.0 m`, il sistema calcola se è sufficiente una singola BS (per aree fino a 10.000 mq) posizionata al centro geometrico, oppure se è necessaria una griglia di BS per superfici maggiori.
-- **RIS a Parete (Wall-mounted):** Considerato un raggio efficace `R_RIS = 15.0 m`, l'algoritmo posiziona i pannelli lungo l'intero perimetro del magazzino, distanziandoli in modo ottimale (es. ogni 30 metri) per garantire la riflessione del segnale nei corridoi perimetrali.
-- **RIS a Soffitto (Ceiling-mounted):** Il sistema calcola una maglia a griglia (es. 30×30 m) e posiziona le RIS in sospensione per garantire la copertura verticale (Line-Of-Sight) alla flotta di droni in volo sopra o tra gli scaffali.
-- **Super Server (Controller):** Quantità bloccata a **1 istanza**, posizionata tipicamente alle coordinate di origine o adiacente alla BS principale per minimizzare la latenza di rete fissa.
-
-### Interfaccia di Output (UI e Mappa)
-Il modulo genera un'interfaccia divisa in due sezioni:
-
-- **Area di Plottaggio (Sinistra):** Una mappa 2D (vista top-down) renderizzata tramite `matplotlib` che illustra i confini del magazzino e la distribuzione spaziale dei nodi. Ogni dispositivo è identificato da marker specifici (es. ★ verde = Server, ▲ rosso = BS, ■/● azzurri = RIS).
-- **Pannello BoM (Destra):** Una sezione di testo/tabella ancorata alla destra del grafico che espone in chiaro i risultati del calcolo algoritmico:
-  - Dimensioni totali e Area (mq).
-  - Numero esatto di Base Station installate.
-  - Numero esatto di RIS a parete e RIS a soffitto necessarie.
-  - Totale dell'hardware e numero di Super Server (1).
+## 11. Modulo 10: Simulazione Dinamica (Il Loop)
+- Blocco Main Console (`if __name__ == "__main__":`).
+- Prende le 3 dimensioni custom utente.
+- Palesa layout, stima droni consigliati contro rottura logistica.
+- Calibra `Magazzino` su `FISSO` o `MULTILIVELLO`.
+- Mostra statistiche immediate (Test Link 2-Way Ranging "1 shot").
+- Offre loop Menù CMD (1-5 e Uscita) invocando sincronicamente per ciascun comando il Motore, Plotter per layout STD e Plotter Custom utente in array parallelo.
 
 ---
-**Azione per l'IA:** Conferma di aver letto il PRD, riassumi in 2 righe l'obiettivo e chiedimi quale file vuoi che sviluppiamo per primo.
+**Azione per l'IA:** Conferma di aver letto il PRD strutturato a 11 parti, riassumi in 2 righe l'obiettivo e chiedimi quale file vuoi che sviluppiamo per primo.
