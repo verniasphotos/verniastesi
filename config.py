@@ -1,4 +1,32 @@
 # ==========================================
+# IMPORT LIBRERIE
+# ==========================================
+
+# --- Motore Matematico e Fisico ---
+import numpy as np
+import scipy
+import scipy.constants
+import scipy.spatial.distance
+from numba import njit, prange
+
+# --- Tracking e Filtraggio ---
+from filterpy.kalman import ExtendedKalmanFilter
+import sympy
+
+# --- Ottimizzazione ---
+from sklearn.cluster import KMeans
+
+# --- Networking ---
+import grpc
+import struct
+
+# --- Telemetria e Rendering 3D ---
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.graph_objects as go
+
+# ==========================================
 # MODULO 1: COSTANTI E PARAMETRI
 # ==========================================
 
