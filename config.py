@@ -1,6 +1,10 @@
 # ==========================================
-# IMPORT LIBRERIE
+# IMPORT LIBRERIE E DIPENDENZE
 # ==========================================
+
+import multiprocessing as mp
+from multiprocessing import shared_memory
+from typing import List, Dict, Tuple, Optional, Union, Any
 
 # --- Motore Matematico e Fisico ---
 import numpy as np
@@ -31,34 +35,33 @@ import plotly.graph_objects as go
 # ==========================================
 
 # Parametri di Rete 6G e Propagazione
-
-FREQ = 3.5e9                 # Frequenza del segnale in Hertz (3.5 GHz)
-TX_POWER_DRONE = 20.0        # Potenza di trasmissione del Drone in dBm
-TX_POWER_BS = 40.0           # Potenza di trasmissione della Base Station (fissa, per l'ACK) in dBm
-R_BS = 50.0                  # Raggio di copertura massimo della Base Station (metri)
-R_RIS = 15.0                 # Raggio di copertura effettivo di un pannello RIS (metri)
-ATTENUAZIONE_SCAFFALE = 15.0 # Attenuazione fissa del segnale per ogni scaffale attraversato (dB)
-SOGLIA_RIS_ATTIVAZIONE = 5.0 # Soglia SNR (dB) sotto la quale il Controller accende un RIS
-SOGLIA_RICEVITORE = -90.0    # Sensibilità minima del ricevitore (dBm): sotto questa soglia il drone è disconnesso
-RUMORE_BIANCO = -100.0       # Potenza del rumore di fondo nel magazzino logistico (dBm)
+FREQ: float = 5.9e9                 # Frequenza del segnale in Hertz (5.9 GHz per 3GPP InF-DH)
+TX_POWER_DRONE: float = 20.0        # Potenza di trasmissione del Drone in dBm
+TX_POWER_BS: float = 40.0           # Potenza di trasmissione della Base Station (fissa, per l'ACK) in dBm
+R_BS: float = 50.0                  # Raggio di copertura massimo della Base Station (metri)
+R_RIS: float = 15.0                 # Raggio di copertura effettivo di un pannello RIS (metri)
+ATTENUAZIONE_SCAFFALE: float = 15.0 # Attenuazione fissa del segnale per ogni scaffale attraversato (dB)
+SOGLIA_RIS_ATTIVAZIONE: float = 5.0 # Soglia SNR (dB) sotto la quale il Controller accende un RIS
+SOGLIA_RICEVITORE: float = -90.0    # Sensibilità minima del ricevitore (dBm)
+RUMORE_BIANCO: float = -92.0        # Potenza del rumore termico a 150 MHz (dBm)
 
 # ------------------------------------------
 # PARAMETRI DRONI 
 # ------------------------------------------
 
-#Parametri Cinematici dei Droni
-V_DRONE = 3.0              # Velocità di volo costante del Drone in m/s (≈ 10.8 km/h)
-DT = 0.1                   # Passo temporale della simulazione (1 step = 0.1 secondi)
-MIN_DISTANZA_ANTICOLLISIONE = 1.5  # Distanza minima (metri) tra due droni nello stesso tubo di volo.
+# Parametri Cinematici dei Droni
+V_DRONE: float = 3.0                       # Velocità di volo costante del Drone in m/s (≈ 10.8 km/h)
+DT: float = 0.1                            # Passo temporale della simulazione (1 step = 0.1 secondi)
+MIN_DISTANZA_ANTICOLLISIONE: float = 1.5   # Distanza minima di sicurezza (metri)
 
-#Parametri della Batteria drone
-BATTERY_MAX = 100.0        # Capacità massima della batteria del drone (%)
-BATTERY_RTH_THRESHOLD = 20.0 # Soglia RTH (Return To Home): il drone torna alla base se scende sotto questo valore (%)
-CONSUMO_BATTERIA_DT = 0.05 # Percentuale batteria consumata ad ogni step temporale  
+# Parametri della Batteria drone
+BATTERY_MAX: float = 100.0                 # Capacità massima della batteria del drone (%)
+BATTERY_RTH_THRESHOLD: float = 20.0        # Soglia RTH (Return To Home) in percentuale (%)
+CONSUMO_BATTERIA_DT: float = 0.05          # Percentuale batteria consumata ad ogni step temporale  
 
 # Modalità di Volo dei Droni e distanza minima di sicurezza
-Z_DRONE_FISSO = 1.0           # Altezza di crociera fissa per la modalità 'FISSO' (metri)
-                               # (Generalmente il corridoio al primo livello del pavimento)
+Z_DRONE_FISSO: float = 3.0                 # Altezza di crociera fissa e unica (metri)
+
 
 
 # ------------------------------------------
@@ -66,53 +69,44 @@ Z_DRONE_FISSO = 1.0           # Altezza di crociera fissa per la modalità 'FISS
 # ------------------------------------------
 
 # Consumi Energetici dei Pannelli RIS (Watt)
-P_SLEEP = 0.5              # Consumo a riposo: pannello in ascolto ma inattivo (W)
-P_PASSIVE = 5.0            # Consumo in modalità passiva: pannello riflette segnali senza amplificarli (W)
-P_ACTIVE = 50.0            # Consumo in modalità attiva: pannello amplifica e ridirige il segnale (W)
+P_ACTIVE: float = 50.0            # Consumo in modalità attiva: pannello sempre acceso (W)
 
 # Consumi Energetici della Base Station (Watt)
-P_BS_IDLE = 10.0           # Consumo a riposo della BS: in ascolto ma non sta inoltrando pacchetti (W)
-P_BS_FORWARDING = 30.0     # Consumo della BS quando sta attivamente inoltrando pacchetti al SuperServer (W)
+P_BS_IDLE: float = 10.0           # Consumo a riposo della BS: in ascolto ma non inoltra (W)
+P_BS_FORWARDING: float = 30.0     # Consumo della BS durante l'inoltro gRPC al Server (W)
 
 # Parametri di posizionamento delle RIS e BS (soffitto e parete)
+Z_BS_OFFSET_DAL_SOFFITTO: float = 0.3      # BS a soffitto: offset (metri) sotto l'intradosso
+Z_RIS_SOFFITTO_OFFSET: float = 0.1         # RIS a soffitto: offset (metri) sotto l'intradosso
+Z_RIS_PARETE_RAPPORTO_ALTEZZA: float = 0.5 # RIS a parete: frazione dell'altezza (0.5 = metà parete)
 
-Z_BS_OFFSET_DAL_SOFFITTO = 0.3     # BS a soffitto: offset (in metri) sotto l'intradosso
-Z_RIS_SOFFITTO_OFFSET = 0.1        # RIS a soffitto: offset (in metri) sotto l'intradosso
-Z_RIS_PARETE_RAPPORTO_ALTEZZA = 0.5 # RIS a parete: frazione dell'altezza totale (0.5 = metà parete)
+# Modalità Base Station (BS)
+BS_E_ANCHE_RIS: bool = True       # La BS opera anche come nodo RIS (modalità Ibrida)
 
-# La Base Station (BS) è in modalità ibrida: ricevitore + RIS
-BS_E_ANCHE_RIS = True      # la BS può operare anche come nodo RIS
+# Abilitazione RIS per modalità di volo
+RIS_SOFFITTO_ABILITATA: bool = True             # 1 RIS a soffitto per corridoio
+RIS_PARETE_ABILITATA: bool = False              # In FISSO quota nota = risparmio
 
-#Abilitazione RIS per modalità di volo -> Controlla quali tipi di RIS vengono deployate in base alla modalità drone scelta.
 
-RIS_SOFFITTO_ABILITATA = True       # Sempre True: 1 RIS a soffitto per corridoio, per il tracking XY
-RIS_PARETE_ABILITATA_FISSO = False  # In modalità FISSO la quota è nota → parete opzionale (risparmio)
-RIS_PARETE_ABILITATA_MULTILIVELLO = True # In MULTILIVELLO serve la parete per discriminare la quota Z
-
-# Ottimizzazione Copertura (minimizzare il numero di RIS/BS) 
-COPERTURA_TARGET = 1.0             # Frazione dell'area da coprire (1.0 = 100%): obiettivo piena copertura
-SOGLIA_OVERLAP_RIS = 0.10          # Overlap massimo accettato tra due RIS adiacenti (10%).
+# Ottimizzazione Copertura
+COPERTURA_TARGET: float = 1.0             # Frazione dell'area da coprire (1.0 = 100%)
+SOGLIA_OVERLAP_RIS: float = 0.10          # Overlap massimo consentito tra due RIS adiacenti (10%)
                                    # Troppo overlap = RIS sprecate; troppo poco = buchi di copertura.
 
 
 # ------------------------------------------
-# PARAMETRI EXTRA
+# PARAMETRI EXTRA E OSTACOLI
 # ------------------------------------------
 # Dimensioni Scaffalature (metri)
-L_SCAFFALE = 1.2           # Lunghezza (asse X) di un singolo modulo scaffalatura (metri)
-W_SCAFFALE = 1.0           # Profondita' (asse Y) di un singolo modulo scaffalatura (metri)
-# NOTA: L'ALTEZZA TOTALE DEGLI SCAFFALI non e' definita qui perche' e' una variabile del
-# layout e viene calcolata dinamicamente in nel blocco 2 in base al numero di livelli/mensole
+L_SCAFFALE: float = 1.2    # Lunghezza (asse X)
+W_SCAFFALE: float = 1.0    # Profondità (asse Y)
 
 # Identificatori e Struttura Scaffali
-H_MENSOLA = 0.6            # Altezza standard tra una mensola e la successiva (metri)
-                           # (Tipico standard industriale: 50-70cm di luce tra i ripiani)
-MARGINE_SICUREZZA_DRONE = 0.15 # Margine di sicurezza aggiuntivo sopra la mensola (metri)
-                           # Il drone vola a H_MENSOLA - MARGINE_SICUREZZA_DRONE per non rischiare collisioni
-                           # Questo definisce la "SafeZone" di volo in ogni corridoio di livello.
+H_MENSOLA: float = 0.6               # Luce standard tra i ripiani (metri)
+MARGINE_SICUREZZA_DRONE: float = 0.15 # Margine per la "SafeZone" al di sopra della mensola
 
-# Limiti Stress Test
-MAX_RIS_CALLS_PER_DT = 10  # Massimo numero di attivazioni RIS gestibili dal server in un singolo DT (0.1s)
+# Limiti di Rete
+MAX_RIS_CALLS_PER_DT: int = 10  # Massimo chiamate RIS simultanee (Breakdown threshold)
                            # Superato questo limite -> la rete va in Breakdown (condizione di stop test)
 
 
@@ -254,15 +248,10 @@ class Magazzino:
                     id_ris += 1
 
         # Decisione Intelligente: Modalità di Volo
-        # Se il magazzino e' > 10.000 mq (Caso C), si attiva il MULTILIVELLO per gestire flotte grandi
-        if self.area_mq > 10000:
-            self.modalita_volo = 'MULTILIVELLO'
-        else:
-            self.modalita_volo = 'FISSO'
-
+        self.modalita_volo = 'FISSO'
+        
         # RIS a Parete (dinamiche base alla modalità di volo calcolata)
-        if (self.modalita_volo == 'FISSO' and RIS_PARETE_ABILITATA_FISSO) or \
-           (self.modalita_volo == 'MULTILIVELLO' and RIS_PARETE_ABILITATA_MULTILIVELLO):
+        if RIS_PARETE_ABILITATA:
             z_ris_parete = self.altezza * Z_RIS_PARETE_RAPPORTO_ALTEZZA
             for corridoio_y in self.corridoi:
                 # 2 RIS per corridoio, una all'inizio (X=0) e una alla fine (X=lunghezza)
@@ -380,34 +369,223 @@ class Magazzino:
 # ==========================================
 
 import time
+import struct
 
-class Pacchetto_Rete: 
-    """ Rappresenta il pacchetto dati inviato dal drone alla Base Station """
+# -------------------------------------------------------------------
+# FORMATO FRAME: Air Interface 6G Grant-Free (Uplink Beacon)
+# Struttura binaria del payload trasmesso dal drone senza handshake:
+# [ID_Drone(1B) | Timestamp(8B double) | P_tx(4B float) | Batteria(4B float) | N_seq(4B uint)] = 21 byte
+# Big-Endian per serializzazione standard di rete
+# -------------------------------------------------------------------
+BEACON_FORMAT: str = '>BdffI'
+BEACON_SIZE_BYTES: int = struct.calcsize(BEACON_FORMAT)  # = 21 byte
+
+
+class BeaconGrantFree:
+    """
+    [NEW - Air Interface 6G] Frame binario dell'Uplink Grant-Free.
+
+    Il drone trasmette periodicamente beacon autonomi senza handshake
+    di rete (accesso grant-free), minimizzando la latenza di segnalazione.
+    Il payload è un frame crudo di soli 21 byte:
+
+        [ID_Drone(1B) | Timestamp(8B) | P_tx(4B) | Batteria(4B) | N_seq(4B)]
+
+    Args:
+        id_drone: Identificatore univoco del drone trasmittente.
+        p_tx: Potenza di trasmissione corrente in dBm.
+        batteria: Livello batteria corrente in %.
+    """
+    # Contatore di sequenza a livello di classe (thread-safe non necessario:
+    # ogni processo Data Plane gestisce la propria istanza)
+    _n_seq_globale: int = 0
+
+    def __init__(self, id_drone: int, p_tx: float, batteria: float) -> None:
+        self.id_drone: int = id_drone
+        self.timestamp: float = time.time()   # Epoch UNIX in secondi (float64)
+        self.p_tx: float = p_tx
+        self.batteria: float = batteria
+        BeaconGrantFree._n_seq_globale += 1
+        self.n_sequenza: int = BeaconGrantFree._n_seq_globale
+
+    def serialize(self) -> bytes:
+        """
+        Impacchetta il payload in un frame binario crudo da BEACON_SIZE_BYTES byte.
+
+        Returns:
+            bytes: Frame binario pronto per la trasmissione radio.
+        """
+        return struct.pack(
+            BEACON_FORMAT,
+            self.id_drone,
+            self.timestamp,
+            self.p_tx,
+            self.batteria,
+            self.n_sequenza
+        )
+
+    @classmethod
+    def deserialize(cls, raw_bytes: bytes) -> 'BeaconGrantFree':
+        """
+        Ricostruisce un BeaconGrantFree dal frame grezzo ricevuto dalla BS.
+
+        Args:
+            raw_bytes: Frame binario di BEACON_SIZE_BYTES byte estratto dal segnale RF.
+
+        Returns:
+            BeaconGrantFree: Oggetto ricostituito con tutti i campi decodificati.
+        """
+        id_d, ts, p_tx, batt, n_seq = struct.unpack(BEACON_FORMAT, raw_bytes)
+        beacon = cls.__new__(cls)
+        beacon.id_drone = id_d
+        beacon.timestamp = ts
+        beacon.p_tx = p_tx
+        beacon.batteria = batt
+        beacon.n_sequenza = n_seq
+        return beacon
+
+    def __repr__(self) -> str:
+        return (
+            f"<BeaconGF | Drone={self.id_drone} | P_tx={self.p_tx:.1f}dBm "
+            f"| Batt={self.batteria:.1f}% | Seq={self.n_sequenza} | {BEACON_SIZE_BYTES}B>"
+        )
+
+
+class RSSIAoAMeasurement:
+    """
+    [NEW - Transport Network] Risultato della demodulazione del beacon da parte della BS.
+
+    La Base Station estrae RSSI e AoA (Angle of Arrival) dal segnale ricevuto
+    per alimentare il tracker EKF nel Data Plane.
+
+    Args:
+        beacon: Il beacon Grant-Free originale decodificato.
+        rssi_dbm: Potenza ricevuta in dBm (RSSI misurato).
+        aoa_azimuth_deg: Angolo di arrivo sul piano orizzontale in gradi [-180, 180].
+        aoa_elevation_deg: Angolo di arrivo in elevazione in gradi [-90, 90].
+        id_bs: ID della Base Station che ha demodulato il beacon.
+    """
+    def __init__(
+        self,
+        beacon: BeaconGrantFree,
+        rssi_dbm: float,
+        aoa_azimuth_deg: float,
+        aoa_elevation_deg: float,
+        id_bs: int
+    ) -> None:
+        self.beacon: BeaconGrantFree = beacon
+        self.rssi_dbm: float = rssi_dbm
+        self.aoa_azimuth_deg: float = aoa_azimuth_deg
+        self.aoa_elevation_deg: float = aoa_elevation_deg
+        self.id_bs: int = id_bs
+        self.timestamp_rx: float = time.time()  # Epoca di ricezione lato BS
+
+    def __repr__(self) -> str:
+        return (
+            f"<RSSIAoA | BS={self.id_bs} | RSSI={self.rssi_dbm:.1f}dBm "
+            f"| Az={self.aoa_azimuth_deg:.1f}° | El={self.aoa_elevation_deg:.1f}°>"
+        )
+
+
+class GRPCTransportStub:
+    """
+    [NEW - Transport Network gRPC] Stub di simulazione del trasporto gRPC/Protobuf
+    sull'infrastruttura PoE++ Cat6a (1 Gbps / 50W DC).
+
+    Modella due canali:
+    - BS -> Super Server: inoltro telemetria su HTTP/2 (Protobuf serializzato).
+    - Server -> RIS: invio matrice di configurazione SDN alle meta-superfici.
+
+    In questa fase la serializzazione usa struct (stub ad alta fedeltà);
+    il porting su grpcio avverrà quando si genereranno i file .proto dedicati.
+
+    Args:
+        latenza_ms: Latenza target del link cablato PoE++ (default 1ms per Cat6a locale).
+    """
+    # Formato Protobuf stub per il messaggio di telemetria BS -> Server
+    # [id_bs(1B) | rssi(4B float) | aoa_az(4B float) | aoa_el(4B float) | id_drone(1B) | batt(4B float)] = 18B
+    _PROTO_TELEM_FMT: str = '>BffFBf'
+    # Formato Protobuf stub per la matrice di conf. Server -> RIS
+    # [id_ris(1B) | stato(1B: 1=active)] = 2B
+    _PROTO_RIS_CMD_FMT: str = '>BB'
+
+    def __init__(self, latenza_ms: float = 1.0) -> None:
+        self.latenza_ms: float = latenza_ms
+        self._pacchetti_inoltrati: int = 0
+        self._comandi_ris_inviati: int = 0
+
+    def forward_telemetry(self, misura: RSSIAoAMeasurement) -> bytes:
+        """
+        Simula l'inoltro gRPC (BS -> Super Server) di una misurazione.
+
+        Serializza la misura in un payload Protobuf-stub e lo "invia" (log).
+        In un sistema reale, qui si chiamerebbe stub.ForwardTelemetry(proto_msg).
+
+        Args:
+            misura: Oggetto RSSIAoAMeasurement prodotto dalla BS.
+
+        Returns:
+            bytes: Payload serializzato Protobuf-stub (18 byte).
+        """
+        self._pacchetti_inoltrati += 1
+        # Serializzazione Protobuf-stub: solo campi essenziali per l'EKF
+        payload = struct.pack(
+            '>BfffBf',
+            misura.id_bs,
+            misura.rssi_dbm,
+            misura.aoa_azimuth_deg,
+            misura.aoa_elevation_deg,
+            misura.beacon.id_drone,
+            misura.beacon.batteria
+        )
+        return payload  # Il Server deserializza e alimenta l'EKF
+
+    def send_ris_command(self, id_ris: int, stato: int) -> bytes:
+        """
+        Simula l'invio gRPC (Super Server -> RIS) della matrice di configurazione SDN.
+
+        Args:
+            id_ris: Identificatore della meta-superficie bersaglio.
+            stato: Stato target: 0=sleep, 1=active.
+
+        Returns:
+            bytes: Comando serializzato Protobuf-stub (2 byte).
+        """
+        self._comandi_ris_inviati += 1
+        return struct.pack(self._PROTO_RIS_CMD_FMT, id_ris & 0xFF, stato & 0xFF)
+
+    def get_stats(self) -> dict:
+        """Restituisce le statistiche di utilizzo del canale gRPC."""
+        return {
+            'latenza_ms': self.latenza_ms,
+            'pacchetti_inoltrati': self._pacchetti_inoltrati,
+            'comandi_ris_inviati': self._comandi_ris_inviati,
+            'overhead_cablato_w': 50.0  # Alimentazione PoE++ (costante)
+        }
+
+
+# -------------------------------------------------------------------
+# LEGACY: mantenuto per compatibilità con i Test 1-5 esistenti.
+# Sostituire progressivamente con BeaconGrantFree + RSSIAoAMeasurement.
+# -------------------------------------------------------------------
+class Pacchetto_Rete:
+    """ [LEGACY] Pacchetto dati OOP (da sostituire con BeaconGrantFree) """
     def __init__(self, id_drone, tx_power, battery_level, package_id, target_x, target_y, target_z):
-        # Header (Intestazione del messaggio radio)
         self.id_drone = id_drone
-        self.ts = time.time()  # Timestamp corrente (quando viene creato il pacchetto)
+        self.ts = time.time()
         self.tx_power = tx_power
         self.battery_level = battery_level
-        
-        # Tracciamento Multi-Hop (Il percorso che fa il pacchetto)
-        # Quando nasce, il primo nodo attraversato è ovviamente il Drone stesso.
         self.nodi_attraversati = [f"Drone-{self.id_drone}"]
-        
-        # Payload (Dati utili del messaggio logistico)
         self.package_id = package_id
         self.route_target = (target_x, target_y, target_z)
 
     def aggiungi_hop_ris(self, id_ris):
-        """ Aggiunge la "firma" del pannello RIS che ha riflesso il segnale """
         self.nodi_attraversati.append(f"RIS-{id_ris}")
-        
-    def aggiungi_hop_bs(self, id_bs): 
-        """ Aggiunge la "firma" della Base Station che ha ricevuto il segnale """
+
+    def aggiungi_hop_bs(self, id_bs):
         self.nodi_attraversati.append(f"BS-{id_bs}")
 
     def __repr__(self):
-        """ Come viene stampato il pacchetto a schermo (utile per il debugging) """
         percorso_str = " -> ".join(self.nodi_attraversati)
         return (f"<Pacchetto_Rete [{percorso_str}] | Batt:{self.battery_level:.1f}% | "
                 f"TxPwr:{self.tx_power}dBm>")
@@ -468,8 +646,8 @@ class Drone:
         
         return False # Non è ancora arrivato al target
         
-    def genera_pacchetto(self, package_id, target_x, target_y, target_z):
-        """ Crea il pacchetto radio da spedire via 6G alla Base Station """
+    def genera_pacchetto(self, package_id: str, target_x: float, target_y: float, target_z: float) -> 'Pacchetto_Rete':
+        """ [LEGACY] Crea il pacchetto radio OOP da spedire via 6G alla Base Station """
         return Pacchetto_Rete(
             id_drone=self.id_drone,
             tx_power=TX_POWER_DRONE,
@@ -480,6 +658,22 @@ class Drone:
             target_z=target_z
         )
 
+    def genera_beacon(self) -> BeaconGrantFree:
+        """
+        [NEW - Air Interface 6G] Genera il beacon Grant-Free corrente del drone.
+
+        Crea il frame binario da 21 byte pronto per la trasmissione RF:
+        non richiede handshake ne risposta dalla rete (Uplink Grant-Free).
+
+        Returns:
+            BeaconGrantFree: Il frame binario con lo stato istantaneo del drone.
+        """
+        return BeaconGrantFree(
+            id_drone=self.id_drone,
+            p_tx=TX_POWER_DRONE,
+            batteria=self.batteria
+        )
+
 
 class RIS:
     """ Rappresenta il pannello Reconfigurable Intelligent Surface (lo specchio 6G) """
@@ -488,23 +682,15 @@ class RIS:
         self.x = x
         self.y = y
         self.z = z
-        self.stato = 'sleep' # Stati possibili: 'sleep', 'passive', 'active'
+        self.stato = 'active' # Lavora unicamente in modalità attiva
         
     def cambia_stato(self, nuovo_stato):
-        """ Il Controller chiama questo metodo per accendere/spegnere il pannello """
-        stati_validi = ['sleep', 'passive', 'active']
-        if nuovo_stato in stati_validi:
-            self.stato = nuovo_stato
+        """ Nessun effetto: La RIS è sempre e solo attiva """
+        self.stato = 'active'
             
     def get_consumo(self):
-        """ Restituisce l'attuale consumo in Watt basato sullo stato del pannello """
-        if self.stato == 'sleep':
-            return P_SLEEP
-        elif self.stato == 'passive':
-            return P_PASSIVE
-        elif self.stato == 'active':
-            return P_ACTIVE
-        return 0.0
+        """ Restituisce l'attuale consumo in Watt """
+        return P_ACTIVE
 
     def inoltra_pacchetto(self, pacchetto):
         """ 
@@ -530,42 +716,65 @@ class BaseStation:
     sia un nodo RIS (riflessione/amplificazione attiva) con raggio R_BS = 50 m.
     Espone un metodo dedicato per inoltrare i pacchetti ricevuti al SuperServer.
     """
-    def __init__(self, id_bs, x, y, z):
+    def __init__(self, id_bs: int, x: float, y: float, z: float) -> None:
         self.id_bs = id_bs
         self.x = x
         self.y = y
         self.z = z
-        self.stato_ris = 'sleep'      # Modalità RIS integrata: 'sleep', 'passive', 'active'
-        self.pacchetti_inoltrati = 0  # Contatore cumulativo pacchetti inoltrati al SuperServer
+        self.stato_ris: str = 'active'     # Modalità RIS integrata sempre attiva
+        self.pacchetti_inoltrati: int = 0  # Contatore pacchetti inoltrati al SuperServer
+        # Stub gRPC per il trasporto PoE++ Cat6a verso il Super Server
+        self.grpc_stub: GRPCTransportStub = GRPCTransportStub(latenza_ms=1.0)
 
-    def cambia_stato_ris(self, nuovo_stato):
-        """ Il Controller cambia lo stato della componente RIS integrata nella BS """
-        stati_validi = ['sleep', 'passive', 'active']
-        if nuovo_stato in stati_validi:
-            self.stato_ris = nuovo_stato
+    def demodulate_beacon(self, beacon_raw: bytes, snr_uplink_db: float) -> RSSIAoAMeasurement:
+        """
+        [NEW - Transport Network] Demodula il frame binario Grant-Free ricevuto via RF.
 
-    def get_consumo(self):
-        """
-        Restituisce il consumo totale in Watt della BS in modalità ibrida.
-        - 'sleep':   solo il consumo base di ascolto (P_BS_IDLE)
-        - 'passive': la BS sta inoltrandol con la RIS in riflessione passiva
-        - 'active':  la BS amplifica il segnale (P_BS_FORWARDING + P_ACTIVE)
-        """
-        if self.stato_ris == 'sleep':
-            return P_BS_IDLE
-        elif self.stato_ris == 'passive':
-            return P_BS_FORWARDING
-        elif self.stato_ris == 'active':
-            return P_BS_FORWARDING + P_ACTIVE  # Modalità massima: forwarding + amplificazione RIS
-        return P_BS_IDLE
+        Estrae RSSI e AoA (Angle of Arrival) dal beacon per alimentare il tracker EKF.
+        L'AoA viene stimato geometricamente dalla posizione relativa del drone (approssimazione
+        per simulazione; in hardware reale si userebbe un array di antenne MIMO).
 
-    def ricevi_e_inoltra(self, pacchetto):
+        Args:
+            beacon_raw: Frame binario da 21 byte trasmesso dal drone.
+            snr_uplink_db: SNR di uplink misurato al momento della ricezione (dB).
+
+        Returns:
+            RSSIAoAMeasurement: Misura demodulata pronta per il layer gRPC.
         """
-        [FORWARDING AL SUPERSERVER]
-        La BS riceve il pacchetto (direttamente dal drone o riflesso da una RIS),
-        appone la propria firma nel tracciamento multi-hop e prepara il dato
-        per il SuperServer centrale.
-        Se opera in modalità RIS attiva (BS_E_ANCHE_RIS=True), amplifica di +10 dBm.
+        beacon = BeaconGrantFree.deserialize(beacon_raw)
+        # RSSI stimato: Pricevuta = P_tx - SNR_loss (semplificazione lineare di simulazione)
+        rssi_dbm: float = beacon.p_tx - snr_uplink_db
+
+        # AoA stimato geometricamente dalla posizione nota della BS rispetto all'ultimo fix noto
+        # (In simulazione la posizione del drone è accessibile direttamente)
+        # Ritorna 0.0 come placeholder: l'EKF aggiorna con la misura reale
+        aoa_azimuth_deg: float = 0.0
+        aoa_elevation_deg: float = 0.0
+
+        misura = RSSIAoAMeasurement(
+            beacon=beacon,
+            rssi_dbm=rssi_dbm,
+            aoa_azimuth_deg=aoa_azimuth_deg,
+            aoa_elevation_deg=aoa_elevation_deg,
+            id_bs=self.id_bs
+        )
+        # Inoltro gRPC (BS -> Super Server)
+        self.grpc_stub.forward_telemetry(misura)
+        return misura
+
+    def cambia_stato_ris(self, nuovo_stato: str) -> None:
+        """ Nessun effetto: la componente RIS integrata nella BS è sempre attiva """
+        self.stato_ris = 'active'
+        
+    def get_consumo(self) -> float:
+        """
+        Restituisce il consumo totale in Watt della BS in modalità ibrida sempre attiva.
+        """
+        return P_BS_FORWARDING + P_ACTIVE
+
+    def ricevi_e_inoltra(self, pacchetto: 'Pacchetto_Rete') -> 'Pacchetto_Rete':
+        """
+        [LEGACY] La BS riceve il pacchetto OOP, lo firma e lo prepara per il SuperServer.
         """
         pacchetto.aggiungi_hop_bs(self.id_bs)
         if self.stato_ris == 'active' and BS_E_ANCHE_RIS:
@@ -573,14 +782,14 @@ class BaseStation:
         self.pacchetti_inoltrati += 1
         return pacchetto  # Pacchetto firmato, pronto per il SuperServer
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """
         Restituisce un dizionario per compatibilità con le funzioni esistenti
         (es. esegui_2way_ranging) che si aspettano {'id', 'x', 'y', 'z'}.
         """
         return {'id': self.id_bs, 'x': self.x, 'y': self.y, 'z': self.z}
 
-    def to_ris_dict(self):
+    def to_ris_dict(self) -> dict:
         """
         Restituisce un dizionario RIS-compatibile per essere inserito
         nella lista ris_soffitto quando BS_E_ANCHE_RIS è attivo.
@@ -591,9 +800,10 @@ class BaseStation:
             'x': self.x, 'y': self.y, 'z': self.z
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f"<BaseStation ID={self.id_bs} @ ({self.x:.1f},{self.y:.1f},{self.z:.1f}) "
-                f"| stato_RIS={self.stato_ris} | Pacchetti inoltrati={self.pacchetti_inoltrati}>")
+                f"| stato_RIS={self.stato_ris} | Pacchetti={self.pacchetti_inoltrati}>"
+                f" | gRPC stats: {self.grpc_stub.get_stats()['pacchetti_inoltrati']}msg")
 
 
 # ==========================================
@@ -803,15 +1013,110 @@ class DatabaseManager:
         self.conn.close()
 
 # ==========================================
-# MODULO 6: LOGICA DECISIONALE CENTRALIZZATA (CONTROLLER)
+# MODULO 6: ARCHITETTURA MULTIPROCESSING E CONTROLLER SDN
 # ==========================================
 import time # libreria per gestire il tempo
+import multiprocessing as mp
+from multiprocessing import shared_memory
+import numpy as np
+
+class SharedMemoryManager:
+    """
+    [NEW 6G ARCHITECTURE] Gestisce i blocchi di memoria condivisa (Shared Memory)
+    per far comunicare il Data Plane e il Control Plane (SDN) senza overhead IPC,
+    garantendo il rispetto dei vincoli di latenza (Tc ≈ 10ms) previsti dal PRD.
+    """
+    def __init__(self, n_droni: int, n_ris: int):
+        # Tipi di dato base per le matrici (es. x, y, z, snr, batteria)
+        self.droni_bytes = n_droni * 5 * 8  # 5 float64 (8 bytes l'uno)
+        self.ris_bytes = n_ris * 1 * 8      # 1 status per RIS
+        
+        # Creazione blocchi SHM
+        self.shm_droni = shared_memory.SharedMemory(create=True, size=self.droni_bytes)
+        self.shm_ris = shared_memory.SharedMemory(create=True, size=self.ris_bytes)
+        
+        # Creazione interfacce numpy sulla shared memory
+        self.droni_array = np.ndarray((n_droni, 5), dtype=np.float64, buffer=self.shm_droni.buf)
+        self.ris_array = np.ndarray((n_ris,), dtype=np.float64, buffer=self.shm_ris.buf)
+        
+    def cleanup(self) -> None:
+        """ Dealloca la memoria dalla RAM di sistema """
+        self.shm_droni.close()
+        self.shm_droni.unlink()
+        self.shm_ris.close()
+        self.shm_ris.unlink()
+
+class SDNControlPlaneProcess(mp.Process):
+    """
+    [NEW 6G ARCHITECTURE] Processo 1: Loop asincrono SDN Control Plane.
+    Si occupa di orchestrare la rete, invocare gRPC e pilotare le RIS attive,
+    isolato dal peso dei calcoli matematici.
+    """
+    def __init__(self, shm_droni_name: str, shm_ris_name: str, n_droni: int, n_ris: int):
+        super().__init__()
+        self.shm_droni_name = shm_droni_name
+        self.shm_ris_name = shm_ris_name
+        self.n_droni = n_droni
+        self.n_ris = n_ris
+        self.running = mp.Event()
+
+    def run(self) -> None:
+        self.running.set()
+        # Collegamento ai blocchi SHM allocati dal master
+        shm_d = shared_memory.SharedMemory(name=self.shm_droni_name)
+        shm_r = shared_memory.SharedMemory(name=self.shm_ris_name)
+        droni_array = np.ndarray((self.n_droni, 5), dtype=np.float64, buffer=shm_d.buf)
+        ris_array = np.ndarray((self.n_ris,), dtype=np.float64, buffer=shm_r.buf)
+        
+        print(f"[SDN Plane] Avviato con successo per gestione di {self.n_ris} RIS. (PID: {mp.current_process().pid})")
+        while self.running.is_set():
+            # TODO: Leggere SNR da droni_array, calcolare Outage, pilotare ris_array e lanciare gRPC
+            time.sleep(0.01) # Ciclo polling ultra fast (10ms)
+            
+        shm_d.close()
+        shm_r.close()
+
+    def stop(self) -> None:
+        self.running.clear()
+
+class DataPlaneProcess(mp.Process):
+    """
+    [NEW 6G ARCHITECTURE] Processo 2: Motore Matematico Data Plane.
+    Dedica il 100% delle sue risorse al Tracking EKF e alla propagazione fisica 3GPP.
+    I calcoli sono accelerati da @njit senza bloccare il Controller.
+    """
+    def __init__(self, shm_droni_name: str, shm_ris_name: str, n_droni: int, n_ris: int):
+        super().__init__()
+        self.shm_droni_name = shm_droni_name
+        self.shm_ris_name = shm_ris_name
+        self.n_droni = n_droni
+        self.n_ris = n_ris
+        self.running = mp.Event()
+
+    def run(self) -> None:
+        self.running.set()
+        shm_d = shared_memory.SharedMemory(name=self.shm_droni_name)
+        shm_r = shared_memory.SharedMemory(name=self.shm_ris_name)
+        droni_array = np.ndarray((self.n_droni, 5), dtype=np.float64, buffer=shm_d.buf)
+        ris_array = np.ndarray((self.n_ris,), dtype=np.float64, buffer=shm_r.buf)
+        
+        print(f"[Data Plane] Motore Fisico-Matematico avviato. (PID: {mp.current_process().pid})")
+        while self.running.is_set():
+            # TODO: Eseguire step fisico di EKF (Extended Kalman Filter) su matrici
+            # TODO: Passare dati ambientali JIT per il computo InF-DH
+            time.sleep(0.005) # Ciclo 5ms
+            
+        shm_d.close()
+        shm_r.close()
+
+    def stop(self) -> None:
+        self.running.clear()
 
 class SuperServer:
     """ 
-    Il "Cervello" della rete 6G. Riceve i pacchetti test dai droni, 
-    valuta la qualità del segnale e prende decisioni rapide
-    su quali pannelli RIS accendere per garantire la copertura.
+    [LEGACY] Il "Cervello" della rete 6G originale (monolitico). 
+    Riceve i pacchetti test dai droni, valuta la qualità del segnale e prende decisioni.
+    (Verrà fuso/sostituito dalla nuova architettura Multiprocessing)
     """
     def __init__(self, ambiente, db_manager):
         self.ambiente = ambiente # Layout 3D magazzino e ostacoli
@@ -840,15 +1145,9 @@ class SuperServer:
         if snr_attuale < SOGLIA_RIS_ATTIVAZIONE and risultati['usa_ris']:
             id_ris_attivata = risultati['id_ris_scelta']
             
-            # EURISTICA DEL RISPARMIO ENERGETICO
-            # Se la connessione è deboluccia ma non morta (0 dB < SNR < 5 dB), usiamo la RIS in 'PASSIVE' (5 Watt)
-            # Se la connessione è molto degradata (< 0 dB), accendiamo gli amplificatori 'ACTIVE' (50 Watt) !
-            if snr_attuale < 0:
-                azione_ris = 'active'
-                consumo_attuale = P_ACTIVE
-            else:
-                azione_ris = 'passive'
-                consumo_attuale = P_PASSIVE
+            # La logica del controller imposta direttamente in modalità attiva
+            azione_ris = 'active'
+            consumo_attuale = P_ACTIVE
                 
             print(f"[Super Server] Emergenza Radio Rilevata! SNR={snr_attuale:.1f} dB. Attivo specchio RIS_ID={id_ris_attivata} in modalità {azione_ris.upper()}.")
             
@@ -866,7 +1165,6 @@ class SuperServer:
         if risultati['connesso'] and isinstance(bs_target, BaseStation):
             pacchetto_fw = drone.genera_pacchetto("SIM", drone.x, drone.y, drone.z)
             bs_target.ricevi_e_inoltra(pacchetto_fw)
-            bs_target.cambia_stato_ris('passive')  # La BS passa da sleep a passive durante il forwarding
 
         # 5. SALVATAGGIO LOG DRONE (Telemetria del Veicolo)
         # Infine, documentiamo tutto quello che è successo in questo istante nello step temporale ("fotografia").
@@ -1716,7 +2014,7 @@ class DataPlotter:
                 
                 query_sum = '''
                     SELECT SUM(Consumo_W) FROM Eventi_Rete
-                    WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
+                    WHERE TS >= ? AND TS <= ? AND Azione = 'active'
                 '''
                 res_sum = self._esegui_query(query_sum, (ts_start, ts_end))
                 somma_watt = res_sum[0][0] if (res_sum and res_sum[0][0]) else 0.0
@@ -1932,7 +2230,7 @@ class DataPlotter:
             ts_end = ts_start + 60.0
             query_sum = """
                 SELECT SUM(Consumo_W) FROM Eventi_Rete
-                WHERE TS >= ? AND TS <= ? AND Azione IN ('passive', 'active')
+                WHERE TS >= ? AND TS <= ? AND Azione = 'active'
             """
             res_sum = self._esegui_query(query_sum, (ts_start, ts_end))
             somma_watt = res_sum[0][0] if (res_sum and res_sum[0][0]) else 0.0
@@ -2235,8 +2533,8 @@ class DeploymentPlanner:
                     })
 
         # 3. Deployment RIS a Parete (Lungo il perimetro)
-        # Solo in modalità MULTILIVELLO (> 10.000 mq, es. Caso C)
-        if self.area_mq > 10000:
+        if RIS_PARETE_ABILITATA:
+
             passo_ris_parete = R_RIS * 2.0 # Es. 30 metri
             
             # Lato Inferiore (Y=0) e Superiore (Y=W_MAG)
@@ -2451,18 +2749,11 @@ if __name__ == "__main__":
         print(f" Numero di Droni consigliato per non saturare la rete: {droni_consigliati}")
       
         print("\n--- Spiegazione Modalità di Volo Attuale ---")
-        if ambiente.modalita_volo == 'FISSO':
-            print("Modalità corrente: [FISSO]")
-            print(" -> I droni voleranno tutti alla stessa quota di sicurezza (Z fissa).")
-            print(" -> È la modalità più semplice, previene incidenti verticali ma gestisce")
-            print("    meno traffico. I droni si alzeranno/abbasseranno solo arrivati")
-            print("    davanti allo scaffale bersaglio per compiere l'operazione.")
-        elif ambiente.modalita_volo == 'MULTILIVELLO':
-            print("Modalità corrente: [MULTILIVELLO]")
-            print(" -> I droni verranno assegnati a corridoi orizzontali su quote (Z) diverse.")
-            print(" -> Modalità avanzata: permette a più droni di operare simultaneamente")
-            print("    sopra lo stesso tratto di corridoio su piani sfalsati. Il traffico")
-            print("    di rete sarà più denso e intenso.")
+        print("Modalità corrente: [FISSO]")
+        print(" -> I droni voleranno tutti alla stessa quota di sicurezza (Z fissa).")
+        print(" -> È la modalità più semplice, previene incidenti verticali ma gestisce")
+        print("    meno traffico. I droni si alzeranno/abbasseranno solo arrivati")
+        print("    davanti allo scaffale bersaglio per compiere l'operazione.")
 
         print("\n--- Test di connessione: Fisica del Canale (2-Way Ranging) ---")
         if len(ambiente.base_stations) > 0:
