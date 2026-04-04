@@ -72,8 +72,8 @@ Z_DRONE_FISSO: float = 3.0                 # Altezza di crociera fissa e unica (
 P_ACTIVE: float = 50.0            # Consumo in modalità attiva: pannello sempre acceso (W)
 
 # Consumi Energetici della Base Station (Watt)
-P_BS_IDLE: float = 10.0           # Consumo a riposo della BS: in ascolto ma non inoltra (W)
-P_BS_FORWARDING: float = 30.0     # Consumo della BS durante l'inoltro gRPC al Server (W)
+P_BS_IDLE: float = 120.0          # Consumo a riposo della BS: in ascolto ma non inoltra (W)
+P_BS_FORWARDING: float = 350.0    # Consumo della BS durante l'inoltro gRPC al Server (W)
 
 # Parametri di posizionamento delle RIS e BS (soffitto e parete)
 Z_BS_OFFSET_DAL_SOFFITTO: float = 0.3      # BS a soffitto: offset (metri) sotto l'intradosso
@@ -490,7 +490,7 @@ class RSSIAoAMeasurement:
 class GRPCTransportStub:
     """
     [NEW - Transport Network gRPC] Stub di simulazione del trasporto gRPC/Protobuf
-    sull'infrastruttura PoE++ Cat6a (1 Gbps / 50W DC).
+    sull'infrastruttura cablata (Fibra Ottica + Rete Elettrica Dedicata 220V).
 
     Modella due canali:
     - BS -> Super Server: inoltro telemetria su HTTP/2 (Protobuf serializzato).
@@ -500,7 +500,7 @@ class GRPCTransportStub:
     il porting su grpcio avverrà quando si genereranno i file .proto dedicati.
 
     Args:
-        latenza_ms: Latenza target del link cablato PoE++ (default 1ms per Cat6a locale).
+        latenza_ms: Latenza target del link cablato (default 1ms per LAN locale).
     """
     # Formato Protobuf stub per il messaggio di telemetria BS -> Server
     # [id_bs(1B) | rssi(4B float) | aoa_az(4B float) | aoa_el(4B float) | id_drone(1B) | batt(4B float)] = 18B
@@ -560,7 +560,7 @@ class GRPCTransportStub:
             'latenza_ms': self.latenza_ms,
             'pacchetti_inoltrati': self._pacchetti_inoltrati,
             'comandi_ris_inviati': self._comandi_ris_inviati,
-            'overhead_cablato_w': 50.0  # Alimentazione PoE++ (costante)
+            'overhead_cablato_w': 15.0  # Consumo energetico interfacce di rete fisse
         }
 
 
