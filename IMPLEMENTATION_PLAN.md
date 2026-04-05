@@ -15,12 +15,12 @@ Questo documento rappresenta il piano di sviluppo formale basato sul PRD. Il pia
 - [ ] **📌 TASK SPIEGAZIONE:** Ti spiegherò riga per riga a cosa servono i Type Hints e il pattern `dataclass`. Ti darò i comandi per installare l'estensione **SQLite Viewer** per farti trovare pronto per i moduli successivi.
 
 ## Modulo 2: `environment.py` - Physics Engine (Mondo Fisico Virtuale)
-- [ ] **2.1. Inizializzazione:** Creare `environment.py`. Importare `numpy`, `scipy.spatial.KDTree` e `numba` (`@njit`).
-- [ ] **2.2. Grid Generator Matrix:** Creare una funzione che riceve un layout da `config2.py` e restituisce una lista di coordinate centrali $(X, Y, Z)$ per ogni modulo di scaffale presente nel capannone.
-- [ ] **2.3. Spatial Indexing con KDTree:** Creare un oggetto spaziale per inserire tutte le coordinate generate allo step 2.2 all'interno di un `scipy.spatial.KDTree`.
-- [ ] **2.4. JIT Ray-Casting (Numba):** Scrivere una funzione pura con `@njit(nogil=True)` che presi due vettori 3D (Drone e Antenna) calcola matematicamente le intersezioni della retta con gli ostacoli (per determinare LoS o calcolare i metri di penetrazione in NLoS).
-- [ ] **2.5. Collision Check:** Scrivere la funzione `validate_clearance()` che verifichi lo spessore dell'UAV con i margini (± 1.5 metri). Deve sollevare un'eccezione se c'è scontro.
-- [ ] **📌 TASK SPIEGAZIONE:** Spiegazione visiva e intuitiva di cos'è un KDTree per la ricerca di vicinanza e cosa significa che Numba aggira il GIL in C.
+- [x] **2.1. Inizializzazione:** Creare `environment.py`. Importare `numpy`, `scipy.spatial.KDTree` e `numba` (`@njit`).
+- [x] **2.2. Grid Generator Matrix:** Creare una funzione che riceve un layout da `config2.py` e restituisce una lista di coordinate centrali $(X, Y, Z)$ per ogni modulo di scaffale presente nel capannone.
+- [x] **2.3. Spatial Indexing con KDTree:** Creare un oggetto spaziale per inserire tutte le coordinate generate allo step 2.2 all'interno di un `scipy.spatial.KDTree`.
+- [x] **2.4. JIT Ray-Casting (Numba):** Scrivere una funzione pura con `@njit(nogil=True)` che presi due vettori 3D (Drone e Antenna) calcola matematicamente le intersezioni della retta con gli ostacoli (per determinare LoS o calcolare i metri di penetrazione in NLoS).
+- [x] **2.5. Collision Check:** Scrivere la funzione `validate_clearance()` che verifichi lo spessore dell'UAV con i margini (± 1.5 metri). Deve sollevare un'eccezione se c'è scontro.
+- [x] **📌 TASK SPIEGAZIONE:** Spiegazione visiva e intuitiva di cos'è un KDTree per la ricerca di vicinanza e cosa significa che Numba aggira il GIL in C.
 
 ## Modulo 3: `networking.py` - IPC Broker & Protocol Stack
 - [ ] **3.1. Inizializzazione:** Creare `networking.py`. Importare `multiprocessing.shared_memory`, `time`, e i moduli `grpc`.
