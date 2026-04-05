@@ -1,0 +1,29 @@
+\babel@toc {italian}{}\relax 
+\babel@toc {italian}{}\relax 
+\contentsline {section}{Introduzione}{5}{figure.caption.1}%
+\contentsline {section}{\numberline {1}Descrizione del problema}{7}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Formulazione matematica del problema}{8}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Soluzioni proposte}{10}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Algoritmi}{13}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Algoritmo di coverage V1: algoritmo di ascesa del gradiente classico}{15}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Algoritmo V2: aggiunta di un moto Browniano}{16}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Algoritmo V3: aggiunta di un potenziale repulsivo}{19}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Implementazione degli algoritmi}{22}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Operazioni preliminari}{23}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Descrizione del codice (e tabelle con pseudocodice)}{27}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Versione 1}{27}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Versione 2}{28}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Versione 3}{30}{subsubsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.3}Librerie Python utilizzate}{32}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}NumPy}{32}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Pickle}{33}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}Matplotlib}{33}{subsubsection.3.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.4}Pytorch}{33}{subsubsection.3.3.4}%
+\contentsline {section}{\numberline {4}Simulazione e discussione dei risultati}{36}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Setting dei parametri iniziali}{36}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Analisi delle operazioni preliminari}{39}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Analisi e grafici dei dati sperimentali}{42}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Richiesta di coverage meno restrittiva}{51}{subsection.4.4}%
+\contentsline {section}{Conclusioni}{59}{figure.caption.32}%
+\contentsline {section}{Bibliografia}{61}{section*.33}%
+\contentsline {section}{Ringraziamenti}{64}{section*.33}%

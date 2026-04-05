@@ -1,0 +1,17 @@
+def gradientOfCoverageIndex(targets, agentsPosition, t, r, mp, lb, h):
+    # Conversione della posizione degli agenti in un tensore PyTorch e abilitazione del calcolo dei gradienti
+    agentsPosition_torch = torch.tensor(agentsPosition, requires_grad=True, dtype=torch.float32)
+    # Calcolo degli indici di copertura dei target
+    coverageIndices = calculateCoverageIndices(targets, agentsPosition_torch, t, r, mp)
+    # Calcolo dell'indice di copertura totale
+    totalCoverageIndex_t = calculateTotalCoverageIndex(coverageIndices, lb)
+    # Assicurarsi che l'indice di copertura totale richieda gradienti
+    totalCoverageIndex_t = totalCoverageIndex_t.requires_grad_(True)
+    # Esecuzione della backpropagation per calcolare i gradienti
+    totalCoverageIndex_t.backward()
+    # Verifica se i gradienti sono stati calcolati correttamente
+    if agentsPosition_torch.grad is None:
+        raise RuntimeError("Gradienti calcolati erroneamente")
+    # Detach i gradienti dal grafo computazionale di PyTorch e convertirli in un array NumPy
+    gradients_t = agentsPosition_torch.grad.detach().numpy()
+    return gradients_t
