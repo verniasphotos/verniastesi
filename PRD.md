@@ -27,14 +27,24 @@ Definisce le configurazioni centrali, le entità dinamiche e i protocolli comuni
 - **Transport Network (BS -> Server)**: La Base Station demodula il segnale (estraendo RSSI e AoA) e lo inoltra al Super Server tramite chiamate gRPC su HTTP/2 serializzate in Protobuf.
 - **Control Plane (Server -> RIS)**: Il controller SDN invia matrici di configurazione alle RIS utilizzando gRPC/Protobuf. L'infrastruttura fisica è cablata interamente in PoE++ (Cat6a), fornendo un link dati deterministico (1 Gbps) e 50W di alimentazione DC (costanti come 30dBm TX, 50W RIS, 5.9 GHz).
 
-## 3. Modulo 2 & 9: Deployment e Ottimizzazione Topologica (Test 0) e Magazzino
-Genera l'infrastruttura 3D del magazzino e calcola l'hardware BOM.
-- **Geometria ostacoli**: Calcolo coordinate per scaffalature che bloccano la RF.
-L'algoritmo decisionale per il posizionamento hardware (Test 0):
-- **Outage Trigger**: Una coordinata è in "Outage" se l'SNR scende sotto i 5 dB.
-- **Clustering K-Means**: Raggruppa spazialmente le zone cieche.
-- **Greedy Search**: Per ogni cluster, posiziona iterativamente una RIS Attiva a parete o incrocio per massimizzare la visibilità LoS.
-- Minimizzazione collisioni, output dashboard mappa e testo tabellato.
+## 3. Modulo 2 & 9: Deployment Layout Magazzino (Livello Fisico)
+Definisce la generazione parametrica dell'infrastruttura 3D del magazzino a livello puramente fisico, concentrandosi esclusivamente sulle mura perimetrali, i corridoi e le scaffalature di metallo che bloccano la RF. Non include la logica dell'hardware di rete (BS, RIS, Server).
+
+La generazione del deployment fisico prevede tre standard architetturali geometrici (Layout):
+- **Layout A (Piccolo)**: 
+  - Dimensioni fisiche (L x W x H): 50m x 40m x 10m (Area: 2.000 mq).
+  - Utilizzo: Ideale per magazzini compatti o hub di micro-logistica.
+- **Layout B (Medio)**: 
+  - Dimensioni fisiche (L x W x H): 100m x 100m x 10m (Area: 10.000 mq).
+  - Utilizzo: Struttura industriale standard per simulazioni di baseline.
+- **Layout C (Grande)**: 
+  - Dimensioni fisiche (L x W x H): 250m x 140m x 15m (Area: 35.000 mq).
+  - Utilizzo: Ampio centro di distribuzione usato per condurre stress-test su lunghe distanze.
+
+**Caratteristiche Base delle Scaffalature e Corridoi (invariabili per ogni layout):**
+- **Modulo Scaffale**: Ogni singola unità fisica ha una lunghezza di 1.2m (asse X) e profondità di 1.0m (asse Y). I livelli orizzontali (mensole) sono distanziati 0.6m in altezza.
+- **Vie di Transito e Mura**: Le file di scaffali descrivono corridoi larghi esattamente 3.0m per garantire navigazione e manovra in sicurezza. Tra le testate esterne degli scaffali e le mura perimetrali in cemento viene inserito un margine vuoto di rispetto di 2.5m.
+- L'algoritmo popola automaticamente i volumi interni di ciascun layout (A, B, C) calcolando in modo iterativo la quantità massima di file e di scaffali ospitabili.
 
 ## 4. Modulo 4: Livello Fisico e Modello di Canale (Physics Engine)
 Il motore fisico matematico per la propagazione del segnale.
