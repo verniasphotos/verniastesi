@@ -1,3 +1,4 @@
+#MODULO 2
 import numpy as np
 from scipy.spatial import KDTree
 from numba import njit

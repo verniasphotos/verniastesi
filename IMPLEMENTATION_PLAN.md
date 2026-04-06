@@ -3,6 +3,8 @@
 Questo documento rappresenta il piano di sviluppo formale basato sul PRD. Il piano è strutturato con la massima granularità, esplodendo ciascun modulo nei propri requisiti funzionali e linee di codice.
 *Checklist da spuntare durante l'avanzamento dei lavori.*
 
+Fai semppre il codice in modo modulare, senza fare file monolitici, rispettando le best practice della programmazione.
+
 ---
 
 ## Modulo 1: `config2.py` - Core System, Hardware & Warehouse Specs
@@ -23,18 +25,18 @@ Questo documento rappresenta il piano di sviluppo formale basato sul PRD. Il pia
 - [x] **📌 TASK SPIEGAZIONE:** Spiegazione visiva e intuitiva di cos'è un KDTree per la ricerca di vicinanza e cosa significa che Numba aggira il GIL in C.
 
 ## Modulo 3: `networking.py` - IPC Broker & Protocol Stack
-- [ ] **3.1. Inizializzazione:** Creare `networking.py`. Importare `multiprocessing.shared_memory`, `time`, e i moduli `grpc`.
-- [ ] **3.2. Shared Memory Allocator:** Creare classe per allocare due blocchi di memoria Python a basso livello che faranno da "Buffer" tra l'UAV in volo e la logica SDNN. I dati trasmessi saranno array `numpy` formattati per simulare coordinate e log.
-- [ ] **3.3. Simulation Clock:** Inserire un gestore del tempo deterministico per avanzamenti rigorosi a cicli di $dt = 0.1$ secondi.
-- [ ] **3.4. gRPC Interface Mock:** Impostare l'impalcatura di base del server gRPC per simulare l'ingaggio backhaul ad alta latenza.
-- [ ] **📌 TASK SPIEGAZIONE:** Traduzione analogica per spiegare il Global Interpreter Lock bloccante di Python contro il Multiprocessing via RAM. Primo utilizzo pratico di **SQLite Viewer**: generiamo alcune pseudo-comunicazioni di rete e ti guiderò a estrarre la tabella Logs dal tuo DB ed osservare la latenza.
+- [x] **3.1. Inizializzazione:** Creare `networking.py`. Importare `multiprocessing.shared_memory`, `time`, e i moduli `grpc`.
+- [x] **3.2. Shared Memory Allocator:** Creare classe per allocare due blocchi di memoria Python a basso livello che faranno da "Buffer" tra l'UAV in volo e la logica SDNN. I dati trasmessi saranno array `numpy` formattati per simulare coordinate e log.
+- [x] **3.3. Simulation Clock:** Inserire un gestore del tempo deterministico per avanzamenti rigorosi a cicli di $dt = 0.1$ secondi.
+- [x] **3.4. gRPC Interface Mock:** Impostare l'impalcatura di base del server gRPC per simulare l'ingaggio backhaul ad alta latenza.
+- [x] **📌 TASK SPIEGAZIONE:** Traduzione analogica per spiegare il Global Interpreter Lock bloccante di Python contro il Multiprocessing via RAM. Primo utilizzo pratico di **SQLite Viewer**: generiamo alcune pseudo-comunicazioni di rete e ti guiderò a estrarre la tabella Logs dal tuo DB ed osservare la latenza.
 
 ## Modulo 4: `channel_model.py` - Modello di Canale 3GPP & RIS Physics
-- [ ] **4.1. Inizializzazione:** Creare `channel_model.py`.
-- [ ] **4.2. Algoritmo Path Loss InF-DH:** Tradurre le direttive del TR 38.901 3GPP. Costruire la funzione che determina la perdita di propagazione base sommando poi `distanza_nel_metallo * 15.0 dB`.
-- [ ] **4.3. Algoritmo RIS Amp:** Immettere nel codice la logica che somma il guadagno passivo al bilancio di collegamento simulando anche il rumore iniettato dal circuito attivo.
-- [ ] **4.4. Beam Misalignment:** Sviluppare funzione trigonometrica per diminuire l'SNR ricevuto se i vettori pitch/roll superano un certo delta di allineamento dal picco del fascio dell'antenna.
-- [ ] **📌 TASK SPIEGAZIONE:** Spiegazione ingegneristica semplice su Fading ed RSSI. Hands-On sul database: memorizzeremo campioni SNR generati per simulazione statica e ti farò usare la barra di ordinamento del SQLite Viewer su VS Code per trovare quali posizioni del magazzino hanno SNR inferiore a 5.0 dB (l'outage citato nel PRD).
+- [x] **4.1. Inizializzazione:** Creare `channel_model.py`.
+- [x] **4.2. Algoritmo Path Loss InF-DH:** Tradurre le direttive del TR 38.901 3GPP. Costruire la funzione che determina la perdita di propagazione base sommando poi `distanza_nel_metallo * 15.0 dB`.
+- [x] **4.3. Algoritmo RIS Amp:** Immettere nel codice la logica che somma il guadagno passivo al bilancio di collegamento simulando anche il rumore iniettato dal circuito attivo.
+- [x] **4.4. Beam Misalignment:** Sviluppare funzione trigonometrica per diminuire l'SNR ricevuto se i vettori pitch/roll superano un certo delta di allineamento dal picco del fascio dell'antenna.
+- [x] **📌 TASK SPIEGAZIONE:** Spiegazione ingegneristica semplice su Fading ed RSSI. Hands-On sul database: memorizzeremo campioni SNR generati per simulazione statica e ti farò usare la barra di ordinamento del SQLite Viewer su VS Code per trovare quali posizioni del magazzino hanno SNR inferiore a 5.0 dB (l'outage citato nel PRD).
 
 ## Modulo 5: `kinematics_ekf.py` - UAV Dynamics & Tracking Engine
 - [ ] **5.1. Inizializzazione:** Creare `kinematics_ekf.py`. Importare `filterpy` e le librerie matematiche.
