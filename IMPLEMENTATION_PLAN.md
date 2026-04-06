@@ -39,30 +39,30 @@ Fai semppre il codice in modo modulare, senza fare file monolitici, rispettando 
 - [x] **📌 TASK SPIEGAZIONE:** Spiegazione ingegneristica semplice su Fading ed RSSI. Hands-On sul database: memorizzeremo campioni SNR generati per simulazione statica e ti farò usare la barra di ordinamento del SQLite Viewer su VS Code per trovare quali posizioni del magazzino hanno SNR inferiore a 5.0 dB (l'outage citato nel PRD).
 
 ## Modulo 5: `kinematics_ekf.py` - UAV Dynamics & Tracking Engine
-- [ ] **5.1. Inizializzazione:** Creare `kinematics_ekf.py`. Importare `filterpy` e le librerie matematiche.
-- [ ] **5.2. UAV Physics Engine:** Scrivere il modello di stato cinetico. Equazioni differenziali (discretizzate a 0.1s) per muovere coordinate X, Y, Z con gravità e inerzia.
-- [ ] **5.3. Extended Kalman Filter (EKF):** Configurare le matrici del Kalman ($F, H, Q, R$) dove $P$ indicherà la covarianza d'errore. La funzione fonderà la posizione GPS approssimata con i dati pseudo-reali di attenuazione RSSI e ricalcolerà $(X, Y, Z)$ stimate.
-- [ ] **5.4. Calcolo Metriche (RMSE):** Inserire codice di telemetria per salvare regolarmente l'errore metrico quadritico (RMSE) tra rotta stimata e reale. Se superati i 1.5 metri chiamare le regole collisione generate allo step 2.5.
-- [ ] **📌 TASK SPIEGAZIONE:** Demo semplice per chiarire come l'EKF mitiga l'incertezza dei sensori sporchi. Utilizzo di SQLite Viewer: ti mostrerò come navigare la tabella incrociata generata a questo scopo, mettendo in confronto "Stima" e "Verità" e facendomi spiegare da te come le query riescono a restituire i risultati che vedi.
+- [x] **5.1. Inizializzazione:** Creare `kinematics_ekf.py`. Importare `filterpy` e le librerie matematiche.
+- [x] **5.2. UAV Physics Engine:** Scrivere il modello di stato cinetico. Equazioni differenziali (discretizzate a 0.1s) per muovere coordinate X, Y, Z con gravità e inerzia.
+- [x] **5.3. Extended Kalman Filter (EKF):** Configurare le matrici del Kalman ($F, H, Q, R$) dove $P$ indicherà la covarianza d'errore. La funzione fonderà la posizione GPS approssimata con i dati pseudo-reali di attenuazione RSSI e ricalcolerà $(X, Y, Z)$ stimate.
+- [x] **5.4. Calcolo Metriche (RMSE):** Inserire codice di telemetria per salvare regolarmente l'errore metrico quadritico (RMSE) tra rotta stimata e reale. Se superati i 1.5 metri chiamare le regole collisione generate allo step 2.5.
+- [x] **📌 TASK SPIEGAZIONE:** Demo semplice per chiarire come l'EKF mitiga l'incertezza dei sensori sporchi. Utilizzo di SQLite Viewer: ti mostrerò come navigare la tabella incrociata generata a questo scopo, mettendo in confronto "Stima" e "Verità" e facendomi spiegare da te come le query riescono a restituire i risultati che vedi.
 
 ## Modulo 6: `sdn_controller.py` - Optimization & Placement
-- [ ] **6.1. Inizializzazione:** Creare `sdn_controller.py`. Importare ML models da `sklearn.cluster` per le posizioni.
-- [ ] **6.2. Algoritmo di Deployment (Test 0):** Sviluppare funzione K-Means fusa a un approccio Greedy. Ricerca le centroidi di NLoS tra tutti gli scaffali nel Layout scelto e ci assegna la miglior RIS disponibile sui muri vicini per garantire link ottici diretti al >99%.
-- [ ] **6.3. Green 6G Engine:** Sviluppare l'euristica logica per SDN che controlla periodicamente (ogni 0.5s) quali RIS non incidono o hanno UAV lontani e setta la loro variabile di stato in Sleep (0.5 W) anziché Attiva (50 W).
-- [ ] **6.4. Hook per Predizione Tracking (Test 4):** L'SDN legge l'estrapolazione di traiettoria dell'EKF dei prossimi 5 metri e accende in modo preventivo la RIS necessaria per un "Make-before-Break" logico.
-- [ ] **📌 TASK SPIEGAZIONE:** Discuteremo il decision-making della rete centralizzata e l'economia dell'intelligenza AI. Attraverso l'estensione SQLite affronteremo dei log di Audit con cui ti chiederò di ricavare statisticamente con quanti millisecondi di anticipo la RIS era stata attivata.
+- [x] **6.1. Inizializzazione:** Creare `sdn_controller.py`. Importare ML models da `sklearn.cluster` per le posizioni.
+- [x] **6.2. Algoritmo di Deployment (Test 0):** Sviluppare funzione K-Means fusa a un approccio Greedy. Ricerca le centroidi di NLoS tra tutti gli scaffali nel Layout scelto e ci assegna la miglior RIS disponibile sui muri vicini per garantire link ottici diretti al >99%.
+- [x] **6.3. Green 6G Engine:** Sviluppare l'euristica logica per SDN che controlla periodicamente (ogni 0.5s) quali RIS non incidono o hanno UAV lontani e setta la loro variabile di stato in Sleep (0.5 W) anziché Attiva (50 W).
+- [x] **6.4. Hook per Predizione Tracking (Test 4):** L'SDN legge l'estrapolazione di traiettoria dell'EKF dei prossimi 5 metri e accende in modo preventivo la RIS necessaria per un "Make-before-Break" logico.
+- [x] **📌 TASK SPIEGAZIONE:** Discuteremo il decision-making della rete centralizzata e l'economia dell'intelligenza AI. Attraverso l'estensione SQLite affronteremo dei log di Audit con cui ti chiederò di ricavare statisticamente con quanti millisecondi di anticipo la RIS era stata attivata.
 
 ## Modulo 7: `telemetry.py` - Digital Twin Visualization
-- [ ] **7.1. Motore SQLite Bulk Insert:** Centralizzare lo spooler del log (salvataggi per coordinate, log SNR, eventi eccezione) creando uno script con commit raggruppati ogni tot centinaia per non intasare l'IO del disco (usando il modulo sqlite3 nativo in modo asincrono).
-- [ ] **7.2. Metriche Plot Statiche:** Scrivere integrazione `matplotlib/seaborn` per CDF plot, Heatmap visuale degli ostacoli VS copertura radio, e grafico a barre per consumo energetico (Green 6G).
-- [ ] **7.3. 3D Digital Twin Viewer:** Codificare con libreria plotly una route dashboard per visualizzare i risultati tridimensionali in un formato "animato" con i percorsi interpolati.
-- [ ] **📌 TASK SPIEGAZIONE:** Spacchettamento totale del risultato. Focus sulle query. A questo punto dovrai padroneggiare in SQLite Viewer le query SQL minime per calcolare automaticamente medie di SNR o quantificare le posizioni lette nel server. Ti farò usare SQLite Export per salvare il CSV in locale sul Desktop.
+- [x] **7.1. Motore SQLite Bulk Insert:** Centralizzare lo spooler del log (salvataggi per coordinate, log SNR, eventi eccezione) creando uno script con commit raggruppati ogni tot centinaia per non intasare l'IO del disco (usando il modulo sqlite3 nativo in modo asincrono).
+- [x] **7.2. Metriche Plot Statiche:** Scrivere integrazione `matplotlib/seaborn` per CDF plot, Heatmap visuale degli ostacoli VS copertura radio, e grafico a barre per consumo energetico (Green 6G).
+- [x] **7.3. 3D Digital Twin Viewer:** Codificare con libreria plotly una route dashboard per visualizzare i risultati tridimensionali in un formato "animato" con i percorsi interpolati.
+- [x] **📌 TASK SPIEGAZIONE:** Spacchettamento totale del risultato. Focus sulle query. A questo punto dovrai padroneggiare in SQLite Viewer le query SQL minime per calcolare automaticamente medie di SNR o quantificare le posizioni lette nel server. Ti farò usare SQLite Export per salvare il CSV in locale sul Desktop.
 
 ## Modulo 8: `test_suite.py` - Suite Test e Validazione Tesi
-- [ ] **8.1. Inizializzazione Runner:** Creare file `test_suite.py` come main runner del digital twin.
-- [ ] **8.2. Logica Test 0:** Inserire le chiamate di avvio al layout A, B e C e avviare routine di posizionamento RIS (BOM testing).
-- [ ] **8.3. Logica Test 1 (Scalabilità):** Avviare istanze parallele multiprocessate per 50 UAV e lanciare log dei delay di gRPC per osservare ritardi.
-- [ ] **8.4. Logica Test 2 (Crash e Cinematica):** Scriptare un path di volo erratico per il drone, registrare l'aumento dell'incertezza e salvare timestamp di "incidente".
-- [ ] **8.5. Logica Test 3 (Energia):** Sommare e plottare la curva dell'uso combinato Potenza volo + Potenza Control-Plane + Potenza Moduli RIS (sempre attivi vs smart sleep).
-- [ ] **8.6. Logica Test 4 (Predizione):** Validazione finale del drone che esegue curve dietro gli scaffali senza perdere pacchetti usando le estrapolazioni per handover.
-- [ ] **📌 TASK SPIEGAZIONE:** Guida per la discussione di laurea. Come tradurre i grafici esportati in narrazione per la tua tesi; dimostrazione pratica d'uso estensivo del DB esportato via Viewer e conclusioni architetturali del programma Python su come le sue performance permettono il realtime rispetto ad altre tecnologie.
+- [x] **8.1. Inizializzazione Runner:** Creare file `test_suite.py` come main runner del digital twin.
+- [x] **8.2. Logica Test 0:** Inserire le chiamate di avvio al layout A, B e C e avviare routine di posizionamento RIS (BOM testing).
+- [x] **8.3. Logica Test 1 (Scalabilità):** Avviare istanze parallele multiprocessate per 50 UAV e lanciare log dei delay di gRPC per osservare ritardi.
+- [x] **8.4. Logica Test 2 (Crash e Cinematica):** Scriptare un path di volo erratico per il drone, registrare l'aumento dell'incertezza e salvare timestamp di "incidente".
+- [x] **8.5. Logica Test 3 (Energia):** Sommare e plottare la curva dell'uso combinato Potenza volo + Potenza Control-Plane + Potenza Moduli RIS (sempre attivi vs smart sleep).
+- [x] **8.6. Logica Test 4 (Predizione):** Validazione finale del drone che esegue curve dietro gli scaffali senza perdere pacchetti usando le estrapolazioni per handover.
+- [x] **📌 TASK SPIEGAZIONE:** Guida per la discussione di laurea. Come tradurre i grafici esportati in narrazione per la tua tesi; dimostrazione pratica d'uso estensivo del DB esportato via Viewer e conclusioni architetturali del programma Python su come le sue performance permettono il realtime rispetto ad altre tecnologie.
