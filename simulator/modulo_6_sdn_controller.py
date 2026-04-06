@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 # Importiamo le specifiche hardware e di Layout dal Modulo 1 (config2).
 # Questo ci assicura di avere una "Single Source of Truth", quindi se cambiamo il peso 
-from simulator.modulo_1_config2 import LayoutConfig, RISSpecs, UAVSpecs
+from simulator.modulo_1_config import LayoutConfig, RISSpecs, UAVSpecs
 
 @dataclass
 class RISState:
@@ -119,25 +119,33 @@ class SDNController:
             # Muro Posteriore (Asse Y = Limite Y capannone)
             dist_back = self.layout.y_dim_m - c[1]
             
-            # Creiamo un piccolo vettore delle 4 distanze. "argmin" estrarrà l'INDICE (0,1,2,3) del muro che garantisce la minor distanza matematica.
+            # AGGIUNTA SOFFITTO (Hybrid Symmetrical Approach): 
+            # Se la distanza dal muro più vicino è > 15 metri (il centroide è molto 'profondo' verso il centro), 
+            # la proiettiamo direttamente verso l'alto (Soffitto) per garantire l'illuminazione zenitale pura
             dists = [dist_left, dist_right, dist_front, dist_back]
+            min_wall_dist = min(dists)
             min_idx = np.argmin(dists)
             
-            # Resettiamo nuove variabili prelevando prima le vecchie dai centroidi convertendo il tipo da numpy.float a built-in Python float (più leggeri e sicuri col gRPC)
+            # Resettiamo nuove variabili prelevando prima le vecchie dai centroidi convertendo il tipo 
             new_x, new_y = float(c[0]), float(c[1])
             
-            # Fissiamo empiricamente (Good Practice 3GPP) l'altezza al muro in alto: 80% dell'altezza del volume logistico
-            wall_z = self.layout.z_dim_m * 0.8 
-            
-            # Spostamento manuale verso il vettore più rapido. Si cambia un solo asse (il muro agganciato), l'altro riflette il centroide in profondità.
-            if min_idx == 0:
-                new_x = 0.0 # Proiettata e fissata a sinistra
-            elif min_idx == 1:
-                new_x = self.layout.x_dim_m # Fissata a destra
-            elif min_idx == 2:
-                new_y = 0.0 # Fissata sul frontale
-            elif min_idx == 3:
-                new_y = self.layout.y_dim_m # Fissata sul posteriore
+            if min_wall_dist > 15.0:
+                # Troppo in profondità nel capannone, la attacchiamo al Soffitto!
+                wall_z = float(self.layout.z_dim_m)
+                # Mantengo X e Y originali (Sotto di essa c'è il buio perfetto)
+            else:
+                # Vicino ai bordi, la proietto sui muri all'80% dell'altezza
+                wall_z = float(self.layout.z_dim_m * 0.8)
+                
+                # Spostamento sull'asse per ancoraggio
+                if min_idx == 0:
+                    new_x = 0.0 # Proiettata e fissata a sinistra
+                elif min_idx == 1:
+                    new_x = float(self.layout.x_dim_m) # Fissata a destra
+                elif min_idx == 2:
+                    new_y = 0.0 # Fissata sul frontale
+                elif min_idx == 3:
+                    new_y = float(self.layout.y_dim_m) # Fissata sul posteriore
                 
             deployed_pos = (new_x, new_y, float(wall_z))
             deployed_positions.append(deployed_pos)

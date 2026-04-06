@@ -157,38 +157,34 @@ def generate_all_topological_maps():
             "BS": (layout.x_dim_m / 2, layout.y_dim_m / 2, layout.z_dim_m)
         }
         
-        # Aggiungiamo RIS Soffitto a griglia
-        n_soffitto = ris_counts[layout.name]["soffitto"]
-        if n_soffitto > 0:
-            cols = int(math.ceil(math.sqrt(n_soffitto)))
-            if n_soffitto == 8: cols = 4
-            elif n_soffitto == 16: cols = 4
-            rows = int(math.ceil(n_soffitto / cols))
+        # --- Ottimizzazione Intelligente SDN (K-Means + Greedy) ---
+        total_ris_budget = ris_counts[layout.name]["soffitto"] + ris_counts[layout.name]["parete"]
+        
+        if total_ris_budget > 0 and len(centers) > 0:
+            # 1. Istanziamo temporaneamente l'SDN Controller
+            controller = SDNController(layout=layout, ris_specs=RIS_HARDWARE)
             
-            x_step = layout.x_dim_m / (cols + 1)
-            y_step = layout.y_dim_m / (rows + 1)
+            # 2. Sperimentiamo simulando delle letture fisiche di zone d'ombra NLoS
+            # Simuliamo che circa il 20% degli scaffali causi estrema perdita di segnale.
+            rng = np.random.default_rng(42)  # Seed fisso per la riproducibilità dei grafici della tesi
+            samples = max(1, int(len(centers) * 0.20))
+            indices = rng.choice(len(centers), size=samples, replace=False)
+            nlos_simulated = centers[indices]
             
-            idx = 0
-            for r in range(rows):
-                for c in range(cols):
-                    if idx < n_soffitto:
-                        nodes[f"RIS_Soffitto_{idx}"] = (x_step * (c + 1), y_step * (r + 1), layout.z_dim_m)
-                        idx += 1
-                        
-        # Aggiungiamo RIS Parete (distribuite lungo i muri laterali)
-        n_parete = ris_counts[layout.name]["parete"]
-        if n_parete > 0:
-            half = n_parete // 2
-            y_step = layout.y_dim_m / (half + 1)
-            idx = 0
-            # Muro sinistro e Muro destro
-            for w_idx in range(half):
-                nodes[f"RIS_Parete_{idx}"] = (0.0, y_step * (w_idx + 1), layout.z_dim_m * 0.8)
-                idx += 1
-                nodes[f"RIS_Parete_{idx}"] = (layout.x_dim_m, y_step * (w_idx + 1), layout.z_dim_m * 0.8)
-                idx += 1
+            # 3. Lanciamo l'Addestramento K-Means e l'ancoraggio Greedy!
+            print(f"    -> [SDN Opt] Elaborazione algoritmi AI su {samples} punti d'ombra (NLoS)...")
+            deployed_positions = controller.deploy_ris_kmeans_greedy(nlos_simulated, total_ris_budget)
+            
+            # 4. Aggiorniamo i nodi classificandoli per stampa (Soffitto o Parete)
+            for opt_idx, pos in enumerate(deployed_positions):
+                x, y, z = pos
+                if z >= float(layout.z_dim_m * 0.95):
+                    # È a soffitto!
+                    nodes[f"RIS_Soffitto_{opt_idx}"] = pos
+                else:
+                    nodes[f"RIS_Parete_{opt_idx}"] = pos
                 
-        print(f"[*] Generando mappa per {layout.name}...")
+        print(f"[*] Generando mappa 2D (SDN-Aided) per {layout.name}...")
         viewer.plot_topological_map(layout, centers, nodes)
 
 
