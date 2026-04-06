@@ -1,6 +1,7 @@
 import sqlite3 #   Libreria nativa Python per la gestione di database relazionali leggeri (SQL).
 import pandas as pd # Libreria fondamentale per la manipolazione e l'analisi di dati tabellari (DataFrames).
 import matplotlib.pyplot as plt # Libreria di plotting 2D standard per la visualizzazione scientifica.
+import matplotlib.patches as patches # Per disegnare gli scaffali 2D
 import seaborn as sns # Libreria di visualizzazione statistica basata su Matplotlib, ottimizzata per grafici statistici complessi.
 import plotly.express as px # Libreria di visualizzazione interattiva ad alto livello, basata su Plotly.js.
 import plotly.graph_objects as go # Modulo di basso livello di Plotly per la creazione di figure complesse e personalizzate.
@@ -292,3 +293,103 @@ class DigitalTwinVisualizer:
         # Stampa su disco di un documento formattato HTML autonomo
         fig.write_html("digital_twin_dashboard.html")
         print("Dashboard generata magistralmente! Apri il file 'digital_twin_dashboard.html' sul browser Web.")
+
+    def plot_topological_map(self, layout, shelf_centers, nodes_positions):
+        """
+        [Requisito Tesi]: Genera e salva la mappa topologica 2D del magazzino con i dispositivi 6G.
+        """
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        # Disegno perimetro
+        ax.plot([0, layout.x_dim_m, layout.x_dim_m, 0, 0], 
+                [0, 0, layout.y_dim_m, layout.y_dim_m, 0], 
+                color="black", linewidth=2.0)
+        
+        # Estrai coordinate uniche per gli scaffali (rimuoviamo Z)
+        shelf_xy = set()
+        for cx, cy, cz in shelf_centers:
+            shelf_xy.add((cx, cy))
+            
+        hx = layout.shelf_x_m / 2
+        hy = layout.shelf_y_m / 2
+        
+        for cx, cy in shelf_xy:
+            rect = patches.Rectangle((cx - hx, cy - hy), layout.shelf_x_m, layout.shelf_y_m, 
+                                     linewidth=1, edgecolor='lightgray', facecolor='#E0E0E0')
+            ax.add_patch(rect)
+            
+        # Nodi 6G
+        # Legenda base
+        legend_elements = [
+            patches.Patch(facecolor='#E0E0E0', edgecolor='lightgray', label='Scaffali Metallici'),
+            plt.Line2D([0], [0], marker='^', color='w', label='Base Station (BS)', markerfacecolor='yellow', markersize=10, markeredgecolor='black'),
+            plt.Line2D([0], [0], marker='s', color='w', label='RIS Parete', markerfacecolor='#00BFFF', markersize=10, markeredgecolor='black'),
+            plt.Line2D([0], [0], marker='o', color='w', label='RIS Soffitto', markerfacecolor='#00C800', markersize=10, markeredgecolor='black'),
+            plt.Line2D([0], [0], marker='*', color='w', label='Super Server', markerfacecolor='gold', markersize=15, markeredgecolor='black'),
+            plt.Line2D([0], [0], marker='P', color='w', label='Base Ricarica Droni', markerfacecolor='magenta', markersize=12, markeredgecolor='black')
+        ]
+        
+        # Plottiamo i nodi
+        for name, pos in nodes_positions.items():
+            x, y, z = pos
+            if name.startswith("BS"):
+                ax.plot(x, y, marker='^', color='yellow', markersize=10, markeredgecolor='black')
+            elif name.startswith("RIS_Parete"):
+                ax.plot(x, y, marker='s', color='#00BFFF', markersize=10, markeredgecolor='black')
+            elif name.startswith("RIS_Soffitto"):
+                ax.plot(x, y, marker='o', color='#00C800', markersize=10, markeredgecolor='black')
+            elif name.startswith("SuperServer"):
+                ax.plot(x, y, marker='*', color='gold', markersize=15, markeredgecolor='black')
+            elif name.startswith("BaseRicarica"):
+                ax.plot(x, y, marker='P', color='magenta', markersize=12, markeredgecolor='black')
+                
+        # Recap Box Text
+        ris_wall_count = sum(1 for k in nodes_positions if k.startswith("RIS_Parete"))
+        ris_ceil_count = sum(1 for k in nodes_positions if k.startswith("RIS_Soffitto"))
+        tot_components = 1 + 1 + 1 + ris_wall_count + ris_ceil_count
+        
+        info_text = (
+            "RECAP MAGAZZINO\n"
+            "==============================\n\n"
+            "[Dimensioni Magazzino]\n"
+            f" - Lunghezza: {layout.x_dim_m:.1f} m\n"
+            f" - Larghezza: {layout.y_dim_m:.1f} m\n"
+            f" - Altezza:   {layout.z_dim_m:.1f} m\n"
+            f" - Area:      {layout.x_dim_m * layout.y_dim_m:,.0f} mq\n\n"
+            "[Infrastruttura di Rete]\n"
+            " - Super Server:        1\n"
+            " - Base Ricarica Droni: 1\n"
+            " - Base Station (BS):   1\n"
+            f" - Pannelli RIS Parete: {ris_wall_count}\n"
+            f" - Pannelli RIS Soffitto:{ris_ceil_count}\n"
+            "------------------------------\n"
+            f">> TOTALE COMPONENTI:   {tot_components}"
+        )
+        
+        props = dict(boxstyle='round', facecolor='aliceblue', alpha=0.8, edgecolor='lightslategray')
+        ax.text(1.05, 0.95, info_text, transform=ax.transAxes, fontsize=9,
+                verticalalignment='top', bbox=props, fontfamily='monospace')
+                
+        ax.legend(handles=legend_elements, loc='lower left', title='Legenda Simboli', bbox_to_anchor=(1.05, 0.0))
+        
+        ax.set_title(f"Mappa Topologica: Nodi 6G nel Magazzino\n{layout.name} ({int(layout.x_dim_m)}x{int(layout.y_dim_m)}m)", fontweight='bold')
+        ax.set_xlabel("Lunghezza X (m)")
+        ax.set_ylabel("Larghezza Y (m)")
+        ax.set_xlim(-10, layout.x_dim_m + 10)
+        ax.set_ylim(-10, layout.y_dim_m + 10)
+        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.set_aspect('equal', adjustable='box')
+        
+        # Layout e salvataggio
+        plt.tight_layout()
+        filename = f"topological_map_layout_{layout.name.split(' ')[1].replace('(','').replace(')','').lower()}.png"
+        if layout.name.startswith("Layout A"):
+            filename = "topological_map_layout_a.png"
+        elif layout.name.startswith("Layout B"):
+            filename = "topological_map_layout_b.png"
+        elif layout.name.startswith("Layout C"):
+            filename = "topological_map_layout_c.png"
+            
+        plt.savefig(filename, bbox_inches='tight', dpi=150)
+        print(f"Salvato: {filename}")
+        plt.close()

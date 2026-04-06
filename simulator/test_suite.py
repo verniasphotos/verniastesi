@@ -20,7 +20,8 @@ from simulator.config2 import LAYOUT_A, LAYOUT_B, LAYOUT_C, RIS_HARDWARE, NETWOR
 # Importiamo l'Intelligenza SDN (Modulo 6)
 from simulator.sdn_controller import SDNController
 
-# Importiamo il sistema di Logging Telemetrico e Visualizzazione (Modulo 7)
+# Importiamo l'Ambiente Fisco (Modulo 2) e Telemetria (Modulo 7)
+from simulator.environment import Environment
 from simulator.telemetry import TelemetrySpooler, DigitalTwinVisualizer
 
 def test_0_bom_testing(controller: SDNController):
@@ -127,6 +128,70 @@ def test_3_energy_profiling(spooler: TelemetrySpooler, controller: SDNController
     time.sleep(1)
 
 
+def generate_all_topological_maps():
+    """
+    Genera le planimetrie (Mappe Topologiche 2D) per tutti i layout del capannone.
+    """
+    print("\n--- [TEST TOPOLOGIA] Generazione Mappe Topologiche 2D ---")
+    layouts = [LAYOUT_A, LAYOUT_B, LAYOUT_C]
+    # Determiniamo il numero di RIS a seconda del layout:
+    # A (50x40): 4 Soffitto, 0 Parete (verificato)
+    # B (100x100): 8 Soffitto, 4 Parete
+    # C (250x140): 16 Soffitto, 8 Parete
+    ris_counts = {
+        "Layout A (Piccolo)": {"soffitto": 4, "parete": 0},
+        "Layout B (Medio)": {"soffitto": 8, "parete": 4},
+        "Layout C (Grande)": {"soffitto": 16, "parete": 8}
+    }
+    
+    viewer = DigitalTwinVisualizer(db_path="simulation_data.db")
+    
+    for layout in layouts:
+        env = Environment(layout=layout)
+        centers = env.shelf_centers
+        
+        # Posizionamenti di base
+        nodes = {
+            "SuperServer": (0.0, 0.0, 1.0),
+            "BaseRicarica": (layout.x_dim_m / 2, 0.0, 1.0),
+            "BS": (layout.x_dim_m / 2, layout.y_dim_m / 2, layout.z_dim_m)
+        }
+        
+        # Aggiungiamo RIS Soffitto a griglia
+        n_soffitto = ris_counts[layout.name]["soffitto"]
+        if n_soffitto > 0:
+            cols = int(math.ceil(math.sqrt(n_soffitto)))
+            if n_soffitto == 8: cols = 4
+            elif n_soffitto == 16: cols = 4
+            rows = int(math.ceil(n_soffitto / cols))
+            
+            x_step = layout.x_dim_m / (cols + 1)
+            y_step = layout.y_dim_m / (rows + 1)
+            
+            idx = 0
+            for r in range(rows):
+                for c in range(cols):
+                    if idx < n_soffitto:
+                        nodes[f"RIS_Soffitto_{idx}"] = (x_step * (c + 1), y_step * (r + 1), layout.z_dim_m)
+                        idx += 1
+                        
+        # Aggiungiamo RIS Parete (distribuite lungo i muri laterali)
+        n_parete = ris_counts[layout.name]["parete"]
+        if n_parete > 0:
+            half = n_parete // 2
+            y_step = layout.y_dim_m / (half + 1)
+            idx = 0
+            # Muro sinistro e Muro destro
+            for w_idx in range(half):
+                nodes[f"RIS_Parete_{idx}"] = (0.0, y_step * (w_idx + 1), layout.z_dim_m * 0.8)
+                idx += 1
+                nodes[f"RIS_Parete_{idx}"] = (layout.x_dim_m, y_step * (w_idx + 1), layout.z_dim_m * 0.8)
+                idx += 1
+                
+        print(f"[*] Generando mappa per {layout.name}...")
+        viewer.plot_topological_map(layout, centers, nodes)
+
+
 def main_orchestrator():
     print("================================================================")
     print("      UNIVERSITÀ - SIMULATORE 6G TRACKING DIGITAL TWIN")
@@ -156,6 +221,8 @@ def main_orchestrator():
     print("         DATA SCIENCE & VISUALIZATION SERVER WARMUP")
     print("================================================================")
     viewer = DigitalTwinVisualizer(db_path="simulation_data.db")
+    
+    generate_all_topological_maps()
     
     print("[*] Calcolo CDF per Signal-to-Noise Ratio (Generazione PNG)...")
     viewer.plot_cdf_snr()
