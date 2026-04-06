@@ -370,7 +370,7 @@ class DigitalTwinVisualizer:
         ax.text(1.05, 0.95, info_text, transform=ax.transAxes, fontsize=9,
                 verticalalignment='top', bbox=props, fontfamily='monospace')
                 
-        ax.legend(handles=legend_elements, loc='lower left', title='Legenda Simboli', bbox_to_anchor=(1.05, 0.0))
+        ax.legend(handles=legend_elements, loc='upper center', title='Legenda Simboli', bbox_to_anchor=(0.5, -0.12), ncol=3)
         
         ax.set_title(f"Mappa Topologica: Nodi 6G nel Magazzino\n{layout.name} ({int(layout.x_dim_m)}x{int(layout.y_dim_m)}m)", fontweight='bold')
         ax.set_xlabel("Lunghezza X (m)")
