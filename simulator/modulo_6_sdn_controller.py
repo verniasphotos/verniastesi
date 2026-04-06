@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 # Importiamo le specifiche hardware e di Layout dal Modulo 1 (config2).
 # Questo ci assicura di avere una "Single Source of Truth", quindi se cambiamo il peso 
-from simulator.config2 import LayoutConfig, RISSpecs, UAVSpecs
+from simulator.modulo_1_config2 import LayoutConfig, RISSpecs, UAVSpecs
 
 @dataclass
 class RISState:

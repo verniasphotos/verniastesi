@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.spatial import KDTree
 from numba import njit
-from .config2 import LayoutConfig
+from .modulo_1_config2 import LayoutConfig
 
 class CollisionError(Exception):
     """

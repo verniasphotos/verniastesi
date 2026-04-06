@@ -2,8 +2,8 @@
 import numpy as np
 import math
 from filterpy.kalman import ExtendedKalmanFilter
-from .environment import Environment, CollisionError
-from .config2 import UAVSpecs
+from .modulo_2_environment import Environment, CollisionError
+from .modulo_1_config2 import UAVSpecs
 
 class UAVKinematics:
     """
@@ -136,7 +136,7 @@ class TrackingManager:
 
 # BLOCCO DI TEST / DEBUG DEL MODULO (Per test e spiegazione database):
 if __name__ == "__main__":
-    from .config2 import LayoutConfig
+    from .modulo_1_config2 import LayoutConfig
     import sqlite3
     import os
     
