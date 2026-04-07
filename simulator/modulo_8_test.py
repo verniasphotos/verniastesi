@@ -15,14 +15,14 @@ import numpy as np # Libreria potentissima per il calcolo scientifico e statisti
 from threading import Thread # Libreria per la gestione di thread concorrenti (parallelismo a livello di esecuzione).
 
 # Importiamo la configurazione e le specifiche HW dal Modulo 1
-from simulator.modulo_1_config2 import LAYOUT_A, LAYOUT_B, LAYOUT_C, RIS_HARDWARE, NETWORK_6G
+from simulator.modulo_1_config import LAYOUT_A, LAYOUT_B, LAYOUT_C, RIS_HARDWARE, NETWORK_6G
 
 # Importiamo l'Intelligenza SDN (Modulo 6)
 from simulator.modulo_6_sdn_controller import SDNController
 
 # Importiamo l'Ambiente Fisco (Modulo 2) e Telemetria (Modulo 7)
 from simulator.modulo_2_environment import Environment
-from simulator.modulo_7_telemetry import TelemetrySpooler, DigitalTwinVisualizer
+from simulator.modulo_7_telemetria import TelemetrySpooler, DigitalTwinVisualizer
 
 def test_0_bom_testing(controller: SDNController):
     """

@@ -215,19 +215,46 @@ class DigitalTwinVisualizer:
             print("Nessun dato presente nel DB per il plot CDF.")
             return
 
-        plt.figure(figsize=(8, 5))
-        # Utilizza seaborn ecfplot interpolando le due variabili (in LOS non-LOS).
-        sns.ecdfplot(data=df, x="snr", hue="is_los")
-        plt.title("CDF Statistica del Signal-to-Noise Ratio (SNR)")
-        plt.xlabel("SNR misurato (dB)")
-        plt.ylabel("Probabilità (Percentuale cumulativa)")
+        # Rendiamo le label comprensibili per la tesi
+        df_plot = df.copy()
+        df_plot["Tipologia di Propagazione"] = df_plot["is_los"].apply(
+            lambda x: "LOS (Visione Diretta)" if x in [1, True, '1', 'true'] else "NLoS (Zona d'Ombra)"
+        )
+
+        # Styling accademico/industriale
+        sns.set_theme(style="whitegrid")
+        plt.figure(figsize=(9, 6))
         
-        # Demarca nettamente il confine di Outage definito per gli standard 6G C-V2X / UAV.
-        plt.axvline(x=5.0, color='r', linestyle='--', label='Threshold Disconnessione Critica (5 dB)')
-        plt.legend(title="Visibilità Ostacolo")
-        plt.grid(True)
-        plt.savefig("cdf_snr_plot.png")
-        print("Salvato: cdf_snr_plot.png")
+        # Plot ECDF con linee visibili
+        ecdf = sns.ecdfplot(
+            data=df_plot, 
+            x="snr", 
+            hue="Tipologia di Propagazione", 
+            linewidth=2.5,
+            palette=["#1f77b4", "#ff7f0e"] # Blu e Arancione standard
+        )
+        
+        # 1) Area Rossa: Spiega "A cosa serve!"
+        plt.axvspan(df_plot['snr'].min() - 5, 5.0, color='red', alpha=0.15)
+        
+        # 2) Marker Soglia Critica
+        plt.axvline(x=5.0, color='darkred', linestyle='--', linewidth=2, label='Soglia Limite Disconnessione (5 dB)')
+        
+        # 3) Testi per aiutare l'osservatore
+        plt.text(0.0, 0.5, 'Area Critica\nRischio Crash', color='darkred', weight='bold', 
+                 ha='center', va='center', bbox=dict(facecolor='white', alpha=0.7, edgecolor='red'))
+                 
+        plt.title("Metriche di Affidabilità: CDF del Rapporto Segnale Rumore (SNR)", fontsize=14, fontweight='bold', pad=15)
+        plt.xlabel("SNR Misurato dai Droni (dB) - [Più è a destra, meglio è]", fontsize=12)
+        plt.ylabel("Probabilità Cumulativa P(X ≤ Px)", fontsize=12)
+        
+        plt.xlim(df_plot['snr'].min() - 2, df_plot['snr'].max() + 5)
+        plt.ylim(-0.02, 1.05)
+        
+        plt.legend(loc="lower right", shadow=True, frameon=True)
+        plt.tight_layout()
+        plt.savefig("cdf_snr_plot.png", dpi=200)
+        print("Salvato: cdf_snr_plot.png (Migliorato con Area Outage)")
         plt.close()
 
     def plot_energy_consumption(self):
@@ -348,6 +375,20 @@ class DigitalTwinVisualizer:
         ris_ceil_count = sum(1 for k in nodes_positions if k.startswith("RIS_Soffitto"))
         tot_components = 1 + 1 + 1 + ris_wall_count + ris_ceil_count
         
+        import math
+        area_mq = layout.x_dim_m * layout.y_dim_m
+        
+        # Calcolo SNR Medio Teorico per la variante Layout (A, B o C)
+        # Formula euristica: Path Loss aumenta con la distanza, i RIS recuperano in guadagno
+        distanza_media_bs = (layout.x_dim_m + layout.y_dim_m) / 4.0
+        path_loss_db = 10 * 2.5 * math.log10(max(1.0, distanza_media_bs))
+        guadagno_ris_db = (ris_wall_count + ris_ceil_count) * 0.75
+        snr_medio_calc = 30.0 - path_loss_db + guadagno_ris_db
+        snr_medio_calc = max(5.0, min(snr_medio_calc, 40.0)) # limite min/max
+        
+        # Numero consigliato di droni per limitare collisioni e ottimizzare la copertura
+        max_droni = max(3, int(area_mq / 60))
+        
         info_text = (
             "RECAP MAGAZZINO\n"
             "==============================\n\n"
@@ -355,7 +396,7 @@ class DigitalTwinVisualizer:
             f" - Lunghezza: {layout.x_dim_m:.1f} m\n"
             f" - Larghezza: {layout.y_dim_m:.1f} m\n"
             f" - Altezza:   {layout.z_dim_m:.1f} m\n"
-            f" - Area:      {layout.x_dim_m * layout.y_dim_m:,.0f} mq\n\n"
+            f" - Area:      {area_mq:,.0f} mq\n\n"
             "[Infrastruttura di Rete]\n"
             " - Super Server:        1\n"
             " - Base Ricarica Droni: 1\n"
@@ -363,11 +404,15 @@ class DigitalTwinVisualizer:
             f" - Pannelli RIS Parete: {ris_wall_count}\n"
             f" - Pannelli RIS Soffitto:{ris_ceil_count}\n"
             "------------------------------\n"
-            f">> TOTALE COMPONENTI:   {tot_components}"
+            f">> TOTALE COMPONENTI:   {tot_components}\n"
+            "------------------------------\n"
+            "[Analisi Layout & Traffico]\n"
+            f" - SNR Medio Stimato:  ~{snr_medio_calc:.1f} dB\n"
+            f" - Droni Consigliati:  {max_droni} UAV (Anti-Crash)"
         )
         
         props = dict(boxstyle='round', facecolor='aliceblue', alpha=0.8, edgecolor='lightslategray')
-        ax.text(1.05, 0.95, info_text, transform=ax.transAxes, fontsize=9,
+        ax.text(1.05, 0.95, info_text, transform=ax.transAxes, fontsize=8.5,
                 verticalalignment='top', bbox=props, fontfamily='monospace')
                 
         ax.legend(handles=legend_elements, loc='upper center', title='Legenda Simboli', bbox_to_anchor=(0.5, -0.12), ncol=3)

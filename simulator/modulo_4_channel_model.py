@@ -6,7 +6,7 @@ from typing import Tuple # Modulo per indicare i "tipi" di dato che le funzioni 
 
 # Importiamo le costanti e le "Dataclasses" che abbiamo definito nel file config2.py.
 # Questo ci evita di scrivere i valori "a mano" (hardcoding) sparsi per tutto il codice.
-from .modulo_1_config2 import NETWORK_6G, RIS_HARDWARE, WarehouseBase
+from .modulo_1_config import NETWORK_6G, RIS_HARDWARE, WarehouseBase
 
 class ChannelModel:
     """
