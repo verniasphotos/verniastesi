@@ -138,33 +138,7 @@ def test_1_snr_outage_analysis(controller: SDNController):
     visualizer.plot_ab_snr_heatmap(grid_x, grid_y, snr_run_a, snr_run_b, outage_pct_a, outage_pct_b)
     time.sleep(1)
 
-def test_2_crash_kinematics(spooler: TelemetrySpooler):
-    """
-    TEST 2: Crash Incertezza. 
-    Simuliamo un drone (UAV_CRASH) il cui Fading abbassa drasticamente l'SNR causando 
-    un grave errore quadratico, fino allo schianto o ricalcolo.
-    """
-    print("\n--- [TEST 2] Analisi Cinematica EKF e Simulazione Perturbazione ---")
-    t_sim = 100.0
-    x, y, z = 5.0, 5.0, 3.0
-    
-    print("[*] Inizio volo UAV_CRASH. SNR in decadimento rapido...")
-    for step in range(30):
-        t_sim += 0.1
-        # Muoviamolo in diagonale
-        x += 0.2
-        y += 0.2
-        
-        # Simula un'entrata NLoS dietro molto metallo! SNR cala a picco.
-        snr = 25.0 - (step * 1.5) 
-        if snr < 0: snr = 0
-        is_los = True if snr > NETWORK_6G.outage_snr_db else False
-        
-        spooler.log_uav_data((t_sim, "UAV_CRASH", x, y, z, snr, is_los))
-        
-        if snr <= NETWORK_6G.outage_snr_db:
-            print(f"    ! [WARN] t={t_sim:.1f}s | SNR={snr:.1f} dB (Sotto Soglia Outage). Rischio Crash, incertezza Kalman P instabile.")
-    time.sleep(1)
+
 
 def test_3_energy_profiling(spooler: TelemetrySpooler, controller: SDNController):
     """
@@ -265,7 +239,6 @@ def main_orchestrator():
     # Esecuzione Batteria di Test accademici
     test_0_bom_testing(controller)
     test_1_snr_outage_analysis(controller)
-    test_2_crash_kinematics(spooler)
     test_3_energy_profiling(spooler, controller)
     
     # FASE 3: Graceful Shutdown (Attendiamo che il thread worker scarichi la RAM su Hard Disk)

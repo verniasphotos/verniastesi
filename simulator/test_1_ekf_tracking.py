@@ -190,7 +190,7 @@ def main():
     print("=========================================================================")
     
     layouts = [LAYOUT_A, LAYOUT_B, LAYOUT_C]
-    scenarios = [(0.20, "Scenario 2 (20% NLoS)"), (0.45, "Scenario 3 (45% NLoS)")]
+    scenarios = [(0.05, "Scenario 1 (5% NLoS)"), (0.20, "Scenario 2 (20% NLoS)"), (0.45, "Scenario 3 (45% NLoS)")]
     
     results = {}
     
@@ -208,8 +208,8 @@ def main():
     # IMMAGINE 1: Evoluzione temporale dell'errore (RMSE)
     print("\n[*] Generazione Immagine 1 (Test_1_RMSE_Temporale.png)...")
     plt.style.use('seaborn-v0_8-paper')
-    fig1, axes1 = plt.subplots(2, 3, figsize=(18, 10))
-    fig1.suptitle("Spaccato 1: Evoluzione Temporale dell'Errore EKF (RMSE) multi-layout", fontsize=16, fontweight="bold")
+    fig1, axes1 = plt.subplots(3, 3, figsize=(18, 14))
+    fig1.suptitle("Test 1: Evoluzione Temporale dell'Errore EKF (RMSE) multi-layout", fontsize=16, fontweight="bold")
     
     for row_idx, (prob, scen_name) in enumerate(scenarios):
         for col_idx, layout in enumerate(layouts):
@@ -220,7 +220,8 @@ def main():
             ax.fill_between(res["t_vals"], 0, 1, where=res["nlos"], color='grey', alpha=0.3, 
                            transform=ax.get_xaxis_transform(), label="Blocco NLoS")
             ax.set_title(f"{layout.name}\n{scen_name}", fontweight='bold')
-            ax.set_xlabel("Tempo (s)")
+            ax.set_xlabel("Tempo [s]")
+            ax.set_ylabel("Errore EKF RMSE [m]")
             ax.set_ylim(0, max(15, np.max(res["rmse"]) * 1.1))
             ax.grid(True, linestyle='--', alpha=0.7)
             if row_idx == 0 and col_idx == 0: ax.legend()
@@ -231,16 +232,27 @@ def main():
     # IMMAGINE 2: CDF (Cumulative Distribution Function) - Analisi Statistica
     print("\n[*] Generazione Immagine 2 (Test_1_CDF_RMSE.png)...")
     fig2, ax2 = plt.subplots(figsize=(10, 7))
-    ax2.set_title("Spaccato 2: Probabilità Cumulativa (CDF) Errore Posizionamento", fontweight="bold")
+    ax2.set_title("Test 1: Probabilità Cumulativa (CDF) Errore Posizionamento", fontweight="bold")
+    
+    # Nomi precisi per gli assi con notazione matematica
+    ax2.set_xlabel("Errore EKF RMSE $\epsilon$ [m]")
+    ax2.set_ylabel("Probabilità Cumulativa $P(X \leq \epsilon)$")
+    
     probs_cdf = [(0.05, "Scen. 1 (5% NLoS)", "blue"), (0.20, "Scen. 2 (20% NLoS)", "darkorange"), (0.45, "Scen. 3 (45% NLoS)", "red")]
+    
+    global_max_rmse = 0
     for prob, name, color in probs_cdf:
         res_cdf = run_simulation(LAYOUT_A, prob)
         rmse_sorted = np.sort(res_cdf["rmse"])
         cdf = np.arange(1, len(rmse_sorted) + 1) / len(rmse_sorted)
-        ax2.plot(rmse_sorted, cdf, label=name, color=color, linewidth=2)
-    ax2.set_xlim(0, 15)
-    ax2.legend(loc="lower right")
-    plt.grid(True, linestyle='--', alpha=0.7)
+        ax2.plot(rmse_sorted, cdf, label=name, color=color, linewidth=2.5)
+        global_max_rmse = max(global_max_rmse, np.max(rmse_sorted))
+    
+    # Aggiornamento scala: Aggiungiamo un margine del 10% al massimo errore trovato
+    ax2.set_xlim(0, global_max_rmse * 1.1)
+    ax2.set_ylim(0, 1.05) # Per vedere bene quando tocca il tetto del 100%
+    ax2.legend(loc="lower right", fontsize=12)
+    ax2.grid(True, linestyle='--', alpha=0.7)
     plt.savefig("Test_1_CDF_RMSE.png", dpi=200)
     plt.close()
 
@@ -250,7 +262,7 @@ def main():
     res_trj = results[layout_trj.name]["Scenario 2 (20% NLoS)"]
     env_trj = Environment(layout_trj)
     fig3, ax3 = plt.subplots(figsize=(10, 10))
-    ax3.set_title(f"Spaccato 3: Tracking EKF vs Ground Truth\n({layout_trj.name} - Viaggio Ottimizzato)", fontweight="bold")
+    ax3.set_title(f"Test 1: Tracking EKF vs Ground Truth\n({layout_trj.name} - Viaggio Ottimizzato)", fontweight="bold")
     
     # Rendering Mura
     ax3.plot([0, layout_trj.x_dim_m, layout_trj.x_dim_m, 0, 0], [0, 0, layout_trj.y_dim_m, layout_trj.y_dim_m, 0], color="black", linewidth=2.5)
