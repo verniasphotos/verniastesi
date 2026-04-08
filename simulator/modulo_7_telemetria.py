@@ -438,3 +438,49 @@ class DigitalTwinVisualizer:
         plt.savefig(filename, bbox_inches='tight', dpi=150)
         print(f"Salvato: {filename}")
         plt.close()
+
+    def plot_ab_snr_heatmap(self, grid_x, grid_y, snr_run_a, snr_run_b, outage_a_pct, outage_b_pct):
+        """
+        [TEST 1] Genera heatmap affiancate per confrontare l'SNR prima e dopo l'intervento RIS.
+        Le griglie (grid_x, grid_y, snr_run_a, snr_run_b) devono essere array 2D generati con numpy.meshgrid.
+        I valori outage_x_pct sono float calcolati esternamente e inseriti nei titoli.
+        """
+        from matplotlib.colors import ListedColormap, BoundaryNorm
+        
+        # Mapping Mappatura Termica (Rosso, Giallo, Verde/Blu)
+        # Sotto 5: #d73027 (Rosso Outage)
+        # Tra 5 e 20: #fee08b (Giallo Accettabile)
+        # Sopra 20: #1a9850 (Verde Ottimo)
+        cmap = ListedColormap(['#d73027', '#fee08b', '#1a9850'])
+        bounds = [-100, 5, 20, 100]
+        norm = BoundaryNorm(bounds, cmap.N)
+        
+        # Creiamo la figura con subplot in orizzontale
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
+        
+        # Plot Run A (Senza RIS)
+        c0 = axes[0].pcolormesh(grid_x, grid_y, snr_run_a, cmap=cmap, norm=norm, shading='auto')
+        axes[0].set_title(f"Baseline - Run A (Senza RIS)\nOutage (Area Rossa): {outage_a_pct:.2f}%", fontweight='bold', pad=10)
+        axes[0].set_xlabel("Lunghezza X (m)")
+        axes[0].set_ylabel("Larghezza Y (m)")
+        axes[0].set_aspect('equal')
+        
+        # Plot Run B (Con RIS)
+        c1 = axes[1].pcolormesh(grid_x, grid_y, snr_run_b, cmap=cmap, norm=norm, shading='auto')
+        axes[1].set_title(f"Architettura 6G - Run B (Con RIS)\nOutage (Area Rossa): {outage_b_pct:.2f}%", fontweight='bold', pad=10)
+        axes[1].set_xlabel("Lunghezza X (m)")
+        axes[1].set_aspect('equal')
+        
+        # Colorbar condivisa
+        fig.subplots_adjust(right=0.9)
+        cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+        cbar = fig.colorbar(c1, cax=cbar_ax, ticks=[0, 12.5, 60])
+        cbar.ax.set_yticklabels(['< 5 dB\n(Outage)', '5 - 20 dB\n(Accettabile)', '> 20 dB\n(Ottimo)'])
+        cbar.set_label('Livello Segnale SNR', fontweight='bold', labelpad=15)
+        
+        # Titolo superore
+        plt.suptitle("TEST 1 - A/B Testing: Impatto delle Superfici Intelligenti (RIS) sul Budget di Collegamento", fontsize=16, fontweight='bold')
+        
+        plt.savefig("test1_snr_heatmap.png", bbox_inches='tight', dpi=200)
+        print("Salvato: test1_snr_heatmap.png")
+        plt.close()

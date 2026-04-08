@@ -86,6 +86,29 @@ class ChannelModel:
         # Quindi dobbiamo sottrarre quel disturbo (es. -3 dB) altrimenti avremmo una simulazione irreale e troppo perfetta.
         enhanced_snr = base_snr + RIS_HARDWARE.gain_db - RIS_HARDWARE.noise_figure_db
         return enhanced_snr
+
+    def compute_cascaded_snr(self, d_uav_ris: float, d_ris_bs: float, 
+                             metal_uav_ris: float = 0.0, metal_ris_bs: float = 0.0, 
+                             tx_power_dbm: float = 23.0, noise_floor_dbm: float = -90.0) -> float:
+        """
+        [4.3.1. Modello di Canale a Cascata RIS (Unfolded Path Model)]
+        Una RIS passiva si modella spazialmente come uno "specchio". Al netto delle attenuazioni 
+        da ostacoli indipendenti sulle due tratte, la caduta di spazio libero si modella come una retta di 
+        lunghezza pari alla somma d1 + d2, al quale va applicato un guadagno d'antenna. 
+        Sommare puramente due PL interi equivarrebbe ad aggiungere due volte le costanti 3GPP (rendendo il segnale -200dB).
+        """
+        dist_equivalente = d_uav_ris + d_ris_bs
+        metal_equivalente = metal_uav_ris + metal_ris_bs
+        
+        # Calcolo dell'attenuazione sul raggio "piegato"
+        total_cascaded_pl = self.calculate_path_loss_inf_dh(dist_equivalente, metal_equivalente)
+        
+        # SNR basato sull'attenuazione totale della doppia tratta
+        base_cascaded_snr = tx_power_dbm - total_cascaded_pl - noise_floor_dbm
+        
+        # Applicazione dell'hardware e decibel finali
+        return self.apply_ris_amplification(base_cascaded_snr, is_ris_active=True)
+        
         
     def compute_beam_misalignment_loss(self, pitch_deg: float, roll_deg: float) -> float:
         """

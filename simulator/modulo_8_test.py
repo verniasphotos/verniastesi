@@ -21,8 +21,9 @@ from simulator.modulo_1_config import LAYOUT_A, LAYOUT_B, LAYOUT_C, RIS_HARDWARE
 from simulator.modulo_6_sdn_controller import SDNController
 
 # Importiamo l'Ambiente Fisco (Modulo 2) e Telemetria (Modulo 7)
-from simulator.modulo_2_environment import Environment
+from simulator.modulo_2_environment import Environment, ray_casting_numba
 from simulator.modulo_7_telemetria import TelemetrySpooler, DigitalTwinVisualizer
+from simulator.modulo_4_channel_model import ChannelModel
 
 def test_0_bom_testing(controller: SDNController):
     """
@@ -46,35 +47,95 @@ def test_0_bom_testing(controller: SDNController):
         print(f"    - RIS_ID_{i} ancorata al muro in coordinate: X={pos[0]:.1f}, Y={pos[1]:.1f}, Z={pos[2]:.1f}")
     time.sleep(1)
 
-def test_1_scalability_mock(spooler: TelemetrySpooler, num_uavs: int = 50):
+def test_1_snr_outage_analysis(controller: SDNController):
     """
-    TEST 1: Test di Stress / Scalabilità Massiva
-    Genera log rapidi per 50 droni per dimostrare che il Bulk Insert SQLite asincrono non blocca il server.
+    TEST 1: Mappa Termica SNR e Analisi Outage (A/B Testing Visivo)
+    Quantifica matematicamente la riduzione delle zone critiche NLoS 
+    grazie all'ancoraggio RIS ottimizzato del Test 0.
     """
-    print(f"\n--- [TEST 1] Stress Test Scalabilità: Iniezione target {num_uavs} UAV in DB (gRPC Mocking) ---")
+    print(f"\n--- [TEST 1] A/B Testing Link Budget: Calcolo Mappe Termiche per {controller.layout.name} ---")
     start_time = time.time()
-    # Scrittura brutale concorrenziale in Coda (Gestita dalla classe Worker del spooler in background)
-    packets_sent = 0
-    t_sim = 0.0
-    for _ in range(20): # 20 cicli
-        t_sim += 0.1
-        for uav in range(num_uavs):
-            x = random.uniform(0, LAYOUT_A.x_dim_m)
-            y = random.uniform(0, LAYOUT_A.y_dim_m)
-            z = random.uniform(1.0, 5.0)
-            snr = random.uniform(0.0, 30.0) # dB
-            is_los = True if snr > 5.0 else False
+    
+    # 1. Setup Spaziale
+    layout = controller.layout
+    env = Environment(layout)
+    boxes = env.shelf_boxes
+    cm = ChannelModel()
+    
+    bs_pos = np.array([layout.x_dim_m / 2, layout.y_dim_m / 2, layout.z_dim_m])
+    
+    # Crea griglia 2D z=1.0m (come le quote dei robot LGV nei magazzini)
+    x_vals = np.arange(0, layout.x_dim_m, 0.5)
+    y_vals = np.arange(0, layout.y_dim_m, 0.5)
+    grid_x, grid_y = np.meshgrid(x_vals, y_vals)
+    
+    snr_run_a = np.zeros_like(grid_x)
+    snr_run_b = np.zeros_like(grid_x)
+    
+    outage_count_a = 0
+    outage_count_b = 0
+    total_points = grid_x.size
+    
+    print("[*] Esecuzione Ray-Casting e calcolo Path Loss in cascata... (Potrebbe richiedere tempo)")
+    
+    # Estrarre posizioni RIS attive allocate via SDN KMeans
+    ris_positions = [np.array(ris.position) for ris in controller.ris_nodes.values() if ris.is_active]
+    
+    for i in range(grid_x.shape[0]):
+        for j in range(grid_x.shape[1]):
+            # Posizione corrente del dron per il campionamento
+            uav_pos = np.array([grid_x[i, j], grid_y[i, j], 1.0])
             
-            # Push in memoria!
-            spooler.log_uav_data((t_sim, f"UAV_{uav:03d}", x, y, z, snr, is_los))
-            packets_sent += 1
+            # --- RUN A (Baseline senza RIS) ---
+            # Distanza e penetrazione ostacoli verso l'unica Base Station
+            dist_bs = np.linalg.norm(bs_pos - uav_pos)
+            penetration_bs = ray_casting_numba(uav_pos, bs_pos, boxes)
+            pl_a = cm.calculate_path_loss_inf_dh(dist_bs, penetration_bs)
             
-    # Aspettiamo che la coda si svuoti
-    while not spooler.queue.empty():
-        time.sleep(0.1)
-        
+            # Formuletta Base SNR (vedi Modulo 4 Demo)
+            base_snr = 23.0 - pl_a - (-90.0)
+            snr_run_a[i, j] = base_snr
+            if base_snr < 5.0:
+                outage_count_a += 1
+                
+            # --- RUN B (Architettura 6G con RIS attive) ---
+            best_snr_b = base_snr # Di base è identico al Run A (nessun deterioramento artificiale)
+            
+            # Proviamo ciascuna RIS e prendiamo l'intersezione radio migliore
+            for ris_pos in ris_positions:
+                dist_uav_ris = np.linalg.norm(ris_pos - uav_pos)
+                pen_uav_ris = ray_casting_numba(uav_pos, ris_pos, boxes)
+                
+                dist_ris_bs = np.linalg.norm(bs_pos - ris_pos)
+                pen_ris_bs = ray_casting_numba(ris_pos, bs_pos, boxes)
+                
+                # Calcolo del Modello a Cascata implementato nel task precedente per questa specifica RIS
+                cascaded_snr = cm.compute_cascaded_snr(
+                    d_uav_ris=dist_uav_ris, 
+                    d_ris_bs=dist_ris_bs,
+                    metal_uav_ris=pen_uav_ris,
+                    metal_ris_bs=pen_ris_bs
+                )
+                
+                # Se la geometria della riflessione offre un SNR superiore del collegamento diretto, sovrascriviamo
+                if cascaded_snr > best_snr_b:
+                    best_snr_b = cascaded_snr
+            
+            snr_run_b[i, j] = best_snr_b
+            if best_snr_b < 5.0:
+                outage_count_b += 1
+                
     calc_time = time.time() - start_time
-    print(f"[*] Deserializzazione gRPC asincrona di {packets_sent} pacchetti completata in {calc_time:.2f} secondi.")
+    outage_pct_a = (outage_count_a / total_points) * 100.0
+    outage_pct_b = (outage_count_b / total_points) * 100.0
+    
+    print(f"[*] Analisi Mappa Termica completata in {calc_time:.2f} s.")
+    print(f"    - Area Outage Run A (Senza RIS): {outage_pct_a:.2f}%")
+    print(f"    - Area Outage Run B (Con RIS):   {outage_pct_b:.2f}%")
+    
+    # Generazione visiva
+    visualizer = DigitalTwinVisualizer()
+    visualizer.plot_ab_snr_heatmap(grid_x, grid_y, snr_run_a, snr_run_b, outage_pct_a, outage_pct_b)
     time.sleep(1)
 
 def test_2_crash_kinematics(spooler: TelemetrySpooler):
@@ -203,7 +264,7 @@ def main_orchestrator():
     
     # Esecuzione Batteria di Test accademici
     test_0_bom_testing(controller)
-    test_1_scalability_mock(spooler)
+    test_1_snr_outage_analysis(controller)
     test_2_crash_kinematics(spooler)
     test_3_energy_profiling(spooler, controller)
     
