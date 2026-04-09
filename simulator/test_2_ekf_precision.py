@@ -103,14 +103,26 @@ def setup_lgv_trajectory(layout_config, total_time=150.0, dt=0.5):
     y_bottom = wall + 1.2
     y_top = layout_config.y_dim_m - wall - 1.2
     
-    wps = [
-        (ax1, y_bottom),
-        (ax1, y_top),
-        (ax2, y_top),
-        (ax2, y_bottom),
-        (ax1, y_bottom)
-    ]
-    wps = wps * 40 # Array ciclico infinito per coprire tutta la durata T
+    # Creazione Traiettoria "Morbida" con curvature (Fisicamente realistica)
+    r = 2.0
+    def bezier_corner(center, start_angle, end_angle, radius=2.0, num=10):
+        angles = np.linspace(start_angle, end_angle, num)
+        return [(center[0] + radius * np.cos(a), center[1] + radius * np.sin(a)) for a in angles]
+        
+    wps_base = []
+    # Aggiungiamo un punto di partenza sul rettilineo in salita
+    wps_base.append((ax1, y_bottom + r)) 
+    
+    # Angolo in alto a sx
+    wps_base.extend(bezier_corner((ax1 + r, y_top - r), np.pi, np.pi/2, r))
+    # Angolo in alto a dx
+    wps_base.extend(bezier_corner((ax2 - r, y_top - r), np.pi/2, 0, r))
+    # Angolo in basso a dx
+    wps_base.extend(bezier_corner((ax2 - r, y_bottom + r), 0, -np.pi/2, r))
+    # Angolo in basso a sx
+    wps_base.extend(bezier_corner((ax1 + r, y_bottom + r), -np.pi/2, -np.pi, r))
+    
+    wps = wps_base * 40 # Array ciclico infinito per coprire tutta la durata T
     
     # 3. Risoluzione Cinematica (Fisica del Moviemento Costante m/s)
     t_vals = np.arange(0, total_time, dt)
@@ -150,13 +162,30 @@ def setup_lgv_trajectory(layout_config, total_time=150.0, dt=0.5):
 
 
 def plot_covariance_ellipse(ax, pos, P, n_std=3.0, **kwargs):
-    """ Plot Ellisse spettrale usando Matplotlib """
+    """ Plot Ellisse spettrale usando Matplotlib
+    Correzione Matematica: usiamo le matrici di autovalori per il semi-asse.
+    """
     P_pos = P[:2, :2]
+    # Garantiamo simmetria per sicurezza numerica
+    P_pos = (P_pos + P_pos.T) / 2.0
     vals, vecs = np.linalg.eigh(P_pos)
+    
+    # Preveniamo root di numeri negativi causati dalla precisione float
+    vals = np.maximum(vals, 1e-9)
+    
     order = vals.argsort()[::-1]
     vals, vecs = vals[order], vecs[:, order]
     theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-    width, height = 2 * n_std * np.sqrt(vals)
+    
+    # Estrazione dei semiassi: sqrt(autovalore) * n_std. La dimensione totale (width/height) è 2 * semiassi.
+    width = 2.0 * n_std * np.sqrt(vals[0])
+    height = 2.0 * n_std * np.sqrt(vals[1])
+    
+    # Limite visivo per l'esplosione della covarianza in NLoS puro
+    max_diameter = 16.0  # Raggio max = 8.0 metri, diametro = 16.0
+    width = min(width, max_diameter)
+    height = min(height, max_diameter)
+    
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
     ax.add_patch(ellip)
 
@@ -225,30 +254,41 @@ def run_test_2():
         print(f"  > [RISULTATO] Time-step in NLoS Puro: {sum(nlos_flags)}/{len(t_vals)}\n")
         
         # === VERNICIATURA ESTETICA (TEST COERENTE COL TEST 0) ===
+        label_shelf = "Scaffali" if idx == 0 else "_nolegend_"
+        label_bs = "Base Station 6G" if idx == 0 else "_nolegend_"
+        label_gt = "Ground Truth" if idx == 0 else "_nolegend_"
+        label_ekf = "Stima EKF" if idx == 0 else "_nolegend_"
+        label_nlos = "NLoS Coasting" if idx == 0 else "_nolegend_"
+        label_cov = "Incertezza EKF" if idx == 0 else "_nolegend_"
+        
         for i, (sx, sy, sw, sh) in enumerate(shelves_2d):
             rect = patches.Rectangle((sx, sy), sw, sh, color='gray', alpha=0.3, 
-                                     label="Scaffali (True Layout)" if (i==0 and idx==0) else "")
+                                     label=label_shelf if i==0 else "_nolegend_", zorder=1)
             ax.add_patch(rect)
             
         # Base Station a terra nel 2D
         ax.plot(bs_pos_3d[0], bs_pos_3d[1], '^', color='gold', markersize=14, 
-                markeredgecolor='black', label="Base Station 6G")
+                markeredgecolor='blue', label=label_bs, zorder=5)
         
-        ax.plot(x_true, y_true, '-', color='black', linewidth=2.5, alpha=0.9, label="Traiettoria VNA (LGV)")
-        ax.plot(x_est, y_est, 'r--', linewidth=2, label="Stima Modello EKF")
+        # Traiettoria GT: Blu continua, spessore 2
+        ax.plot(x_true, y_true, '-', color='blue', linewidth=2.0, alpha=0.9, label=label_gt, zorder=4)
+        
+        # Stima EKF: Rossa tratteggiata
+        ax.plot(x_est, y_est, 'r--', linewidth=2.0, label=label_ekf, zorder=3)
         
         # Overlay arancione su percorsi NLoS
         nlos_x = [x_true[i] for i in range(len(t_vals)) if nlos_flags[i]]
         nlos_y = [y_true[i] for i in range(len(t_vals)) if nlos_flags[i]]
         if nlos_x:
             ax.scatter(nlos_x, nlos_y, c='orange', marker='x', s=25, alpha=0.8,
-                       label="Coasting in NLoS")
+                       label=label_nlos, zorder=3)
             
         # Dispersione delle Ellissi (1 ogni TOT per leggibilità)
         step_ellipse = max(1, len(t_vals) // 25)
         for i in range(0, len(t_vals), step_ellipse):
             plot_covariance_ellipse(ax, pos=(x_est[i], y_est[i]), P=est_covs[i], 
-                                    n_std=3.0, edgecolor='red', facecolor='red', alpha=0.25)
+                                    n_std=3.0, facecolor='red', edgecolor='darkred', 
+                                    alpha=0.15, zorder=2, label=label_cov if i==0 else "_nolegend_")
             pass
 
         # Estetica Standardizzata
