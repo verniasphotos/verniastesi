@@ -405,10 +405,7 @@ class DigitalTwinVisualizer:
             f" - Pannelli RIS Soffitto:{ris_ceil_count}\n"
             "------------------------------\n"
             f">> TOTALE COMPONENTI:   {tot_components}\n"
-            "------------------------------\n"
-            "[Analisi Layout & Traffico]\n"
-            f" - SNR Medio Stimato:  ~{snr_medio_calc:.1f} dB\n"
-            f" - Droni Consigliati:  {max_droni} UAV (Anti-Crash)"
+            "------------------------------"
         )
         
         props = dict(boxstyle='round', facecolor='aliceblue', alpha=0.8, edgecolor='lightslategray')

@@ -51,31 +51,20 @@ def generate_latency_plot():
     ax.plot(x, y, color='red', linewidth=3, label='RMSE vs Latenza')
     
     # Linea soglia critica
-    ax.axvline(x=50, color='black', linestyle='--', linewidth=2)
+    ax.axvline(x=50, color='black', linestyle='--', linewidth=2, label='Soglia Critica: Disallineamento Fascio (~50 ms)')
     
-    # Area ombreggiata
-    ax.axvspan(50, 250, color='red', alpha=0.1) # red/orange semitrasparente
+    # Aree ombreggiate
+    ax.axvspan(0, 50, color='limegreen', alpha=0.15, label='Safe Zone: Beam Intercepts UAV')
+    ax.axvspan(50, 250, color='red', alpha=0.15, label='Outage Zone: EKF Coasting & Misalignment')
     
-    # Etichette di testo
-    # Vicino alla linea tratteggiata
-    ax.text(53, 4.0, 'Soglia Critica\nDisallineamento\nFascio (~50 ms)', 
-            fontsize=12, fontweight='bold', color='black',
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', boxstyle='round,pad=0.5'))
-    
-    # Area sicura
-    ax.text(20, 2.5, 'Safe Zone:\nBeam Intercepts UAV', 
-            fontsize=12, fontweight='bold', color='green', ha='center',
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='green', boxstyle='round,pad=0.5'))
-    
-    # Area ombreggiata (outage)
-    ax.text(150, 2.5, 'Outage Zone:\nEKF Coasting & Misalignment', 
-            fontsize=12, fontweight='bold', color='firebrick', ha='center',
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='firebrick', boxstyle='round,pad=0.5'))
+    # Aggiunta Legenda in basso
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=12, framealpha=1, edgecolor='black')
+
     
     plt.tight_layout()
     
     # Salvataggio
-    output_path = os.path.join(os.path.dirname(__file__), 'Test_3_Stress_Latenza.png')
+    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_3_Stress_Latenza.png')
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Grafico salvato con successo: {output_path}")
 
