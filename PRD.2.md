@@ -25,7 +25,7 @@
 
 ## 2. Architettura Modulare
 
-### Modulo 1: `config2.py` - Core System, Hardware & Warehouse Specs
+### Modulo 1: `modulo_1_config.py` - Core System, Hardware & Warehouse Specs
 Funge da *Single Source of Truth*. Definisce l'estensione delle classi e le costanti fisiche estratte dalla scheda tecnica.
 - **Hardware UAV**: Massa (1.2 kg), profili di potenza in volo (150 W hover, 170 W movimento, 2 W modulo Radio 6G), limiti cinematici (15° massimi di pitch/roll).
 - **Hardware RIS Attiva**: Costanti di consumo (Psleep = 0.5 W, Pactive = 50.0 W), Guadagno di amplificazione ($\Delta$gain), e Cifra di Rumore (F).
@@ -39,50 +39,51 @@ Funge da *Single Source of Truth*. Definisce l'estensione delle classi e le cost
     - **Layout C (Grande)**: 250 x 140 x 15 m (Area: 35.000 mq).
   - **Penetration Loss Factor**: Attenuazione specifica del clutter metallico impostata a 15.0 dB/m.
 
-### Modulo 2: `environment.py` - Physics Engine (Mondo Fisico Virtuale)
+### Modulo 2: `modulo_2_environment.py` - Physics Engine (Mondo Fisico Virtuale)
 Sostituisce il magazzino reale, implementando la validazione geometrica 3D.
 - **Generazione Parametrica**: Legge il config e popola automaticamente i volumi interni calcolando la quantità massima di file e scaffali.
 - **Collision & Ray-Casting**: Mappa i vertici con `scipy.spatial.KDTree`. Valuta ad ogni step il link RF (LoS o NLoS).
 - **Sicurezza Cinematica**: Margin di ±1.5 m nel corridoio. In caso di errore EKF o manovra brusca, l'intersezione col volume dello scaffale innesca un'eccezione di "Collisione Fatale".
 - **JIT Acceleration**: Calcolo spaziale decorato con `@njit(nogil=True)` (Numba) per performance su decine di migliaia di facce metalliche.
 
-### Modulo 3: `networking.py` - IPC Broker & Protocol Stack
+### Modulo 3: `modulo_3_networking.py` - IPC Broker & Protocol Stack
 Gestisce lo scambio dati tra processi asincroni.
 - **Simulation Clock**: Tick deterministico impostato a $dt = 0.1$ s (10 Hz).
 - **Shared Memory**: Dati di posizione dell'UAV e comandi SDN viaggiano su memoria condivisa a bassissima latenza.
 - **gRPC Interface**: Backhaul tra Base Station e Super Server via Protobuf che modella l'overhead reale della rete.
 
-### Modulo 4: `channel_model.py` - Modello di Canale 3GPP & RIS Physics
+### Modulo 4: `modulo_4_channel_model.py` - Modello di Canale 3GPP & RIS Physics
 Motore elettromagnetico del simulatore.
 - **Modello InF-DH (3GPP TR 38.901)**: Path Loss mitigato dal cluttter metallico; l'attenuazione NLoS è proporzionale ai metri di penetrazione.
 - **Active RIS Gain**: Modello dell'amplificazione che include rumore termico dinamico dei componenti.
 - **Beam Misalignment**: Perdita di guadagno ($\Delta$tilt) dovuta a tilt di pitch/roll.
 
-### Modulo 5: `kinematics_ekf.py` - UAV Dynamics & Tracking Engine
+### Modulo 5: `modulo_5_cinematica_EKF.py` - UAV Dynamics & Tracking Engine
 La fisica volo e l'intelligenza di localizzazione.
 - **Modello Cinematico 3D**: Simula inerzia, gravità, variazioni assetto vettoriale.
 - **Extended Kalman Filter (EKF)**: Stima la posa fondendo dati (RSSI/AoA) "sporcati" da canale. Se l'errore $>1.5$ m, si innesca la collisione.
 - **Predizione Traiettoria (Test 4 Hook)**: Estrapola le coordinate future per l'handover predittivo.
 - **Metriche**: Calcolo dell'RMSE spaziale in continuo.
 
-### Modulo 6: `sdn_controller.py` - Optimization & Placement
+### Modulo 6: `modulo_6_sdn_controller.py` - Optimization & Placement
 Intelligenza centralizzata per le RIS attive.
 - **Test 0 (Deployment)**: K-Means e Greedy Search per esplorare pareti/incroci, posizionando le RIS minimizzando le zone di outage.
 - **Logica Euristica (Green 6G)**: Commuta stato RIS (Active 50 W o Sleep) per efficienza energetica.
 - **Handover Predittivo (Test 4 Hook)**: Pre-attiva la RIS se l'EKF segnala blocco NLoS imminente.
 
-### Modulo 7: `telemetry.py` - Digital Twin Visualization
+### Modulo 7: `modulo_7_telemetria.py` - Digital Twin Visualization
 - **Heatmap & Plotting**: CDF su accuratezza e layout spaziali (SNR) integrati.
 - **3D Digital Twin (Plotly)**: Animazioni real-time, corridoi opachi, doppia rotta (Ground Truth vs Stima) e coni di beamforming attivi.
 
 ---
 
 ## 3. Suite di Test Integrata (Validazione della Tesi)
-Racchiusa nel Modulo 8 (`test_suite.py`) e rappresenta il nucleo scientifico:
-- **Test 0 - Ottimizzazione Layout (BOM)**: Esegue algoritmi sui layout A, B, C per posizionamento ottimo delle RIS attive (99% copertura).
-- **Test 1 - Scalabilità & Bottleneck gRPC**: Aumento a 50 UAV per testare degrado del Control Plane e outbreak da "Outdated CSI".
-- **Test 2 - Impatto Cinematico & Crash Test**: Simulazione manovra evasiva, disallineamento della beam, divergenza dell'EKF e temporizzazione fino a "Collisione Fatale".
-- **Test 3 - Green 6G (Trade-off Energetico)**: "Always-On" vs Centralizzata SDN ("Sleep").
-- **Test 4 - Real-Time Predictive Tracking**: Validazione in Plotly dell'intelligenza pre-allocativa che azzera proattivamente zone d'ombra NLoS.
+Racchiusa nella cartella `simulator/` e rappresenta il nucleo scientifico della validazione sperimentale, documentata tramite file di simulazione ed esporti per la tesi:
+- **Test 0 - Ottimizzazione Layout (BOM) (`test_0_BOM_K-Means.py`)**: Analisi della topologia 3D per i layout A, B, C. Utilizza K-Means e un approccio Greedy per determinare l'allocazione spaziale ottimale (Bill of Materials) delle RIS minimizzando il NLoS. *Immagini generate: `topological_map_layout_{a,b,c}.png`.*
+- **Test 1 - Fallimento EKF in NLoS Baseline (`test_1_layoutB_ekf_tracking.py`)**: Simulazione track top-down del drone in assenza di segnale LoS. Il Filtro di Kalman entra in "coasting" predittivo scaturendo nell'esplosione dell'ellisse di covarianza (errore crescente) e portando alla divergenza del tracciamento. *Immagini generate: `Test_1.1_TopDown_Traiettoria.png`.*
+- **Test 2 - Successo Tracking RIS-Assistito (`test_2_layoutB_ris_success.py`)**: Test della compensazione del fading con l'architettura attiva RIS SDN-driven. La caduta NLoS viene sanata dal routing dinamico forzando l'Errore EKF sotto il margine di accuratezza (< 1m). *Immagini generate: `Test_2_B_Successo_RIS.png`.*
+- **Test 3 - Stress Latenza di Rete 6G (`test_3_latency_stress.py`)**: Misura l'impatto dello strato applicativo (delay applicato del Control Plane 6G in ms) sul tracking. Definisce la demarcazione visiva di rottura fra navigazione sicura ("Safe Zone") e "Outage Zone" tracciando la tolleranza limite attorno ai 50ms per l'allineamento dei beam conformali. *Immagini generate: `Test_3_Stress_Latenza.png`.*
+- **Test 4 - Ottimizzazione Proattiva & Handover (Architetturale)**: Pre-wake-up energetico in ottica Green 6G. Usa le stime per la pre-attivazione tattica minimizzando il NLoS passivo. Evidenziato dalle logiche SDN del controller e documentate nella tesi.
+
 ---
-**Azione per l'IA:** Conferma di aver letto il PRD, riassumi in 2 righe l'obiettivo e chiedimi quale modulo o componente dell'architettura vuoi che iniziamo a sviluppare o modificare per primo.
+**Azione per l'IA:** Conferma la sincronia del file con la reale topologia del progetto. Chiedimi quale integrazione testuale nel Capitolo 5 o review finale possiamo intavolare adesso a completamento del resoconto.

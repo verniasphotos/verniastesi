@@ -1,9 +1,9 @@
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse, Rectangle
-import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
+import os # libreria per interagire con il sistema operativo
+import numpy as np # libreria per il calcolo numerico
+import matplotlib.pyplot as plt # libreria per la creazione di grafici
+from matplotlib.patches import Ellipse, Rectangle # libreria per la creazione di forme geometriche
+import matplotlib.patches as mpatches # libreria per la creazione di patch
+import matplotlib.lines as mlines # libreria per la creazione di linee
 
 # Integrazione con i moduli del simulatore
 from simulator.modulo_1_config import LAYOUT_B, RIS_HARDWARE
