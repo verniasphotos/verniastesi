@@ -11,6 +11,7 @@ import matplotlib.gridspec as gridspec
 from simulator.modulo_1_config import LAYOUT_C, RIS_HARDWARE
 from simulator.modulo_2_environment import Environment, ray_casting_numba
 from simulator.modulo_6_sdn_controller import SDNController
+from simulator.modulo_8_advanced_sdn_green import LSTMTrajectoryPredictor, Green6G_Optimizer
 
 # ==============================================================================
 # Helper Classes and Functions
@@ -135,6 +136,11 @@ def run_simulation(dt=0.2, speed=4.0):
     nlos_sim = centers[indices]
     deployed_positions = controller.deploy_ris_kmeans_greedy(nlos_sim, total_ris_budget)
     
+    # Inizializza i nuovi moduli di Intelligenza Predittiva LSTM e Ottimizzazione BD-RIS
+    lstm_predictor = LSTMTrajectoryPredictor(window_size=10, dt_pred=0.05)
+    green_optimizer = Green6G_Optimizer(M=24) # M = elementi RIS
+    
+    
     BS_POS = np.array([aisle_bs_x, HEIGHT/2.0, LAYOUT_C.z_dim_m])
     
     est_states, est_covs = [], []
@@ -159,9 +165,29 @@ def run_simulation(dt=0.2, speed=4.0):
         target_uav_pos = {1: (x_gt[k], y_gt[k], 1.0)}
         
         ext_traj_store = None
+        
+        # TASK 1: Inferenza con LSTM (Sliding Window in tempo reale dall'EKF)
+        x_pred, y_pred = lstm_predictor.update_and_predict(ekf.X[0,0], ekf.X[1,0])
+
         if is_returning and k+20 < tot_frames:
-            ext_traj = [(ekf.X[0,0] + ekf.X[2,0]*dt*i, ekf.X[1,0] + ekf.X[3,0]*dt*i, 1.0) for i in range(25)]
-            controller.run_green_6g_engine(target_uav_pos, threshold_dist=10.0) 
+            # Traiettoria predittiva per SDN: qui invece di lineare usa il target predetto dall'LSTM
+            ext_traj = [(x_pred + ekf.X[2,0]*dt*i, y_pred + ekf.X[3,0]*dt*i, 1.0) for i in range(25)]
+            
+            # TASK 2, 3, 4: Ottimizzazione BD-RIS anticipata
+            # Esempio canali sintetici per simulazione BD-RIS
+            h_d, h_r, G = 0.05, np.ones((24, 1)), np.ones((24, 1)) 
+            interference = 1e-8
+            
+            P_s_opt, Theta_opt, _ = green_optimizer.dinkelbach_alternating_optimization(h_d, h_r, G, interference)
+            ris_on = green_optimizer.on_off_control_algorithm(P_s_opt, h_d, h_r, G, Theta_opt, interference)
+            
+            # Attiviamo l'engine solo se l'algoritmo ON-OFF calcola un vantaggio effettivo
+            if ris_on == 1:
+                controller.run_green_6g_engine(target_uav_pos, threshold_dist=10.0) 
+            else:
+                for rid, node in controller.ris_nodes.items():
+                    node.is_active = False # Spegne forzatamente
+                    
             controller.predictive_handover_hook(ext_traj, uav_id=1) 
             ext_traj_store = ([pt[0] for pt in ext_traj], [pt[1] for pt in ext_traj])
         else:
@@ -271,6 +297,8 @@ def generate_animation():
     # Marker Animati
     path_line, = ax_map.plot([], [], color='cyan', linewidth=2.5, alpha=0.6, zorder=3)
     drone_marker, = ax_map.plot([], [], 'X', color='white', mec='blue', markersize=12, zorder=10)
+    # Traccia rossa EKF — percorso STIMATO dal server Kalman in tempo reale
+    ekf_path_line, = ax_map.plot([], [], color='red', linewidth=2.0, alpha=0.85, zorder=6, linestyle='-')
     ekf_marker, = ax_map.plot([], [], 'o', color='deeppink', markersize=5, zorder=9)
     signal_line, = ax_map.plot([], [], '--', color='cyan', linewidth=2, alpha=0.8, zorder=8)
     predictive_line, = ax_map.plot([], [], ':', color='yellow', linewidth=2.5, alpha=0.9, zorder=7)
@@ -280,10 +308,19 @@ def generate_animation():
         dot, = ax_map.plot([pos[0]], [pos[1]], 'o', color='red', mec='darkred', markersize=8, zorder=4)
         ris_dots.append(dot)
         
-    # Legenda sotto il grafico
-    ax_map.legend([bs_marker, base_ric, drone_marker, ekf_marker, mpatches.Patch(color='yellow', label='Predizione EKF'), mpatches.Patch(color='lime', label='RIS Attiva'), mpatches.Patch(color='red', label='RIS Standby')],
-                  ["Base Station [SERVER]", "Base Ricarica", "UAV-01 Effettivo", "Stima EKF", "Traiettoria Predetta", "RIS Attiva", "RIS Standby"], 
-                  loc='upper center', bbox_to_anchor=(0.5, -0.08), frameon=True, facecolor='#1E1E1E', edgecolor='gray', labelcolor='white', ncol=4)
+    # Legenda sotto il grafico (linea rossa = traccia Kalman stimata, ciano = GT reale)
+    leg_gt = mlines.Line2D([], [], color='cyan', linewidth=2.5, label='Percorso Reale (GT)')
+    leg_ekf = mlines.Line2D([], [], color='red', linewidth=2.0, label='Traccia Kalman (Stimata)')
+    leg_pred = mlines.Line2D([], [], color='yellow', linewidth=2.0, linestyle=':', label='Predizione Futura EKF')
+    ax_map.legend(
+        [bs_marker, base_ric, drone_marker, leg_gt, leg_ekf, leg_pred,
+         mpatches.Patch(color='lime'), mpatches.Patch(color='red')],
+        ["Base Station [SERVER]", "Base Ricarica", "UAV-01",
+         "Percorso Reale (GT)", "Traccia Kalman", "Predizione Futura",
+         "RIS Attiva", "RIS Standby"],
+        loc='upper center', bbox_to_anchor=(0.5, -0.08), frameon=True,
+        facecolor='#1E1E1E', edgecolor='gray', labelcolor='white', ncol=4
+    )
 
     # ---------------- Log Server UI ----------------
     ax_log.axis('off')
@@ -299,18 +336,22 @@ def generate_animation():
                             
     # ---------------- RMSE Graph ----------------
     rmse_medio = np.mean(rmse_t)
+    rmse_max = np.max(rmse_t)
     ax_rmse.set_xlim(0, max(t_vals))
-    ax_rmse.set_ylim(0, 3.0)
+    ax_rmse.set_ylim(0, max(3.0, rmse_max * 1.1)) # Adattivo se l'errore sale
     ax_rmse.tick_params(colors='white')
     ax_rmse.grid(True, color='gray', linestyle=':', alpha=0.3)
-    ax_rmse.set_title(f"RMSE Tracker Temporale (Medio Finale: {rmse_medio:.2f} m)", color='white', pad=5, fontsize=10)
+    ax_rmse.set_title(f"RMSE Tracker: Medio {rmse_medio:.2f}m | Max {rmse_max:.2f}m", color='white', pad=5, fontsize=10)
     
     # Label Assi
     ax_rmse.set_xlabel("Tempo di Volo (s)", color='lightgray', fontsize=9)
     ax_rmse.set_ylabel("Errore (m)", color='lightgray', fontsize=9)
     
     # Linea orizzontale RMSE Medio
-    ax_rmse.axhline(y=rmse_medio, color='red', linestyle='--', linewidth=1.5, alpha=0.7)
+    ax_rmse.axhline(y=rmse_medio, color='red', linestyle='--', linewidth=1.5, alpha=0.6, label='Media')
+    # Linea orizzontale RMSE Massimo
+    ax_rmse.axhline(y=rmse_max, color='yellow', linestyle=':', linewidth=1.2, alpha=0.5, label='Peak')
+    ax_rmse.text(0.5, rmse_max + 0.05, f"Peak: {rmse_max:.2f}m", color='yellow', alpha=0.7, fontsize=8, fontweight='bold')
     
     rmse_line, = ax_rmse.plot([], [], color='darkorange', linewidth=2)
     rmse_fill = ax_rmse.fill_between([], [], color='orange', alpha=0.3)
@@ -320,11 +361,18 @@ def generate_animation():
     render_frames = range(0, len(x_gt), FRAME_STEP)
     ellip_patch = [None]
     
+    # Pre-calcolo array stima EKF per la traccia rossa
+    ekf_xs = np.array([s[0] for s in est_states])
+    ekf_ys = np.array([s[1] for s in est_states])
+
     def update(frame_idx):
         nonlocal rmse_fill
         
         path_line.set_data(x_gt[:frame_idx], y_gt[:frame_idx])
         drone_marker.set_data([x_gt[frame_idx]], [y_gt[frame_idx]])
+        
+        # Traccia rossa: percorso STIMATO dall'EKF finora
+        ekf_path_line.set_data(ekf_xs[:frame_idx], ekf_ys[:frame_idx])
         
         x_e, y_e = est_states[frame_idx][0], est_states[frame_idx][1]
         ekf_marker.set_data([x_e], [y_e])
@@ -367,7 +415,7 @@ def generate_animation():
         rmse_fill.remove()
         rmse_fill = ax_rmse.fill_between(t_vals[:frame_idx], rmse_t[:frame_idx], color='orange', alpha=0.3)
         
-        return [path_line, drone_marker, ekf_marker, signal_line, predictive_line, timer_txt, rmse_line, rmse_fill] + ris_dots + log_texts
+        return [path_line, drone_marker, ekf_path_line, ekf_marker, signal_line, predictive_line, timer_txt, rmse_line, rmse_fill] + ris_dots + log_texts
         
     print(f"Sto animando {len(render_frames)} fotogrammi compressi...")
     ani = FuncAnimation(fig, update, frames=render_frames, blit=False, interval=50)
