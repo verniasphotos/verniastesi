@@ -68,7 +68,15 @@ class LSTMTrajectoryPredictor:
         input_seq = np.array(self.history).reshape(1, self.window_size, 2)
         
         # Nel Digital Twin reale, questa inferenza andrebbe eseguita in un thread asincrono.
-        # Ritorna le future coordinate (t + 50ms) per la pre-configurazione SDN.
+        # Poiché self.is_trained è False in animazione, mockiamo il comportamento di un LSTM "perfectly trained"
+        if not self.is_trained:
+            dx = self.history[-1][0] - self.history[-2][0]
+            dy = self.history[-1][1] - self.history[-2][1]
+            # Assumiamo che dt_pred (50ms) sia proporzionale all'istante di campionamento
+            x_pred = self.history[-1][0] + dx * 1.5
+            y_pred = self.history[-1][1] + dy * 1.5
+            return x_pred, y_pred
+            
         pred = self.model.predict(input_seq, verbose=0)[0]
         x_pred, y_pred = pred[0], pred[1]
         

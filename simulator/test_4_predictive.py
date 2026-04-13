@@ -75,7 +75,7 @@ def generate_comparative_rmse_plot():
     ax.axvline(x=50, color='black', linestyle=':', linewidth=2, zorder=2)
     ax.text(53, 4.5, 'Soglia Critica Reattiva (~50 ms)', fontsize=11, color='black', fontweight='bold', rotation=90, verticalalignment='top')
     ax.fill_between(x_smooth, y_reactive_smooth, y_predictive_smooth, where=(y_reactive_smooth > y_predictive_smooth), color='green', alpha=0.1, label='Recupero Sicurezza (Delta Predittivo)', zorder=1)
-    ax.legend(loc='upper right', ncol=1, fontsize=12, framealpha=0.9, edgecolor='gray', shadow=True)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=12, framealpha=0.9, edgecolor='gray', shadow=True)
 
     plt.tight_layout()
     output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.1_Comparativo_RMSE_Latenza.png')
@@ -176,12 +176,12 @@ def generate_scatter_tradeoff_plot():
     ax.set_ylim(0, 5.5)
     ax.set_xlabel('Overhead Energetico Sistema Totale (Compresa BD-RIS) [W]', fontsize=14, fontweight='bold')
     ax.set_ylabel('Errore di Tracking EKF (RMSE) [m]', fontsize=14, fontweight='bold')
-    ax.set_title("Test 4.2: Efficienza Energetica Massima (AEE)\nMetodo di Dinkelbach Ottimizzazione Alternata", fontsize=15, fontweight='bold', pad=20)
+    ax.set_title("Test 4.5: Efficienza Energetica Massima (AEE)\nMetodo di Dinkelbach Ottimizzazione Alternata", fontsize=15, fontweight='bold', pad=20)
 
-    ax.legend(loc='upper right', fontsize=11, framealpha=0.9)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=11, framealpha=0.9, shadow=True)
     plt.tight_layout()
 
-    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.2_Scatter_Errore_Overhead.png')
+    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.5_Scatter_Errore_Overhead.png')
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[*] Successo: {output_path}")
@@ -284,7 +284,7 @@ def generate_rmse_temporal_plot():
     ax.text(225, y_testo, 'NLoS Inv.\n(RIS WAKEUP)', ha='center', fontsize=10, color='darkgreen', fontweight='bold')
     ax.text(270, y_testo, 'LoS\n(RIS STANDBY)', ha='center', fontsize=10, color='gray')
     
-    ax.legend(loc='lower right', fontsize=11, framealpha=0.9)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=11, framealpha=0.9, shadow=True)
     plt.tight_layout()
     
     output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.3_RMSE_Temporale_Missione.png')
@@ -329,11 +329,11 @@ def generate_kinematic_turn_plot():
     
     ax.set_xlabel("Pianimetria X [m]", fontsize=14, fontweight='bold')
     ax.set_ylabel("Pianimetria Y [m]", fontsize=14, fontweight='bold')
-    ax.set_title("Test 4.4: Cinematica a Confronto in Assenza di LoS\nDeriva Kalman (Lineare) vs Previsione LSTM (Non-Lineare)", fontsize=15, fontweight='bold', pad=20)
-    ax.legend(loc='upper left', fontsize=12, framealpha=0.9)
+    ax.set_title("Test 4.2: Cinematica a Confronto in Assenza di LoS\nDeriva Kalman (Lineare) vs Previsione LSTM (Non-Lineare)", fontsize=15, fontweight='bold', pad=20)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=12, framealpha=0.9, shadow=True)
     
     plt.tight_layout()
-    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.4_Traiettoria_EKF_vs_LSTM.png')
+    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.2_Traiettoria_EKF_vs_LSTM.png')
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[*] Successo: {output_path}")
@@ -362,12 +362,12 @@ def generate_sinr_vs_m_plot():
     
     ax.set_xlabel("Numero Elementi della Matrice RIS (M)", fontsize=14, fontweight='bold')
     ax.set_ylabel("Rapporto Segnale-Rumore e Interferenza (SINR) [dB]", fontsize=14, fontweight='bold')
-    ax.set_title("Test 4.5: Qualità Radiopropagativa 6G in NLoS\nFenomeno Blind Reflection vs Orchestrazione SDN", fontsize=15, fontweight='bold', pad=20)
-    ax.legend(loc='center right', fontsize=12, framealpha=0.9)
+    ax.set_title("Test 4.4: Qualità Radiopropagativa 6G in NLoS\nFenomeno Blind Reflection vs Orchestrazione SDN", fontsize=15, fontweight='bold', pad=20)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=12, framealpha=0.9, shadow=True)
     ax.set_ylim(-2, 22)
     
     plt.tight_layout()
-    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.5_SINR_vs_M_Elements.png')
+    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Test_4.4_SINR_vs_M_Elements.png')
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[*] Successo: {output_path}")
@@ -402,7 +402,7 @@ def generate_aee_vs_ps_plot():
     ax.set_xlabel(r'Potenza di Trasmissione Base Station $P_s$ [dBm]', fontsize=14, fontweight='bold')
     ax.set_ylabel('Efficienza Energetica Assoluta AEE [bit/J/Hz]', fontsize=14, fontweight='bold')
     ax.set_title("Test 4.6: Ottimizzazione Green 6G\nCurva Termodinamica e Risoluzione di Dinkelbach", fontsize=15, fontweight='bold', pad=20)
-    ax.legend(loc='lower right', fontsize=12, framealpha=0.9)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=12, framealpha=0.9, shadow=True)
     ax.set_ylim(0, max(AEE_BD)*1.2)
     
     plt.tight_layout()

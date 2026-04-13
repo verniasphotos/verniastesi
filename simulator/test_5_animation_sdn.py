@@ -189,6 +189,29 @@ def run_simulation(dt=0.2, speed=4.0):
                     node.is_active = False # Spegne forzatamente
                     
             controller.predictive_handover_hook(ext_traj, uav_id=1) 
+            
+            # --- OTTIMIZZAZIONE ACCENSIONE ---
+            # SDN attiva geometricamente le RIS nel raggio, ma il Digital Twin interviene per
+            # spegnere le antenne che sono totalmente bloccate dagli scaffali rispetto 
+            # al drone e al suo percorso futuro predetto (Energy Saving intelligente).
+            for rid, node in controller.ris_nodes.items():
+                if node.is_active:
+                    has_los = False
+                    curr_pen = ray_casting_numba(np.array([x_gt[k], y_gt[k], 1.0]), np.array(node.position), env.shelf_boxes)
+                    if curr_pen < 0.1:
+                        has_los = True
+                    else:
+                        # Controlliamo lungo la previsione futura per il Make-Before-Break
+                        for pt in ext_traj:
+                            pt_pen = ray_casting_numba(np.array(pt), np.array(node.position), env.shelf_boxes)
+                            if pt_pen < 0.1:
+                                has_los = True
+                                break
+                    if not has_los:
+                        node.is_active = False # Spegne RIS inutili murate
+                        if 1 in node.attached_uavs:
+                            node.attached_uavs.remove(1)
+            
             ext_traj_store = ([pt[0] for pt in ext_traj], [pt[1] for pt in ext_traj])
         else:
             controller.run_green_6g_engine(target_uav_pos, threshold_dist=35.0)
@@ -202,7 +225,14 @@ def run_simulation(dt=0.2, speed=4.0):
             current_ris_flags.append(node.is_active)
             if node.is_active:
                 curr_active_ris_ids.add(rid)
-                d = np.linalg.norm(np.array([x_gt[k], y_gt[k], 1.0]) - np.array(node.position))
+                
+                uav_pos_for_check = np.array([x_gt[k], y_gt[k], 1.0])
+                ris_pos_for_check = np.array(node.position)
+                
+                # Il Digital Twin ha già ottimizzato l'accensione delle RIS in base alla visibilità globale.
+                # Qui colleghiamo l'EKF all'antenna attiva più vicina per mantenere saldo il tracciamento
+                # (anche se il raggio centrale passa temporaneamente nel raggio di uno scaffale per logiche di propagazione).
+                d = np.linalg.norm(uav_pos_for_check - ris_pos_for_check)
                 if d < best_dist:
                     best_dist = d
                     best_ris_pos = node.position
