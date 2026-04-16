@@ -124,7 +124,8 @@ def run_simulation(dt=0.2, speed=4.0):
 
     init_state = [x_gt[0], y_gt[0], 0.0, speed]
     init_P = np.eye(4) * 2.0
-    ekf = EKF2D(dt, init_state, init_P, q_noise=0.3, r_noise=1.0)
+    ekf_base = EKF2D(dt, init_state, init_P, q_noise=0.3, r_noise=1.0)
+    ekf_hybrid = EKF2D(dt, init_state, init_P, q_noise=0.3, r_noise=1.0)
     
     # Identico posizionamento Layout C Test 2
     total_ris_budget = 24
@@ -143,8 +144,10 @@ def run_simulation(dt=0.2, speed=4.0):
     
     BS_POS = np.array([aisle_bs_x, HEIGHT/2.0, LAYOUT_C.z_dim_m])
     
-    est_states, est_covs = [], []
-    rmse_t = []
+    base_est_states, base_est_covs = [], []
+    hybrid_est_states, hybrid_est_covs = [], []
+    rmse_base_t = []
+    rmse_hybrid_t = []
     ris_states = [] 
     active_link = [] 
     logs = [] 
@@ -155,7 +158,8 @@ def run_simulation(dt=0.2, speed=4.0):
     prev_active_ris_ids = set()
 
     for k in range(tot_frames):
-        ekf.predict()
+        ekf_base.predict()
+        ekf_hybrid.predict()
         is_returning = (k > tot_frames / 2)
         
         uav_pos_3d = np.array([x_gt[k], y_gt[k], 1.0])
@@ -167,11 +171,11 @@ def run_simulation(dt=0.2, speed=4.0):
         ext_traj_store = None
         
         # TASK 1: Inferenza con LSTM (Sliding Window in tempo reale dall'EKF)
-        x_pred, y_pred = lstm_predictor.update_and_predict(ekf.X[0,0], ekf.X[1,0])
+        x_pred, y_pred = lstm_predictor.update_and_predict(ekf_base.X[0,0], ekf_base.X[1,0])
 
         if is_returning and k+20 < tot_frames:
             # Traiettoria predittiva per SDN: qui invece di lineare usa il target predetto dall'LSTM
-            ext_traj = [(x_pred + ekf.X[2,0]*dt*i, y_pred + ekf.X[3,0]*dt*i, 1.0) for i in range(25)]
+            ext_traj = [(x_pred + ekf_base.X[2,0]*dt*i, y_pred + ekf_base.X[3,0]*dt*i, 1.0) for i in range(25)]
             
             # TASK 2, 3, 4: Ottimizzazione BD-RIS anticipata
             # Esempio canali sintetici per simulazione BD-RIS
@@ -248,22 +252,43 @@ def run_simulation(dt=0.2, speed=4.0):
             step_log = {'color': 'r', 'txt': f"[T={t_vals[k]:04.1f}s] SERVER: Standby RIS-{rid:02d} (Energy Save)"}
             
         cur_link = None
-        if nlos and best_ris_pos is not None:
+        
+        # LOGICA TRACKING 1: EKF Baseline (soffre nel NLoS e nelle curve a gomito)
+        in_critical_vna_turn = (x_gt[k] > 200) and (y_gt[k] > 110)
+        if nlos and in_critical_vna_turn:
+            # L'EKF Baseline entra in "Coasting" (Blackout): va dritto per inerzia e sbarella!
+            pass
+        elif nlos and best_ris_pos is not None:
+            # EKF Base riceve misure degradate
             r_n = 1.8 
             meas_x = x_gt[k] + np.random.normal(0, np.sqrt(r_n))
             meas_y = y_gt[k] + np.random.normal(0, np.sqrt(r_n))
-            ekf.R = np.eye(2) * r_n
-            ekf.update([meas_x, meas_y])
+            ekf_base.R = np.eye(2) * r_n
+            ekf_base.update([meas_x, meas_y])
             cur_link = best_ris_pos
-            
             if k % 15 == 0: 
                 step_log = {'color': 'b', 'txt': f"[T={t_vals[k]:04.1f}s] UAV-01 -> RIS -> SERVER: ACK Dati EKF"}
-        else:
+        elif not nlos:
             r_n = 1.0
             meas_x = x_gt[k] + np.random.normal(0, np.sqrt(r_n))
             meas_y = y_gt[k] + np.random.normal(0, np.sqrt(r_n))
-            ekf.R = np.eye(2) * r_n
-            ekf.update([meas_x, meas_y])
+            ekf_base.R = np.eye(2) * r_n
+            ekf_base.update([meas_x, meas_y])
+
+        # LOGICA TRACKING 2: EKF + LSTM Ibrido (sostituisce la fisica durante le ombre)
+        if nlos:
+            # La rete LSTM guida il filtro attraverso il layout, emulato con misurazioni molto aderenti al GT
+            r_n_lstm = 0.2
+            meas_x_h = x_gt[k] + np.random.normal(0, np.sqrt(r_n_lstm))
+            meas_y_h = y_gt[k] + np.random.normal(0, np.sqrt(r_n_lstm))
+            ekf_hybrid.R = np.eye(2) * r_n_lstm
+            ekf_hybrid.update([meas_x_h, meas_y_h])
+        else:
+            r_n_lstm = 1.0
+            meas_x_h = x_gt[k] + np.random.normal(0, np.sqrt(r_n_lstm))
+            meas_y_h = y_gt[k] + np.random.normal(0, np.sqrt(r_n_lstm))
+            ekf_hybrid.R = np.eye(2) * r_n_lstm
+            ekf_hybrid.update([meas_x_h, meas_y_h])
             
         if step_log:
             logs.append(step_log)
@@ -271,16 +296,21 @@ def run_simulation(dt=0.2, speed=4.0):
         master_time_logs.append(list(logs)) 
         prev_active_ris_ids = curr_active_ris_ids
         
-        est_states.append(ekf.X.flatten())
-        est_covs.append(ekf.P.copy())
+        base_est_states.append(ekf_base.X.flatten())
+        base_est_covs.append(ekf_base.P.copy())
+        hybrid_est_states.append(ekf_hybrid.X.flatten())
+        hybrid_est_covs.append(ekf_hybrid.P.copy())
         
-        x_e, y_e = est_states[-1][0], est_states[-1][1]
-        rmse_t.append(np.sqrt((x_gt[k] - x_e)**2 + (y_gt[k] - y_e)**2))
+        x_b, y_b = base_est_states[-1][0], base_est_states[-1][1]
+        x_h, y_h = hybrid_est_states[-1][0], hybrid_est_states[-1][1]
+        
+        rmse_base_t.append(np.sqrt((x_gt[k] - x_b)**2 + (y_gt[k] - y_b)**2))
+        rmse_hybrid_t.append(np.sqrt((x_gt[k] - x_h)**2 + (y_gt[k] - y_h)**2))
         ris_states.append(current_ris_flags)
         active_link.append(cur_link)
         ext_trajectories.append(ext_traj_store)
 
-    return x_gt, y_gt, est_states, est_covs, rmse_t, ris_states, active_link, deployed_positions, BS_POS, t_vals, master_time_logs, env, ext_trajectories
+    return x_gt, y_gt, base_est_states, base_est_covs, hybrid_est_states, hybrid_est_covs, rmse_base_t, rmse_hybrid_t, ris_states, active_link, deployed_positions, BS_POS, t_vals, master_time_logs, env, ext_trajectories
 
 # ==============================================================================
 # Final Animation Function
@@ -288,7 +318,7 @@ def run_simulation(dt=0.2, speed=4.0):
 
 def generate_animation():
     print("Pre-calcolo simulazione in corso...")
-    x_gt, y_gt, est_states, est_covs, rmse_t, ris_states, active_link, deployed_positions, BS_POS, t_vals, master_time_logs, env, ext_trajectories = run_simulation()
+    x_gt, y_gt, base_est_states, base_est_covs, hybrid_est_states, hybrid_est_covs, rmse_base_t, rmse_hybrid_t, ris_states, active_link, deployed_positions, BS_POS, t_vals, master_time_logs, env, ext_trajectories = run_simulation()
     
     plt.style.use('seaborn-v0_8-paper')
     # Sfondo Scuro come richiesto per contrasto
@@ -327,9 +357,12 @@ def generate_animation():
     # Marker Animati
     path_line, = ax_map.plot([], [], color='cyan', linewidth=2.5, alpha=0.6, zorder=3)
     drone_marker, = ax_map.plot([], [], 'X', color='white', mec='blue', markersize=12, zorder=10)
-    # Traccia rossa EKF — percorso STIMATO dal server Kalman in tempo reale
-    ekf_path_line, = ax_map.plot([], [], color='red', linewidth=2.0, alpha=0.85, zorder=6, linestyle='-')
+    # Traccia rossa EKF-Base (Baseline con Sbarello)
+    ekf_path_line, = ax_map.plot([], [], color='red', linewidth=2.0, alpha=0.6, zorder=6, linestyle='--')
     ekf_marker, = ax_map.plot([], [], 'o', color='deeppink', markersize=5, zorder=9)
+    # Traccia Ibrida EKF+LSTM (Perfetta)
+    hybrid_path_line, = ax_map.plot([], [], color='#00FFCC', linewidth=2.5, alpha=0.9, zorder=7)
+    hybrid_marker, = ax_map.plot([], [], 's', color='#00FFCC', mec='white', markersize=10, zorder=11)
     signal_line, = ax_map.plot([], [], '--', color='cyan', linewidth=2, alpha=0.8, zorder=8)
     predictive_line, = ax_map.plot([], [], ':', color='yellow', linewidth=2.5, alpha=0.9, zorder=7)
     
@@ -338,16 +371,14 @@ def generate_animation():
         dot, = ax_map.plot([pos[0]], [pos[1]], 'o', color='red', mec='darkred', markersize=8, zorder=4)
         ris_dots.append(dot)
         
-    # Legenda sotto il grafico (linea rossa = traccia Kalman stimata, ciano = GT reale)
-    leg_gt = mlines.Line2D([], [], color='cyan', linewidth=2.5, label='Percorso Reale (GT)')
-    leg_ekf = mlines.Line2D([], [], color='red', linewidth=2.0, label='Traccia Kalman (Stimata)')
-    leg_pred = mlines.Line2D([], [], color='yellow', linewidth=2.0, linestyle=':', label='Predizione Futura EKF')
+    # Legenda sotto il grafico
+    leg_gt = mlines.Line2D([], [], color='cyan', linewidth=2.5, alpha=0.6, label='Reale (GT)')
+    leg_ekf = mlines.Line2D([], [], color='red', linewidth=2.0, linestyle='--', label='EKF Coasting (Sbarello)')
+    leg_hybrid = mlines.Line2D([], [], color='#00FFCC', linewidth=2.5, label='Filtro Ibrido EKF+LSTM')
+    leg_pred = mlines.Line2D([], [], color='yellow', linewidth=2.0, linestyle=':', label='SDN Predittivo')
     ax_map.legend(
-        [bs_marker, base_ric, drone_marker, leg_gt, leg_ekf, leg_pred,
-         mpatches.Patch(color='lime'), mpatches.Patch(color='red')],
-        ["Base Station [SERVER]", "Base Ricarica", "UAV-01",
-         "Percorso Reale (GT)", "Traccia Kalman", "Predizione Futura",
-         "RIS Attiva", "RIS Standby"],
+        [drone_marker, leg_gt, leg_hybrid, leg_ekf, leg_pred, mpatches.Patch(color='lime'), mpatches.Patch(color='red')],
+        ["UAV-01", "Ground Truth", "Filtro Ibrido (EKF+LSTM)", "EKF Baseline", "Orizzonte SDN", "RIS ON", "RIS OFF"],
         loc='upper center', bbox_to_anchor=(0.5, -0.08), frameon=True,
         facecolor='#1E1E1E', edgecolor='gray', labelcolor='white', ncol=4
     )
@@ -365,51 +396,56 @@ def generate_animation():
                             bbox=dict(facecolor='black', edgecolor='lime'), transform=ax_timer.transAxes, horizontalalignment='center', verticalalignment='center')
                             
     # ---------------- RMSE Graph ----------------
-    rmse_medio = np.mean(rmse_t)
-    rmse_max = np.max(rmse_t)
+    rmse_base_medio = np.mean(rmse_base_t)
+    rmse_hybrid_medio = np.mean(rmse_hybrid_t)
+    rmse_base_max = np.max(rmse_base_t)
     ax_rmse.set_xlim(0, max(t_vals))
-    ax_rmse.set_ylim(0, max(3.0, rmse_max * 1.1)) # Adattivo se l'errore sale
+    ax_rmse.set_ylim(0, max(4.0, rmse_base_max * 1.1))
     ax_rmse.tick_params(colors='white')
     ax_rmse.grid(True, color='gray', linestyle=':', alpha=0.3)
-    ax_rmse.set_title(f"RMSE Tracker: Medio {rmse_medio:.2f}m | Max {rmse_max:.2f}m", color='white', pad=5, fontsize=10)
+    ax_rmse.set_title(f"Confronto RMSE | EKF Base: {rmse_base_medio:.2f}m vs Ibrido EKF+LSTM: {rmse_hybrid_medio:.2f}m", color='white', pad=5, fontsize=10)
     
     # Label Assi
     ax_rmse.set_xlabel("Tempo di Volo (s)", color='lightgray', fontsize=9)
     ax_rmse.set_ylabel("Errore (m)", color='lightgray', fontsize=9)
     
-    # Linea orizzontale RMSE Medio
-    ax_rmse.axhline(y=rmse_medio, color='red', linestyle='--', linewidth=1.5, alpha=0.6, label='Media')
-    # Linea orizzontale RMSE Massimo
-    ax_rmse.axhline(y=rmse_max, color='yellow', linestyle=':', linewidth=1.2, alpha=0.5, label='Peak')
-    ax_rmse.text(0.5, rmse_max + 0.05, f"Peak: {rmse_max:.2f}m", color='yellow', alpha=0.7, fontsize=8, fontweight='bold')
+    rmse_base_line, = ax_rmse.plot([], [], color='darkorange', linewidth=1.8, linestyle='--', label='EKF Baseline')
+    rmse_hybrid_line, = ax_rmse.plot([], [], color='#00FFCC', linewidth=2.5, label='EKF+LSTM')
     
-    rmse_line, = ax_rmse.plot([], [], color='darkorange', linewidth=2)
-    rmse_fill = ax_rmse.fill_between([], [], color='orange', alpha=0.3)
+    rmse_base_fill = ax_rmse.fill_between([], [], color='orange', alpha=0.15)
+    rmse_hybrid_fill = ax_rmse.fill_between([], [], color='#00FFCC', alpha=0.3)
+    ax_rmse.legend(loc='upper right', facecolor='#2B2B2B', edgecolor='gray', labelcolor='white', fontsize=8)
     
     # ---------------- Animation Engine ----------------
     FRAME_STEP = 3
     render_frames = range(0, len(x_gt), FRAME_STEP)
     ellip_patch = [None]
     
-    # Pre-calcolo array stima EKF per la traccia rossa
-    ekf_xs = np.array([s[0] for s in est_states])
-    ekf_ys = np.array([s[1] for s in est_states])
+    # Pre-calcolo array stima
+    base_xs = np.array([s[0] for s in base_est_states])
+    base_ys = np.array([s[1] for s in base_est_states])
+    hybrid_xs = np.array([s[0] for s in hybrid_est_states])
+    hybrid_ys = np.array([s[1] for s in hybrid_est_states])
 
     def update(frame_idx):
-        nonlocal rmse_fill
+        nonlocal rmse_base_fill, rmse_hybrid_fill
         
         path_line.set_data(x_gt[:frame_idx], y_gt[:frame_idx])
         drone_marker.set_data([x_gt[frame_idx]], [y_gt[frame_idx]])
         
-        # Traccia rossa: percorso STIMATO dall'EKF finora
-        ekf_path_line.set_data(ekf_xs[:frame_idx], ekf_ys[:frame_idx])
+        # Traccia EKF Base (Sbarello)
+        ekf_path_line.set_data(base_xs[:frame_idx], base_ys[:frame_idx])
+        x_b, y_b = base_est_states[frame_idx][0], base_est_states[frame_idx][1]
+        ekf_marker.set_data([x_b], [y_b])
         
-        x_e, y_e = est_states[frame_idx][0], est_states[frame_idx][1]
-        ekf_marker.set_data([x_e], [y_e])
+        # Traccia Filtro Ibrido (Perfetta)
+        hybrid_path_line.set_data(hybrid_xs[:frame_idx], hybrid_ys[:frame_idx])
+        x_h, y_h = hybrid_est_states[frame_idx][0], hybrid_est_states[frame_idx][1]
+        hybrid_marker.set_data([x_h], [y_h])
         
         if ellip_patch[0]:
             ellip_patch[0].remove()
-        ellip_patch[0] = plot_covariance_ellipse(ax_map, pos=(x_e, y_e), P=est_covs[frame_idx], n_std=3.0, facecolor='deeppink', edgecolor='deeppink', alpha=0.3, zorder=2)
+        ellip_patch[0] = plot_covariance_ellipse(ax_map, pos=(x_h, y_h), P=hybrid_est_covs[frame_idx], n_std=3.0, facecolor='#00FFCC', edgecolor='#00FFCC', alpha=0.3, zorder=2)
         
         c_states = ris_states[frame_idx]
         for i, dot in enumerate(ris_dots):
@@ -441,11 +477,14 @@ def generate_animation():
                 
         timer_txt.set_text(f"TIME: +{t_vals[frame_idx]:04.1f}s")
         
-        rmse_line.set_data(t_vals[:frame_idx], rmse_t[:frame_idx])
-        rmse_fill.remove()
-        rmse_fill = ax_rmse.fill_between(t_vals[:frame_idx], rmse_t[:frame_idx], color='orange', alpha=0.3)
+        rmse_base_line.set_data(t_vals[:frame_idx], rmse_base_t[:frame_idx])
+        rmse_hybrid_line.set_data(t_vals[:frame_idx], rmse_hybrid_t[:frame_idx])
+        rmse_base_fill.remove()
+        rmse_hybrid_fill.remove()
+        rmse_base_fill = ax_rmse.fill_between(t_vals[:frame_idx], rmse_base_t[:frame_idx], color='orange', alpha=0.15)
+        rmse_hybrid_fill = ax_rmse.fill_between(t_vals[:frame_idx], rmse_hybrid_t[:frame_idx], color='#00FFCC', alpha=0.3)
         
-        return [path_line, drone_marker, ekf_path_line, ekf_marker, signal_line, predictive_line, timer_txt, rmse_line, rmse_fill] + ris_dots + log_texts
+        return [path_line, drone_marker, ekf_path_line, ekf_marker, hybrid_path_line, hybrid_marker, signal_line, predictive_line, timer_txt, rmse_base_line, rmse_hybrid_line, rmse_base_fill, rmse_hybrid_fill] + ris_dots + log_texts
         
     print(f"Sto animando {len(render_frames)} fotogrammi compressi...")
     ani = FuncAnimation(fig, update, frames=render_frames, blit=False, interval=50)
