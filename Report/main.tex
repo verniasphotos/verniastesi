@@ -258,6 +258,13 @@ Infine, il lavoro si pone l'obiettivo dell'ottimizzazione dell'efficienza energe
 
 \subsection{Metodologia: Sviluppo del Digital Twin in Python e struttura dell'elaborato}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../Tesi_Architettura_6G_4K.png}
+    \caption{Panoramica Generale dell'Architettura 6G con Drone assistito da RIS attive pilotato dal Controller SDN.}
+    \label{fig:architettura_generale}
+\end{figure}
+
 Per validare sperimentalmente i paradigmi teorici delle reti 6G assistite da RIS, il presente lavoro si fonda sulla progettazione e sullo sviluppo di un simulatore custom ad alte prestazioni implementato in linguaggio Python. Data l'impraticabilità economica e le limitazioni fisiche di un testbed reale su larga scala, si è optato per la creazione di un Digital Twin (Gemello Digitale). Questo ambiente di simulazione opera come un motore deterministico capace di replicare fedelmente la topologia tridimensionale di un magazzino logistico (discretizzando le scaffalature metalliche tramite volumi di delimitazione Axis-Aligned Bounding Boxes, AABB), la cinematica di volo degli UAV e le dinamiche di propagazione elettromagnetica a 5.9 GHz in regime di severo NLoS.
 
 Dal punto di vista del software engineering, il simulatore adotta un'architettura che separa nettamente il Data Plane (il dominio fisico vettoriale) dal Control Plane (il Server Centrale SDN), emulando i ritardi di comunicazione tramite chiamate gRPC \cite{Vairam2023}. Per superare i colli di bottiglia computazionali intrinseci di Python -- in particolare il Global Interpreter Lock (GIL) -- l'architettura sfrutta il paradigma del Multiprocessing accoppiato a un gestore di Shared Memory a basso livello. Questa ingegnerizzazione permette ai moduli di scambiare i tensori di stato operando in logica Zero-Copy, garantendo latenze di interscambio nell'ordine dei nanosecondi. Inoltre, i calcoli intensivi per il Ray-Casting radio sono stati ottimizzati tramite alberi k-dimensionali (KDTree) per abbattere la complessità della ricerca a $\mathcal{O}(\log N)$, e tramite compilazione Just-In-Time (JIT) (libreria Numba) per accelerare le operazioni matriciali.
@@ -533,6 +540,13 @@ La centralizzazione dell'intelligenza nel Near-RT RIC abilita due vantaggi ingeg
     \item \textbf{Sicurezza a Livello Fisico (PHY Security)}: Mantenendo fasci elettromagnetici estremamente direttivi e puntati esclusivamente sull'UAV autorizzato, la xApp minimizza la dispersione di potenza in direzioni indesiderate. Tale approccio garantisce che informazioni sensibili e comandi logistici non siano intercettabili da nodi malevoli o eavesdropper presenti in altre zone del magazzino, instaurando una bolla di sicurezza radiopropagativa intrinseca al mezzo fisico \cite{Lien2024}.
 \end{itemize}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../Architettura_Blocchi_Semplificata.png}
+    \caption{Schema a blocchi semplificato per la separazione dei piani di elaborazione.}
+    \label{fig:architettura_blocchi}
+\end{figure}
+
 \clearpage
 \addtocontents{toc}{\protect\newpage}
 \section{Progettazione del Digital Twin "Simulatore Tracking Indoor 6G"}
@@ -769,7 +783,15 @@ Il cuore computazionale dell'intero Digital Twin sviluppato per questa tesi risi
 
 Nel mio elaborato ho scelto di adottare un'architettura SBA (Service-Based Architecture), separando in modo netto il piano di trasmissione a radiofrequenza (Data Plane) dall'intelligenza decisionale (Control Plane), concentrando quest'ultima all'interno del controllore centrale SDN. A livello software, per garantire un'esecuzione real-time ed evitare i ben noti colli di bottiglia imposti dal GIL (Global Interpreter Lock) del linguaggio Python, il server è fondato su una rigorosa astrazione a multiprocesso. La comunicazione tra i moduli avviene a livello di hardware fisico allocato in RAM tramite Shared Memory, garantendo alle pipeline di scambiarsi enormi array multidimensionali (\textit{NumPy array}) di coordinate e matrici di fase con latenze intra-componente pressoché nulle.
 
-Come schematizzato nella visione d'insieme dell'architettura di sistema, il Server SDN risulta diviso in sei macro-moduli paralleli, ognuno con una precisa responsabilità ingegneristica.
+Come schematizzato nella visione d'insieme dell'architettura di sistema (Figura \ref{fig:sdn_server_arch}), il Server SDN risulta diviso in sei macro-moduli paralleli, ognuno con una precisa responsabilità ingegneristica.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{../SDN_Server_Architecture_Updated.png}
+    \caption{Dettaglio dell'Architettura Logica del Server Centrale SDN e dei suoi macro-moduli interni.}
+    \label{fig:sdn_server_arch}
+\end{figure}
+
 \subsubsection{gRPC Network Gateway}
 \subsubsection{Tracking Engine}
 \subsubsection{RIS Orchestrator}
@@ -894,6 +916,13 @@ Al contempo, sul piano spaziale-probabilistico di covarianza (rif. Figura 5.6) s
     \centering
     \includegraphics[width=0.8\textwidth]{../Test_2_B_Successo_RIS.png}
     \caption{Test 2. Con la RIS attiva per A-LoS interviene il ripristino EKF metrico.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../Test_2_RMSE_Temporale.png}
+    \caption{Test 2. Andamento temporale dell'RMSE: l'Assisted-LoS corregge repentinamente la deriva spaziale e mantiene stabile il segnale.}
+    \label{fig:test2_rmse_temporale}
 \end{figure}
 
 \begin{figure}[H]
