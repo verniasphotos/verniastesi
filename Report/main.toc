@@ -1,67 +1,68 @@
 \babel@toc {italian}{}\relax 
 \babel@toc {italian}{}\relax 
 \contentsline {section}{\numberline {1}Introduzione}{6}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Contesto Applicativo: Automazione logistica 4.0 e navigazione autonoma in corridoi VNA}{6}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}Motivazione: Limiti NLoS industriali e necessità di architetture 6G-ready}{7}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.1}Contesto Applicativo: Automazione logistica 4.0 e navigazione autonoma in corridoi VNA}{7}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Motivazione: Limiti NLoS industriali e necessità di architetture 6G-ready}{8}{subsection.1.2}%
 \contentsline {subsection}{\numberline {1.3}Obiettivi del Lavoro: Tracking sub-metrico, abbattimento dell'outage e ottimizzazione dell'efficienza energetica (Green 6G)}{8}{subsection.1.3}%
-\contentsline {subsection}{\numberline {1.4}Metodologia: Sviluppo del Digital Twin in Python e struttura dell'elaborato}{10}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.4}Metodologia: Sviluppo del Digital Twin in Python e struttura dell'elaborato}{9}{subsection.1.4}%
 \contentsline {section}{\numberline {2}Modello Fisico e Propagazione Radio 6G}{11}{section.2}%
 \contentsline {subsection}{\numberline {2.1}Il Canale 3GPP TR 38.901: Modellazione InF-DH a 5.9 GHz}{11}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}Validazione Spaziale NLoS: Algoritmi di Ray-Casting e attenuazione da blocchi metallici}{13}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}Reconfigurable Intelligent Surfaces (RIS)}{14}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.2}Validazione Spaziale NLoS: Algoritmi di Ray-Casting e attenuazione}{12}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Reconfigurable Intelligent Surfaces (RIS)}{13}{subsection.2.3}%
 \contentsline {subsubsection}{\numberline {2.3.1}Il limite del Fading Moltiplicativo nelle RIS Passive}{14}{subsubsection.2.3.1}%
-\contentsline {subsubsection}{\numberline {2.3.2}Architettura delle RIS Attive e gestione "Green 6G"}{15}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.2}Architettura delle RIS Attive e gestione "Green 6G"}{14}{subsubsection.2.3.2}%
 \contentsline {subsubsection}{\numberline {2.3.3}Transizione verso le Beyond-Diagonal RIS (BD-RIS)}{15}{subsubsection.2.3.3}%
 \contentsline {subsubsection}{\numberline {2.3.4}Imperfezioni Hardware e Beam Misalignment}{15}{subsubsection.2.3.4}%
 \contentsline {subsection}{\numberline {2.4}Il Link Budget in Cascata: Analisi del rumore termico dinamico nel canale UAV-RIS-BS}{16}{subsection.2.4}%
 \contentsline {section}{\numberline {3}Architettura di Rete e Protocolli SDN}{17}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Evoluzione 6G: Separazione tra Data/Control Plane e Service-Based Architecture (SBA)}{17}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Livello MAC (Fronthaul): Accesso Grant-Free per telemetria UAV massiva}{18}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Livello di Trasporto (Backhaul): Ottimizzazione tramite gRPC e Protobuf con modellazione parametrica della latenza}{19}{subsection.3.3}%
-\contentsline {subsection}{\numberline {3.4}Logica di Controllo (O-RAN RIC): Orchestrazione delle RIS e integrazione di moduli AI/ML tramite Near-RT RIC}{20}{subsection.3.4}%
-\newpage 
+\contentsline {subsection}{\numberline {3.2}Livello MAC (Fronthaul)}{18}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Livello di Trasporto (Backhaul)}{19}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Logica di Controllo (O-RAN RIC)}{21}{subsection.3.4}%
 \contentsline {section}{\numberline {4}Progettazione del Digital Twin "Simulatore Tracking Indoor 6G"}{23}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Motore Cinematico UAV: Dinamica di volo e incertezze di orientamento con l'Iniezione del Rumore di Processo (Process Noise)}{23}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Fusione Sensoriale EKF: Implementazione dell'Extended Kalman Filter, dal limite inerziale (Coasting) al reintegro dei residui (Assisted-LoS)}{24}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.1}Motore Cinematico UAV}{23}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Fusione Sensoriale EKF}{25}{subsection.4.2}%
 \contentsline {subsubsection}{\numberline {4.2.1}Fase di Predizione e limite inerziale (Test 1: Coasting)}{25}{subsubsection.4.2.1}%
 \contentsline {subsubsection}{\numberline {4.2.2}Fase di Aggiornamento e Assisted-LoS (Test 2: Innovation Step)}{25}{subsubsection.4.2.2}%
 \contentsline {subsubsection}{\numberline {4.2.3}Monitoraggio RMSE e Interrupt di Collisione}{26}{subsubsection.4.2.3}%
-\contentsline {subsection}{\numberline {4.3}Controller SDN: Algoritmi K-Means per l'Ottimizzazione del Deployment (BOM), Logiche Predittive Neurali (LSTM) e Controllo Elettromagnetico}{26}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.3}Controller SDN e i suoi Algoritmi}{26}{subsection.4.3}%
 \contentsline {subsubsection}{\numberline {4.3.1}Deployment Topologico NLoS e Algoritmi di Clustering K-Means}{27}{subsubsection.4.3.1}%
 \contentsline {subsubsection}{\numberline {4.3.2}Limiti dell'Inerzia e Analisi di Transitorio Neurale (LSTM)}{27}{subsubsection.4.3.2}%
-\contentsline {subsubsection}{\numberline {4.3.3}Soppressione della Blind Reflection e Controllo ON-OFF}{27}{subsubsection.4.3.3}%
+\contentsline {subsubsection}{\numberline {4.3.3}Soppressione della Blind Reflection e Controllo ON-OFF}{28}{subsubsection.4.3.3}%
 \contentsline {subsection}{\numberline {4.4}Architettura Software e Ottimizzazione Energetica}{28}{subsection.4.4}%
 \contentsline {subsubsection}{\numberline {4.4.1}Oltre il Threading: Bypass del GIL e IPC in Zero-Copy}{28}{subsubsection.4.4.1}%
-\contentsline {subsubsection}{\numberline {4.4.2}Strutture ad Albero (KD-Tree) e Compilazione JIT (LLVM Numba)}{28}{subsubsection.4.4.2}%
-\contentsline {subsubsection}{\numberline {4.4.3}Risoluzione di Dinkelbach e Transizione "Green 6G" (BD-RIS)}{29}{subsubsection.4.4.3}%
-\contentsline {subsection}{\numberline {4.5}Architettura Logica del Server Centrale SDN: Il Digital Twin}{30}{subsection.4.5}%
-\contentsline {subsubsection}{\numberline {4.5.1}gRPC Network Gateway}{31}{subsubsection.4.5.1}%
-\contentsline {subsubsection}{\numberline {4.5.2}Tracking Engine}{31}{subsubsection.4.5.2}%
-\contentsline {subsubsection}{\numberline {4.5.3}RIS Orchestrator}{31}{subsubsection.4.5.3}%
-\contentsline {subsubsection}{\numberline {4.5.4}Mission Manager}{31}{subsubsection.4.5.4}%
-\contentsline {section}{\numberline {5}Validazione Sperimentale e Analisi dei Risultati}{31}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Setup di Simulazione: Definizione dei layout e parametri hardware.}{32}{subsection.5.1}%
-\contentsline {subsubsection}{\numberline {5.1.1}Test 0: Valutazione dei Layout e Deployment K-Means}{32}{subsubsection.5.1.1}%
-\contentsline {subsubsection}{\numberline {5.1.2}I Parametri Elettromagnetici per il "6G"}{34}{subsubsection.5.1.2}%
-\contentsline {subsubsection}{\numberline {5.1.3}Il Drone e il Cervello Matematico (Filtro EKF)}{35}{subsubsection.5.1.3}%
-\contentsline {subsection}{\numberline {5.2}Test 1: Analisi Baseline NLoS e fallimento del tracciamento (Diagnosi)}{35}{subsection.5.2}%
-\contentsline {subsubsection}{\numberline {5.2.1}Decadimento del Link Radio e Transizione in "Coasting" Inerziale}{35}{subsubsection.5.2.1}%
-\contentsline {subsubsection}{\numberline {5.2.2}Deriva della Stima Spaziale e Saturazione delle Covarianze}{35}{subsubsection.5.2.2}%
-\contentsline {subsubsection}{\numberline {5.2.3}Analisi Quantitativa: Root Mean Square Error e Distribuzione Cumulativa}{36}{subsubsection.5.2.3}%
-\contentsline {subsection}{\numberline {5.3}Test 2: Mitigazione degli Scenari NLoS tramite Assisted-Line-of-Sight}{38}{subsection.5.3}%
-\contentsline {subsubsection}{\numberline {5.3.1}Ripristino Analogico: Assisted-Line-of-Sight}{38}{subsubsection.5.3.1}%
-\contentsline {subsubsection}{\numberline {5.3.2}Rientro a Pieno Regime EKF della Stima Metrica}{38}{subsubsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {4.4.2}Strutture ad Albero (KD-Tree) e Compilazione JIT (LLVM Numba)}{29}{subsubsection.4.4.2}%
+\contentsline {subsubsection}{\numberline {4.4.3}Risoluzione di Dinkelbach e Transizione "Green 6G" (BD-RIS)}{30}{subsubsection.4.4.3}%
+\contentsline {subsection}{\numberline {4.5}Architettura Logica del Server Centrale SDN: Il Digital Twin}{31}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}gRPC Network Gateway (Interfaccia di Rete)}{32}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Tracking Engine (Motore EKF e Predizione Neurale)}{32}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}RIS Orchestrator (L'Ottimizzatore Topologico)}{33}{subsubsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.5.4}Mission Manager (Il Pilota Virtuale)}{33}{subsubsection.4.5.4}%
+\contentsline {subsubsection}{\numberline {4.5.5}Energy Manager (Il Contabile Energetico ed Efficienza di Pareto)}{33}{subsubsection.4.5.5}%
+\contentsline {subsubsection}{\numberline {4.5.6}Telemetry \& Database}{34}{subsubsection.4.5.6}%
+\contentsline {section}{\numberline {5}Validazione Sperimentale e Analisi dei Risultati}{35}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Setup di Simulazione: Definizione dei layout e parametri hardware.}{35}{subsection.5.1}%
+\contentsline {subsubsection}{\numberline {5.1.1}Test 0: Valutazione dei Layout e Deployment K-Means}{35}{subsubsection.5.1.1}%
+\contentsline {subsubsection}{\numberline {5.1.2}I Parametri Elettromagnetici per il "6G"}{37}{subsubsection.5.1.2}%
+\contentsline {subsubsection}{\numberline {5.1.3}Il Drone e il Cervello Matematico (Filtro EKF)}{37}{subsubsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.2}Test 1: Analisi Baseline NLoS e fallimento del tracciamento (Diagnosi)}{38}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}Decadimento del Link Radio e Transizione in "Coasting" Inerziale}{38}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Deriva della Stima Spaziale e Saturazione delle Covarianze}{38}{subsubsection.5.2.2}%
+\contentsline {subsubsection}{\numberline {5.2.3}Analisi Quantitativa: Root Mean Square Error e Distribuzione Cumulativa}{39}{subsubsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.3}Test 2: Mitigazione degli Scenari NLoS tramite Assisted-Line-of-Sight}{40}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}Ripristino Analogico: Assisted-Line-of-Sight}{40}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}Rientro a Pieno Regime EKF della Stima Metrica}{40}{subsubsection.5.3.2}%
 \contentsline {subsection}{\numberline {5.4}Test 3: Variazione Parametrica e Analisi Stress sul Vincolo di Latenza}{41}{subsection.5.4}%
-\contentsline {subsubsection}{\numberline {5.4.1}Il Limite Fisico Strutturale: L'effetto Beam Misalignment}{41}{subsubsection.5.4.1}%
-\contentsline {subsubsection}{\numberline {5.4.2}Decadimento in Outage Zone e Ritorno al Moto Cieco}{42}{subsubsection.5.4.2}%
-\contentsline {subsection}{\numberline {5.5}Test 4: Evoluzione Predittiva tramite LSTM e Ottimizzazione Energetica BS-RIS}{42}{subsection.5.5}%
-\contentsline {subsubsection}{\numberline {5.5.1}Mitigazione del Beam Misalignment: Modello Operativo "Zero-Latency-Equivalent"}{43}{subsubsection.5.5.1}%
-\contentsline {subsubsection}{\numberline {5.5.2}Analisi della Dinamica Temporale: Integrità Cinematica e Handover}{44}{subsubsection.5.5.2}%
-\contentsline {subsubsection}{\numberline {5.5.3}Analisi dell'Ecosistema Elettromagnetico: Controllo SDN per la Soppressione della Blind Reflection}{45}{subsubsection.5.5.3}%
-\contentsline {subsubsection}{\numberline {5.5.4}Mappa del Trade-off Energetico e Definizione della "Zona Ottima" Operativa}{46}{subsubsection.5.5.4}%
-\contentsline {subsubsection}{\numberline {5.5.5}Sinergia Algoritmica: Il Filtro Ibrido EKF-LSTM}{48}{subsubsection.5.5.5}%
-\contentsline {section}{\numberline {6}Conclusioni Finali e Sviluppi Futuri}{50}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Sintesi dei Traguardi Operativi e Risultati del Framework}{50}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Sviluppi Futuri e Prospettive di Ricerca}{50}{subsection.6.2}%
-\contentsline {section}{Bibliografia}{52}{section*.21}%
-\contentsline {section}{Ringraziamenti}{54}{section*.21}%
+\contentsline {subsubsection}{\numberline {5.4.1}Il Limite Fisico Strutturale: L'effetto Beam Misalignment}{42}{subsubsection.5.4.1}%
+\contentsline {subsubsection}{\numberline {5.4.2}Decadimento in Outage Zone e Ritorno al Moto Cieco}{43}{subsubsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.5}Test 4: Evoluzione Predittiva tramite LSTM e Ottimizzazione Energetica BS-RIS}{43}{subsection.5.5}%
+\contentsline {subsubsection}{\numberline {5.5.1}Mitigazione del Beam Misalignment}{43}{subsubsection.5.5.1}%
+\contentsline {subsubsection}{\numberline {5.5.2}Analisi della Dinamica Temporale: Integrità Cinematica e Handover}{45}{subsubsection.5.5.2}%
+\contentsline {subsubsection}{\numberline {5.5.3}Analisi dell'Ecosistema Elettromagnetico con Controllo SDN}{46}{subsubsection.5.5.3}%
+\contentsline {subsubsection}{\numberline {5.5.4}Mappa del Trade-off Energetico e Definizione della "Zona Ottima" Operativa}{47}{subsubsection.5.5.4}%
+\contentsline {subsubsection}{\numberline {5.5.5}Sinergia Algoritmica: Il Filtro Ibrido EKF-LSTM}{49}{subsubsection.5.5.5}%
+\contentsline {section}{\numberline {6}Conclusioni Finali e Sviluppi Futuri}{51}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Sintesi dei Traguardi Operativi e Risultati del Framework}{51}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Sviluppi Futuri e Prospettive di Ricerca}{51}{subsection.6.2}%
+\contentsline {section}{Bibliografia}{53}{section*.22}%
+\contentsline {section}{Ringraziamenti}{55}{section*.22}%

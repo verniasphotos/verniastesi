@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  17 APR 2026 23:40
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  19 APR 2026 10:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -678,12 +678,46 @@ File: pgfmodulematrix.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 librarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 )))
+(/Users/vernias/Library/texmf/tex/generic/pgf/frontendlayer/tikz/libraries/tikz
+libraryshapes.geometric.code.tex
+File: tikzlibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+
+(/Users/vernias/Library/texmf/tex/generic/pgf/libraries/shapes/pgflibraryshapes
+.geometric.code.tex
+File: pgflibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+))
+(/Users/vernias/Library/texmf/tex/generic/pgf/libraries/pgflibraryarrows.meta.c
+ode.tex
+File: pgflibraryarrows.meta.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgfarrowinset=\dimen324
+\pgfarrowlength=\dimen325
+\pgfarrowwidth=\dimen326
+\pgfarrowlinewidth=\dimen327
+)
+(/Users/vernias/Library/texmf/tex/generic/pgf/frontendlayer/tikz/libraries/tikz
+librarypositioning.code.tex
+File: tikzlibrarypositioning.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Users/vernias/Library/texmf/tex/generic/pgf/frontendlayer/tikz/libraries/tikz
+librarycalc.code.tex
+File: tikzlibrarycalc.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Users/vernias/Library/texmf/tex/generic/pgf/frontendlayer/tikz/libraries/tikz
+libraryfit.code.tex
+File: tikzlibraryfit.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+)
+(/Users/vernias/Library/texmf/tex/generic/pgf/frontendlayer/tikz/libraries/tikz
+librarybackgrounds.code.tex
+File: tikzlibrarybackgrounds.code.tex 2025-08-29 v3.1.11a (3.1.11a)
+\pgf@layerbox@background=\box76
+\pgf@layerboxsaved@background=\box77
+)
 (/Users/vernias/Library/texmf/tex/latex/varwidth/varwidth.sty
 Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
-\@vwid@box=\box76
+\@vwid@box=\box78
 \sift@deathcycles=\count351
-\@vwid@loff=\dimen324
-\@vwid@roff=\dimen325
+\@vwid@loff=\dimen328
+\@vwid@roff=\dimen329
 )
 ==> First Aid for varwidth.sty applied!
 (/Users/vernias/Library/texmf/tex/latex/datetime2/datetime2.sty
@@ -764,7 +798,7 @@ Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
 Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
 )
 )
-\@linkdim=\dimen326
+\@linkdim=\dimen330
 \Hy@linkcounter=\count355
 \Hy@pagecounter=\count356
 
@@ -792,7 +826,7 @@ Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
 Package hyperref Info: Bookmarks ON on input line 4468.
 \c@Hy@tempcnt=\count358
 LaTeX Info: Redefining \url on input line 4807.
-\XeTeXLinkMargin=\dimen327
+\XeTeXLinkMargin=\dimen331
 
 (/Users/vernias/Library/texmf/tex/generic/bitset/bitset.sty
 Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
@@ -802,8 +836,8 @@ Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
 )
 ))
 \Fld@menulength=\count359
-\Field@Width=\dimen328
-\Fld@charsize=\dimen329
+\Field@Width=\dimen332
+\Fld@charsize=\dimen333
 Package hyperref Info: Hyper figures OFF on input line 6084.
 Package hyperref Info: Link nesting OFF on input line 6089.
 Package hyperref Info: Hyper index ON on input line 6092.
@@ -898,23 +932,23 @@ Package: relsize 2013/03/29 ver 4.1
 \skiplength=\skip118
 \algomargin=\skip119
 \skipalgocfslide=\skip120
-\algowidth=\dimen330
-\inoutsize=\dimen331
-\inoutindent=\dimen332
-\interspacetitleruled=\dimen333
-\interspacealgoruled=\dimen334
-\interspacetitleboxruled=\dimen335
+\algowidth=\dimen334
+\inoutsize=\dimen335
+\inoutindent=\dimen336
+\interspacetitleruled=\dimen337
+\interspacealgoruled=\dimen338
+\interspacetitleboxruled=\dimen339
 \algocf@ruledwidth=\skip121
-\algocf@inoutbox=\box77
-\algocf@inputbox=\box78
+\algocf@inoutbox=\box79
+\algocf@inputbox=\box80
 \AlCapSkip=\skip122
 \AlCapHSkip=\skip123
 \algoskipindent=\skip124
-\algocf@nlbox=\box79
-\algocf@hangingbox=\box80
-\algocf@untilbox=\box81
+\algocf@nlbox=\box81
+\algocf@hangingbox=\box82
+\algocf@untilbox=\box83
 \algocf@skipuntil=\skip125
-\algocf@capbox=\box82
+\algocf@capbox=\box84
 \algocf@lcaptionbox=\skip126
 \algoheightruledefault=\skip127
 \algoheightrule=\skip128
@@ -923,30 +957,30 @@ Package: relsize 2013/03/29 ver 4.1
 \c@algocfline=\count369
 \c@algocfproc=\count370
 \c@algocf=\count371
-\algocf@algoframe=\box83
-\algocf@algobox=\box84
+\algocf@algoframe=\box85
+\algocf@algobox=\box86
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 101.
+Package hyperref Info: Option `colorlinks' set `true' on input line 102.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 101.
+(hyperref)                removing `subscript' on input line 102.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 101.
+(hyperref)                removing `subscript' on input line 102.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 101.
+(hyperref)                removing `subscript' on input line 102.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 101.
+(hyperref)                removing `subscript' on input line 102.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 101.
+(hyperref)                removing `subscript' on input line 102.
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/base/inputenc.sty
 Package: inputenc 2024/02/08 v1.3d Input encoding file
@@ -968,19 +1002,19 @@ Package: environ 2014/05/04 v0.3 A new way to define environments
 (/Users/vernias/Library/texmf/tex/latex/trimspaces/trimspaces.sty
 Package: trimspaces 2009/09/17 v1.1 Trim spaces around a token list
 ))
-\tcb@titlebox=\box85
-\tcb@upperbox=\box86
-\tcb@lowerbox=\box87
-\tcb@phantombox=\box88
+\tcb@titlebox=\box87
+\tcb@upperbox=\box88
+\tcb@lowerbox=\box89
+\tcb@phantombox=\box90
 \c@tcbbreakpart=\count372
 \c@tcblayer=\count373
 \c@tcolorbox@number=\count374
-\l__tcobox_tmpa_box=\box89
-\l__tcobox_tmpa_dim=\dimen336
-\tcb@temp=\box90
-\tcb@temp=\box91
+\l__tcobox_tmpa_box=\box91
+\l__tcobox_tmpa_dim=\dimen340
 \tcb@temp=\box92
 \tcb@temp=\box93
+\tcb@temp=\box94
+\tcb@temp=\box95
 )
 (/Users/vernias/Library/texmf/tex/latex/tcolorbox/tcblistingsutf8.code.tex
 Library (tcolorbox): 'tcblistingsutf8.code.tex' version '6.9.0'
@@ -988,17 +1022,17 @@ Library (tcolorbox): 'tcblistingsutf8.code.tex' version '6.9.0'
 Library (tcolorbox): 'tcblistings.code.tex' version '6.9.0'
 (/Users/vernias/Library/texmf/tex/latex/listings/listings.sty
 \lst@mode=\count375
-\lst@gtempboxa=\box94
+\lst@gtempboxa=\box96
 \lst@token=\toks57
 \lst@length=\count376
-\lst@currlwidth=\dimen337
+\lst@currlwidth=\dimen341
 \lst@column=\count377
 \lst@pos=\count378
-\lst@lostspace=\dimen338
-\lst@width=\dimen339
+\lst@lostspace=\dimen342
+\lst@width=\dimen343
 \lst@newlines=\count379
 \lst@lineno=\count380
-\lst@maxwidth=\dimen340
+\lst@maxwidth=\dimen344
 
 (/Users/vernias/Library/texmf/tex/latex/listings/lstpatch.sty
 File: lstpatch.sty 2025/11/14 1.11b (Carsten Heinz)
@@ -1007,7 +1041,7 @@ File: lstpatch.sty 2025/11/14 1.11b (Carsten Heinz)
 File: lstmisc.sty 2025/11/14 1.11b (Carsten Heinz)
 \c@lstnumber=\count381
 \lst@skipnumbers=\count382
-\lst@framebox=\box95
+\lst@framebox=\box97
 )
 (/Users/vernias/Library/texmf/tex/latex/listings/listings.cfg
 File: listings.cfg 2025/11/14 1.11b listings configuration
@@ -1035,9 +1069,9 @@ Library (tcolorbox): 'tcbbreakable.code.tex' version '6.9.0'
 Package: pdfcol 2022-09-21 v1.7 Handle new color stacks for pdfTeX (HO)
 )
 Package pdfcol Info: New color stack `tcb@breakable' = 1 on input line 23.
-\tcb@testbox=\box96
-\tcb@totalupperbox=\box97
-\tcb@totallowerbox=\box98
+\tcb@testbox=\box98
+\tcb@totalupperbox=\box99
+\tcb@totallowerbox=\box100
 )
 \c@tcb@cnt@code=\count384
 
@@ -1048,24 +1082,24 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (./main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 135.
-LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1104,13 +1138,13 @@ LaTeX Font Info:    ... okay on input line 135.
 (/usr/local/texlive/2026basic/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count386
-\scratchdimen=\dimen341
-\scratchbox=\box99
+\scratchdimen=\dimen345
+\scratchbox=\box101
 \nofMPsegments=\count387
 \nofMParguments=\count388
 \everyMPshowfont=\toks58
 \MPscratchCnt=\count389
-\MPscratchDim=\dimen342
+\MPscratchDim=\dimen346
 \MPnumerator=\count390
 \makeMPintoPDFobject=\count391
 \everyMPtoPDFconversion=\toks59
@@ -1125,8 +1159,8 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Info: Redefining \it@ocap on input line 135.
-LaTeX Info: Redefining \it@ccap on input line 135.
+LaTeX Info: Redefining \it@ocap on input line 136.
+LaTeX Info: Redefining \it@ccap on input line 136.
 
 
 File italian.ldf warning: 
@@ -1134,43 +1168,43 @@ italian.ldf    With OT1 encoding guillemets are poorly faked
 italian.ldf    Use T1 encoding
 italian.ldf    or specify a font with command \CaporaliFrom
 italian.ldf    See the documentation concerning the babel-italian typesetting
-italian.ldf    on input line 135.
+italian.ldf    on input line 136.
 
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring ON on input line 135.
+Package hyperref Info: Link coloring ON on input line 136.
 (./main.out) (./main.out)
 \@outlinefile=\write4
 \openout4 = `main.out'.
 
 \c@lstlisting=\count392
-<Images/logo-unifi.png, id=263, 1204.5pt x 1304.875pt>
+<Images/logo-unifi.png, id=271, 1204.5pt x 1304.875pt>
 File: Images/logo-unifi.png Graphic file (type png)
 <use Images/logo-unifi.png>
-Package pdftex.def Info: Images/logo-unifi.png  used on input line 143.
+Package pdftex.def Info: Images/logo-unifi.png  used on input line 144.
 (pdftex.def)             Requested size: 142.26378pt x 154.1093pt.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <18> not available
-(Font)              size <17.28> substituted on input line 147.
+(Font)              size <17.28> substituted on input line 148.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/m/sc' in size <18> not available
-(Font)              size <17.28> substituted on input line 147.
+(Font)              size <17.28> substituted on input line 148.
 
 [1
 
 {/Users/vernias/Library/texlive/2026basic/texmf-var/fonts/map/pdftex/updmap/pdf
 tex.map} <./Images/logo-unifi.png>] [2]
-LaTeX Font Info:    Trying to load font information for U+msa on input line 192
+LaTeX Font Info:    Trying to load font information for U+msa on input line 193
 .
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 192
+LaTeX Font Info:    Trying to load font information for U+msb on input line 193
 .
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -1178,204 +1212,246 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 (./main.toc [3
 
-] [4]
-Overfull \hbox (20.07065pt too wide) in paragraph at lines 58--58
- [][] [][][]\OT1/cmr/m/n/10 Mitigazione del Beam Mi-sa-li-gn-ment: Mo-del-lo Op
-e-ra-ti-vo "Zero-Latency-Equivalent"[][] []  
- []
-
-)
+] [4])
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
- [5] [6
+ [5]
+<../warehouse_drone_problem.png, id=445, 1027.84pt x 1027.84pt>
+File: ../warehouse_drone_problem.png Graphic file (type png)
+<use ../warehouse_drone_problem.png>
+Package pdftex.def Info: ../warehouse_drone_problem.png  used on input line 232
+.
+(pdftex.def)             Requested size: 149.37958pt x 149.37018pt.
+ [6
+
+ <../warehouse_drone_problem.png>] [7
+
+] [8
 
 ]
-Underfull \vbox (badness 1400) has occurred while \output is active []
+Underfull \vbox (badness 1910) has occurred while \output is active []
 
- [7]
-[8]
-<../Tesi_Architettura_6G_4K.png, id=503, 1027.84pt x 1027.84pt>
-File: ../Tesi_Architettura_6G_4K.png Graphic file (type png)
-<use ../Tesi_Architettura_6G_4K.png>
-Package pdftex.def Info: ../Tesi_Architettura_6G_4K.png  used on input line 263
-.
-(pdftex.def)             Requested size: 384.1096pt x 384.10596pt.
+ [9]
+[10] [11
+
+] [12
+
+]
+<Images/RIS.jpeg, id=561, 1032.85875pt x 1009.7725pt>
+File: Images/RIS.jpeg Graphic file (type jpg)
+<use Images/RIS.jpeg>
+Package pdftex.def Info: Images/RIS.jpeg  used on input line 367.
+(pdftex.def)             Requested size: 128.0387pt x 125.17351pt.
+
+
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 368.
+See the caption package documentation for explanation.
+
+[13 <./Images/RIS.jpeg>]
+<../passive_ris.png, id=579, 1023.825pt x 1023.825pt>
+File: ../passive_ris.png Graphic file (type png)
+<use ../passive_ris.png>
+Package pdftex.def Info: ../passive_ris.png  used on input line 406.
+(pdftex.def)             Requested size: 204.85802pt x 204.8551pt.
+<../active_ris.png, id=580, 1027.84pt x 1027.84pt>
+File: ../active_ris.png Graphic file (type png)
+<use ../active_ris.png>
+Package pdftex.def Info: ../active_ris.png  used on input line 413.
+(pdftex.def)             Requested size: 204.85802pt x 204.8586pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [9]
-[10 <../Tesi_Architettura_6G_4K.png>] [11] [12] [13] [14] [15] [16]
-Underfull \vbox (badness 1622) has occurred while \output is active []
+ [14
 
- [17]
-[18] [19] [20]
-<../Architettura_Blocchi_Semplificata.png, id=653, 1027.84pt x 1027.84pt>
-File: ../Architettura_Blocchi_Semplificata.png Graphic file (type png)
-<use ../Architettura_Blocchi_Semplificata.png>
-Package pdftex.def Info: ../Architettura_Blocchi_Semplificata.png  used on inpu
-t line 545.
-(pdftex.def)             Requested size: 384.1096pt x 384.10596pt.
+]
+Underfull \vbox (badness 1360) has occurred while \output is active []
 
-Underfull \vbox (badness 4967) has occurred while \output is active []
+ [15 <../passive_ris.png (PNG copy)> <../active_ris.png>] [16] [17
 
- [21]
-[22 <../Architettura_Blocchi_Semplificata.png>] [23
+] [18] [19] [20] [21
 
-] [24] [25] [26] [27]
-[28]
-Underfull \vbox (badness 2384) has occurred while \output is active []
+]
+[22]
+<Images/UAV1_UAV2.jpeg, id=678, 880.28876pt x 899.36pt>
+File: Images/UAV1_UAV2.jpeg Graphic file (type jpg)
+<use Images/UAV1_UAV2.jpeg>
+Package pdftex.def Info: Images/UAV1_UAV2.jpeg  used on input line 675.
+(pdftex.def)             Requested size: 170.71393pt x 174.40701pt.
+ [23
+
+ <./Images/UAV1_UAV2.jpeg>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [24]
+[25]
+Underfull \vbox (badness 1237) has occurred while \output is active []
+
+ [26]
+[27] [28]
+Underfull \vbox (badness 3514) has occurred while \output is active []
 
  [29]
-<../SDN_Server_Architecture_Updated.png, id=732, 1027.84pt x 1027.84pt>
-File: ../SDN_Server_Architecture_Updated.png Graphic file (type png)
-<use ../SDN_Server_Architecture_Updated.png>
-Package pdftex.def Info: ../SDN_Server_Architecture_Updated.png  used on input 
-line 790.
-(pdftex.def)             Requested size: 426.79135pt x 426.79659pt.
-
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [30]
-[31 <../SDN_Server_Architecture_Updated.png>]
-<../topological_map_layout_a.png, id=744, 724.6272pt x 565.6332pt>
-File: ../topological_map_layout_a.png Graphic file (type png)
-<use ../topological_map_layout_a.png>
-Package pdftex.def Info: ../topological_map_layout_a.png  used on input line 82
-7.
-(pdftex.def)             Requested size: 298.75264pt x 233.1971pt.
- [32]
-<../topological_map_layout_b.png, id=753, 648.9846pt x 565.6332pt>
-File: ../topological_map_layout_b.png Graphic file (type png)
-<use ../topological_map_layout_b.png>
-Package pdftex.def Info: ../topological_map_layout_b.png  used on input line 83
-6.
-(pdftex.def)             Requested size: 298.75264pt x 260.3843pt.
- [33 <../topological_map_layout_a.png> <../topological_map_layout_b.png>]
-<../topological_map_layout_c.png, id=762, 709.6914pt x 411.939pt>
-File: ../topological_map_layout_c.png Graphic file (type png)
-<use ../topological_map_layout_c.png>
-Package pdftex.def Info: ../topological_map_layout_c.png  used on input line 84
-5.
-(pdftex.def)             Requested size: 298.75264pt x 173.40918pt.
- [34 <../topological_map_layout_c.png>] [35]
-<../Test_1_B_TopDown_Traiettoria.png, id=774, 867.24pt x 867.24pt>
+<../SDN_Server_Architecture_Updated.png, id=758, 1027.84pt x 1027.84pt>
+File: ../SDN_Server_Architecture_Updated.png Graphic file (type png)
+<use ../SDN_Server_Architecture_Updated.png>
+Package pdftex.def Info: ../SDN_Server_Architecture_Updated.png  used on input 
+line 1034.
+(pdftex.def)             Requested size: 362.77525pt x 362.77632pt.
+
+[31 <../SDN_Server_Architecture_Updated.png>] [32] [33] [34] [35
+
+]
+<../topological_map_layout_a_nolegend.png, id=785, 1121.18875pt x 1178.4025pt>
+File: ../topological_map_layout_a_nolegend.png Graphic file (type png)
+<use ../topological_map_layout_a_nolegend.png>
+Package pdftex.def Info: ../topological_map_layout_a_nolegend.png  used on inpu
+t line 1111.
+(pdftex.def)             Requested size: 204.85802pt x 215.30391pt.
+<../topological_map_layout_b_nolegend.png, id=786, 970.62625pt x 1178.4025pt>
+File: ../topological_map_layout_b_nolegend.png Graphic file (type png)
+<use ../topological_map_layout_b_nolegend.png>
+Package pdftex.def Info: ../topological_map_layout_b_nolegend.png  used on inpu
+t line 1117.
+(pdftex.def)             Requested size: 204.85802pt x 248.71251pt.
+<../topological_map_layout_c_nolegend.png, id=787, 1091.07625pt x 858.20625pt>
+File: ../topological_map_layout_c_nolegend.png Graphic file (type png)
+<use ../topological_map_layout_c_nolegend.png>
+Package pdftex.def Info: ../topological_map_layout_c_nolegend.png  used on inpu
+t line 1130.
+(pdftex.def)             Requested size: 256.07741pt x 201.4166pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [36 <../topological_map_layout_a_nolegend.png> <../topological_map_layout_b_no
+legend.png>] [37 <../topological_map_layout_c_nolegend.png>]
+<../Test_1_B_TopDown_Traiettoria.png, id=803, 867.24pt x 867.24pt>
 File: ../Test_1_B_TopDown_Traiettoria.png Graphic file (type png)
 <use ../Test_1_B_TopDown_Traiettoria.png>
 Package pdftex.def Info: ../Test_1_B_TopDown_Traiettoria.png  used on input lin
-e 881.
-(pdftex.def)             Requested size: 341.43437pt x 341.43787pt.
-<../Test_1_RMSE_Temporale.png, id=775, 1300.86pt x 1011.78pt>
+e 1166.
+(pdftex.def)             Requested size: 277.41176pt x 277.41661pt.
+ [38]
+<../Test_1_RMSE_Temporale.png, id=810, 1300.86pt x 1011.78pt>
 File: ../Test_1_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_1_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 891.
-(pdftex.def)             Requested size: 341.43437pt x 265.55763pt.
+Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 1178.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [36 <../Test_1_B_TopDown_Traiettoria.png>]
-<../Test_1_CDF_RMSE.png, id=784, 722.7pt x 505.89pt>
+(pdftex.def)             Requested size: 204.85802pt x 159.32532pt.
+<../Test_1_CDF_RMSE.png, id=811, 722.7pt x 505.89pt>
 File: ../Test_1_CDF_RMSE.png Graphic file (type png)
 <use ../Test_1_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 897.
-(pdftex.def)             Requested size: 341.43437pt x 239.0034pt.
+Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 1184.
+(pdftex.def)             Requested size: 204.85802pt x 143.4005pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \vbox (badness 3724) has occurred while \output is active []
 
- [37 <../Test_1_RMSE_Temporale.png> <../Test_1_CDF_RMSE.png>]
-<../Test_2_B_Successo_RIS.png, id=794, 741.7311pt x 833.0322pt>
+ [39 <../Test_1_B_TopDown_Traiettoria.png> <../Test_1_RMSE_Temporale.png> <../T
+est_1_CDF_RMSE.png>]
+<../Test_2_B_Successo_RIS.png, id=821, 741.7311pt x 833.0322pt>
 File: ../Test_2_B_Successo_RIS.png Graphic file (type png)
 <use ../Test_2_B_Successo_RIS.png>
-Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 917.
-(pdftex.def)             Requested size: 341.43437pt x 383.4664pt.
+Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 1206.
+
+(pdftex.def)             Requested size: 277.41176pt x 311.56009pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [38]
-<../Test_2_RMSE_Temporale.png, id=799, 604.1772pt x 447.3513pt>
+ [40]
+<../Test_2_RMSE_Temporale.png, id=826, 604.1772pt x 447.3513pt>
 File: ../Test_2_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_2_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 923.
-(pdftex.def)             Requested size: 341.43437pt x 252.81538pt.
+Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 1214.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [39 <../Test_2_B_Successo_RIS.png>]
-<../Test_2_CDF_RMSE.png, id=806, 616.9449pt x 447.3513pt>
+(pdftex.def)             Requested size: 204.85802pt x 151.68103pt.
+<../Test_2_CDF_RMSE.png, id=827, 616.9449pt x 447.3513pt>
 File: ../Test_2_CDF_RMSE.png Graphic file (type png)
 <use ../Test_2_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 930.
-(pdftex.def)             Requested size: 341.43437pt x 247.573pt.
+Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 1221.
+(pdftex.def)             Requested size: 204.85802pt x 148.54106pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [40 <../Test_2_RMSE_Temporale.png> <../Test_2_CDF_RMSE.png>]
-<../Test_3_Stress_Latenza.png, id=815, 748.2354pt x 420.1296pt>
+[41 <../Test_2_B_Successo_RIS.png> <../Test_2_RMSE_Temporale.png> <../Test_2_CD
+F_RMSE.png>]
+<../Test_3_Stress_Latenza.png, id=837, 748.2354pt x 420.1296pt>
 File: ../Test_3_Stress_Latenza.png Graphic file (type png)
 <use ../Test_3_Stress_Latenza.png>
-Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 947.
-(pdftex.def)             Requested size: 341.43437pt x 191.717pt.
+Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1240.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+(pdftex.def)             Requested size: 277.41176pt x 155.76605pt.
 
- [41]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [42 <../Test_3_Stress_Latenza.png>]
-<../Test_4.1_Comparativo_RMSE_Latenza.png, id=826, 859.7721pt x 487.5816pt>
+<../Test_4.1_Comparativo_RMSE_Latenza.png, id=844, 859.7721pt x 487.5816pt>
 File: ../Test_4.1_Comparativo_RMSE_Latenza.png Graphic file (type png)
 <use ../Test_4.1_Comparativo_RMSE_Latenza.png>
 Package pdftex.def Info: ../Test_4.1_Comparativo_RMSE_Latenza.png  used on inpu
-t line 967.
-(pdftex.def)             Requested size: 341.43437pt x 193.63048pt.
- [43 <../Test_4.1_Comparativo_RMSE_Latenza.png>]
-<../Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=834, 682.4697pt x 487.5816pt>
+t line 1260.
+(pdftex.def)             Requested size: 277.41176pt x 157.32384pt.
+
+Underfull \vbox (badness 3291) has occurred while \output is active []
+
+ [43]
+<../Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=850, 682.4697pt x 487.5816pt>
 File: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png Graphic file (type png)
 <use ../Test_4.2_Traiettoria_EKF_vs_LSTM.png>
 Package pdftex.def Info: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png  used on input
- line 975.
-(pdftex.def)             Requested size: 341.43437pt x 243.939pt.
-
-[44 <../Test_4.2_Traiettoria_EKF_vs_LSTM.png>]
-<../Test_4.3_RMSE_Temporale_Missione.png, id=841, 859.7721pt x 416.2752pt>
-File: ../Test_4.3_RMSE_Temporale_Missione.png Graphic file (type png)
-<use ../Test_4.3_RMSE_Temporale_Missione.png>
-Package pdftex.def Info: ../Test_4.3_RMSE_Temporale_Missione.png  used on input
- line 988.
-(pdftex.def)             Requested size: 341.43437pt x 165.31297pt.
-<../Test_4.4_SINR_vs_M_Elements.png, id=842, 681.9879pt x 487.5816pt>
-File: ../Test_4.4_SINR_vs_M_Elements.png Graphic file (type png)
-<use ../Test_4.4_SINR_vs_M_Elements.png>
-Package pdftex.def Info: ../Test_4.4_SINR_vs_M_Elements.png  used on input line
- 999.
-(pdftex.def)             Requested size: 341.43437pt x 244.1101pt.
+ line 1268.
+(pdftex.def)             Requested size: 256.07741pt x 182.95424pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [45 <../Test_4.3_RMSE_Temporale_Missione.png>] [46 <../Test_4.4_SINR_vs_M_Elem
+ [44 <../Test_4.1_Comparativo_RMSE_Latenza.png>]
+<../Test_4.3_RMSE_Temporale_Missione.png, id=857, 859.7721pt x 416.2752pt>
+File: ../Test_4.3_RMSE_Temporale_Missione.png Graphic file (type png)
+<use ../Test_4.3_RMSE_Temporale_Missione.png>
+Package pdftex.def Info: ../Test_4.3_RMSE_Temporale_Missione.png  used on input
+ line 1281.
+(pdftex.def)             Requested size: 298.75264pt x 144.64409pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [45 <../Test_4.2_Traiettoria_EKF_vs_LSTM.png>]
+<../Test_4.4_SINR_vs_M_Elements.png, id=864, 681.9879pt x 487.5816pt>
+File: ../Test_4.4_SINR_vs_M_Elements.png Graphic file (type png)
+<use ../Test_4.4_SINR_vs_M_Elements.png>
+Package pdftex.def Info: ../Test_4.4_SINR_vs_M_Elements.png  used on input line
+ 1292.
+(pdftex.def)             Requested size: 256.07741pt x 183.08072pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [46 <../Test_4.3_RMSE_Temporale_Missione.png>] [47 <../Test_4.4_SINR_vs_M_Elem
 ents.png>]
-<../Test_4.5_Scatter_Errore_Overhead.png, id=855, 715.2321pt x 489.7497pt>
+<../Test_4.5_Scatter_Errore_Overhead.png, id=878, 715.2321pt x 489.7497pt>
 File: ../Test_4.5_Scatter_Errore_Overhead.png Graphic file (type png)
 <use ../Test_4.5_Scatter_Errore_Overhead.png>
 Package pdftex.def Info: ../Test_4.5_Scatter_Errore_Overhead.png  used on input
- line 1015.
-(pdftex.def)             Requested size: 341.43437pt x 233.79182pt.
-
-[47 <../Test_4.5_Scatter_Errore_Overhead.png>]
-<../Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=863, 708.7278pt x 490.7133pt>
+ line 1308.
+(pdftex.def)             Requested size: 256.07741pt x 175.34573pt.
+<../Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=879, 708.7278pt x 490.7133pt>
 File: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png Graphic file (type png)
 <use ../Test_4.6_AEE_vs_Ps_Dinkelbach.png>
 Package pdftex.def Info: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png  used on input li
-ne 1024.
-(pdftex.def)             Requested size: 341.43437pt x 236.40079pt.
- [48 <../Test_4.6_AEE_vs_Ps_Dinkelbach.png>] [49] [50
+ne 1317.
+(pdftex.def)             Requested size: 256.07741pt x 177.30058pt.
 
-] [51] [52] [53]
-Underfull \hbox (badness 10000) in paragraph at lines 1191--1192
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [48 <../Test_4.5_Scatter_Errore_Overhead.png>] [49 <../Test_4.6_AEE_vs_Ps_Dink
+elbach.png>] [50] [51
+
+
+] [52] [53] [54]
+Underfull \hbox (badness 10000) in paragraph at lines 1485--1486
 
  []
 
-[54] [55] [56] [57] [58] (./main.aux)
+[55] [56] [57] [58] [59] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -1385,43 +1461,56 @@ L3 programming layer <2026-01-19>
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.72pt have occurred.
 
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 3B5054EDE363E109F508C47DDEA814A0;24775.
+(rerunfilecheck)             Checksum: 2A9A62D736B3F769AAA2FD494FA8498B;22510.
  ) 
 Here is how much of TeX's memory you used:
- 35594 strings out of 469006
- 674500 string characters out of 5454814
- 1087218 words of memory out of 5000000
- 63571 multiletter control sequences out of 15000+600000
- 634392 words of font info for 65 fonts, out of 8000000 for 9000
+ 37228 strings out of 469006
+ 712859 string characters out of 5454814
+ 1132297 words of memory out of 5000000
+ 65164 multiletter control sequences out of 15000+600000
+ 640201 words of font info for 86 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 84i,12n,94p,1381b,643s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,12n,94p,1355b,998s stack positions out of 10000i,1000n,20000p,200000b,200000s
  </Users/vernias/Library/texlive/2026basic/texmf-var/fonts/pk/ljfour/jknappen
 /ec/tcrm1000.600pk></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/
 amsfonts/cm/cmbx10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/pub
 lic/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1
 /public/amsfonts/cm/cmbx7.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/ty
-pe1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026basic/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/texlive/2026basic/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2026basic/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026basic/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/local/texlive/2026bas
-ic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2026
-basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2
-026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texliv
-e/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texl
-ive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/te
-xlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loca
-l/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/l
-ocal/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></us
-r/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-</usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.
-pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/symbol
-s/msbm10.pfb>
-Output written on main.pdf (58 pages, 6973099 bytes).
+pe1/public/amsfonts/cm/cmbx9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmbxti10.pfb></usr/local/texlive/2026basic/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/texlive/2026basic/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2026basic/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026bas
+ic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/local/texlive/2026
+basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2
+026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texliv
+e/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/tex
+live/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/
+texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/loc
+al/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/l
+ocal/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr
+/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></u
+sr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb><
+/usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pf
+b></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9
+.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+ssbx10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmsy10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmsy5.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmsy6.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1
+/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026basic/texmf-dist/fon
+ts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on main.pdf (59 pages, 7258566 bytes).
 PDF statistics:
- 1076 PDF objects out of 1200 (max. 8388607)
- 929 compressed objects within 10 object streams
- 201 named destinations out of 1000 (max. 500000)
- 625 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1139 PDF objects out of 1200 (max. 8388607)
+ 968 compressed objects within 10 object streams
+ 206 named destinations out of 1000 (max. 500000)
+ 656 words of extra memory for PDF output out of 10000 (max. 10000000)
 
