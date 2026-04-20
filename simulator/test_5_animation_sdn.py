@@ -333,7 +333,7 @@ def generate_animation():
     ax_rmse = fig.add_subplot(gs[2, 1], facecolor='#2B2B2B')
     
     fig.subplots_adjust(left=0.03, bottom=0.15, right=0.97, top=0.92, wspace=0.1, hspace=0.2)
-    fig.suptitle("Digital Twin | Modulo SDN EKF-Tracking Simulation", color="white", fontsize=18, fontweight='bold')
+    fig.suptitle("Digital Twin | Modulo SDN EKF-LSTM Tracking Simulation", color="white", fontsize=18, fontweight='bold')
     
     # ---------------- Mappa Topologica ----------------
     ax_map.set_xlim(0, LAYOUT_C.x_dim_m)

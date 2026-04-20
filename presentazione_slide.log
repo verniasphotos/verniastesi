@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  20 APR 2026 16:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  20 APR 2026 19:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1026,15 +1026,20 @@ LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <8> not available
 (Font)              Font shape `T1/lmss/m/sl' tried instead on input line 72.
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <6> not available
 (Font)              Font shape `T1/lmss/m/sl' tried instead on input line 72.
-<nlos_vna_concept.png, id=51, 246.6816pt x 246.6816pt>
-File: nlos_vna_concept.png Graphic file (type png)
-<use nlos_vna_concept.png>
-Package pdftex.def Info: nlos_vna_concept.png  used on input line 72.
-(pdftex.def)             Requested size: 170.39114pt x 170.38507pt.
- [3
+<los_nlos_schema.pdf, id=51, 625.96059pt x 199.1691pt>
+File: los_nlos_schema.pdf Graphic file (type pdf)
+<use los_nlos_schema.pdf>
+Package pdftex.def Info: los_nlos_schema.pdf  used on input line 72.
+(pdftex.def)             Requested size: 344.25072pt x 109.53299pt.
 
- <./nlos_vna_concept.png>]
-<active_ris.png, id=59, 1027.84pt x 1027.84pt>
+Overfull \hbox (127.5087pt too wide) in paragraph at lines 72--72
+ [][] 
+ []
+
+[3
+
+ <./los_nlos_schema.pdf>]
+<active_ris.png, id=72, 1027.84pt x 1027.84pt>
 File: active_ris.png Graphic file (type png)
 <use active_ris.png>
 Package pdftex.def Info: active_ris.png  used on input line 90.
@@ -1046,7 +1051,7 @@ Overfull \vbox (4.73212pt too high) detected at line 90
 [4
 
  <./active_ris.png>]
-<warehouse_uav_operations.png, id=67, 246.6816pt x 246.6816pt>
+<warehouse_uav_operations.png, id=80, 246.6816pt x 246.6816pt>
 File: warehouse_uav_operations.png Graphic file (type png)
 <use warehouse_uav_operations.png>
 Package pdftex.def Info: warehouse_uav_operations.png  used on input line 103.
@@ -1056,7 +1061,7 @@ Package pdftex.def Info: warehouse_uav_operations.png  used on input line 103.
 {/usr/local/texlive/2026basic/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr
 /local/texlive/2026basic/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc} <./warehouse_
 uav_operations.png>]
-<modules_schema.pdf, id=78, 284.52798pt x 369.8859pt>
+<modules_schema.pdf, id=91, 284.52798pt x 369.8859pt>
 File: modules_schema.pdf Graphic file (type pdf)
 <use modules_schema.pdf>
 Package pdftex.def Info: modules_schema.pdf  used on input line 110.
@@ -1068,7 +1073,7 @@ Overfull \vbox (2.89963pt too high) detected at line 110
 [6
 
  <./modules_schema.pdf>]
-<SDN_Server_Architecture_Updated.png, id=87, 1027.84pt x 1027.84pt>
+<SDN_Server_Architecture_Updated.png, id=100, 1027.84pt x 1027.84pt>
 File: SDN_Server_Architecture_Updated.png Graphic file (type png)
 <use SDN_Server_Architecture_Updated.png>
 Package pdftex.def Info: SDN_Server_Architecture_Updated.png  used on input lin
@@ -1079,7 +1084,7 @@ e 128.
  <./SDN_Server_Architecture_Updated.png>] [8
 
 ]
-<Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=103, 682.4697pt x 487.5816pt>
+<Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=116, 682.4697pt x 487.5816pt>
 File: Test_4.2_Traiettoria_EKF_vs_LSTM.png Graphic file (type png)
 <use Test_4.2_Traiettoria_EKF_vs_LSTM.png>
 Package pdftex.def Info: Test_4.2_Traiettoria_EKF_vs_LSTM.png  used on input li
@@ -1089,7 +1094,7 @@ ne 157.
 [9
 
  <./Test_4.2_Traiettoria_EKF_vs_LSTM.png>]
-<Test_1_RMSE_Temporale.png, id=112, 1300.86pt x 1011.78pt>
+<Test_1_RMSE_Temporale.png, id=125, 1300.86pt x 1011.78pt>
 File: Test_1_RMSE_Temporale.png Graphic file (type png)
 <use Test_1_RMSE_Temporale.png>
 Package pdftex.def Info: Test_1_RMSE_Temporale.png  used on input line 166.
@@ -1097,7 +1102,7 @@ Package pdftex.def Info: Test_1_RMSE_Temporale.png  used on input line 166.
  [10
 
  <./Test_1_RMSE_Temporale.png>]
-<Test_2_RMSE_Temporale.png, id=121, 604.1772pt x 447.3513pt>
+<Test_2_RMSE_Temporale.png, id=134, 604.1772pt x 447.3513pt>
 File: Test_2_RMSE_Temporale.png Graphic file (type png)
 <use Test_2_RMSE_Temporale.png>
 Package pdftex.def Info: Test_2_RMSE_Temporale.png  used on input line 175.
@@ -1105,7 +1110,7 @@ Package pdftex.def Info: Test_2_RMSE_Temporale.png  used on input line 175.
 [11
 
  <./Test_2_RMSE_Temporale.png>]
-<Test_3_Stress_Latenza.png, id=130, 748.2354pt x 420.1296pt>
+<Test_3_Stress_Latenza.png, id=143, 748.2354pt x 420.1296pt>
 File: Test_3_Stress_Latenza.png Graphic file (type png)
 <use Test_3_Stress_Latenza.png>
 Package pdftex.def Info: Test_3_Stress_Latenza.png  used on input line 184.
@@ -1113,7 +1118,7 @@ Package pdftex.def Info: Test_3_Stress_Latenza.png  used on input line 184.
  [12
 
  <./Test_3_Stress_Latenza.png>]
-<Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=139, 708.7278pt x 490.7133pt>
+<Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=152, 708.7278pt x 490.7133pt>
 File: Test_4.6_AEE_vs_Ps_Dinkelbach.png Graphic file (type png)
 <use Test_4.6_AEE_vs_Ps_Dinkelbach.png>
 Package pdftex.def Info: Test_4.6_AEE_vs_Ps_Dinkelbach.png  used on input line 
@@ -1122,7 +1127,7 @@ Package pdftex.def Info: Test_4.6_AEE_vs_Ps_Dinkelbach.png  used on input line
  [13
 
  <./Test_4.6_AEE_vs_Ps_Dinkelbach.png>]
-<Test_4.4_SINR_vs_M_Elements.png, id=149, 681.9879pt x 487.5816pt>
+<Test_4.4_SINR_vs_M_Elements.png, id=162, 681.9879pt x 487.5816pt>
 File: Test_4.4_SINR_vs_M_Elements.png Graphic file (type png)
 <use Test_4.4_SINR_vs_M_Elements.png>
 Package pdftex.def Info: Test_4.4_SINR_vs_M_Elements.png  used on input line 20
@@ -1151,23 +1156,24 @@ L3 programming layer <2026-01-19>
  ) 
 Here is how much of TeX's memory you used:
  23490 strings out of 469006
- 452005 string characters out of 5454814
+ 452022 string characters out of 5454814
  833214 words of memory out of 5000000
  51665 multiletter control sequences out of 15000+600000
  669201 words of font info for 71 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
  101i,15n,107p,590b,732s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></u
-sr/local/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmss10.pfb></usr/lo
-cal/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmss12.pfb></usr/local/t
-exlive/2026basic/texmf-dist/fonts/type1/public/lm/lmss8.pfb></usr/local/texlive
-/2026basic/texmf-dist/fonts/type1/public/lm/lmssbx10.pfb></usr/local/texlive/20
-26basic/texmf-dist/fonts/type1/public/lm/lmsso10.pfb></usr/local/texlive/2026ba
-sic/texmf-dist/fonts/type1/urw/zapfding/uzdr.pfb>
-Output written on presentazione_slide.pdf (15 pages, 4492588 bytes).
+</usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></u
+sr/local/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/lo
+cal/texlive/2026basic/texmf-dist/fonts/type1/public/lm/lmss10.pfb></usr/local/t
+exlive/2026basic/texmf-dist/fonts/type1/public/lm/lmss12.pfb></usr/local/texliv
+e/2026basic/texmf-dist/fonts/type1/public/lm/lmss8.pfb></usr/local/texlive/2026
+basic/texmf-dist/fonts/type1/public/lm/lmssbx10.pfb></usr/local/texlive/2026bas
+ic/texmf-dist/fonts/type1/public/lm/lmsso10.pfb></usr/local/texlive/2026basic/t
+exmf-dist/fonts/type1/urw/zapfding/uzdr.pfb>
+Output written on presentazione_slide.pdf (15 pages, 4184361 bytes).
 PDF statistics:
- 209 PDF objects out of 1000 (max. 8388607)
- 127 compressed objects within 2 object streams
+ 222 PDF objects out of 1000 (max. 8388607)
+ 137 compressed objects within 2 object streams
  31 named destinations out of 1000 (max. 500000)
  145 words of extra memory for PDF output out of 10000 (max. 10000000)
 

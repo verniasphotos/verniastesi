@@ -248,6 +248,7 @@ Per validare tali paradigmi, si introduce la metodologia del Digital Twin svilup
 \subsection{Contesto Applicativo: Automazione logistica 4.0 e navigazione autonoma in corridoi VNA}
 
 
+
 La sicurezza e l'affidabilità (URLLC, Ultra-Reliable Low-Latency Communication) costituiscono requisiti imprescindibili per i moderni sistemi cyber-fisici industriali impiegati nel settore manifatturiero e nella Logistica 4.0 \cite{Lien2024}. All'interno di questi ecosistemi interconnessi, i droni assumono un ruolo di primo piano, candidandosi come piattaforme abilitanti per l'Internet of Things (IoT) su larga scala. Offrendo gradi di libertà cinematici superiori grazie alla loro manovrabilità e altitudine adattiva \cite{Yu2024}, gli UAV richiedono tuttavia garanzie stringenti in merito all'accuratezza del posizionamento per operare in navigazione autonoma \cite{Ye2023}.
 
 L'impiego massivo di flotte UAV si scontra con le peculiarità architettoniche degli ambienti indoor (assimilabili ai corridoi VNA, Very Narrow Aisle). In questi scenari, le scaffalature metalliche causano un blocco severo del segnale radio \cite{Lien2024}. La comunicazione ad alta frequenza (Sub-6GHz o mmWave) risulta fortemente limitata da un canale propagativo in cui i collegamenti diretti (Line-of-Sight, LoS) tra Base Station e terminale sono sistematicamente ostruiti \cite{Muller2024}. Le onde subiscono pesanti attenuazioni da penetrazione, confinando la comunicazione in un regime NLoS e rendendo la propagazione dipendente da incerti fenomeni di scattering e diffrazione \cite{Gebretsadik2024}.
@@ -255,6 +256,13 @@ L'impiego massivo di flotte UAV si scontra con le peculiarità architettoniche d
 La navigazione sicura di un UAV all'interno di un corridoio VNA richiede una consapevolezza spaziale (spatial awareness) di ordine sub-metrico. Essendo i sistemi GNSS (Global Navigation Satellite System) inservibili indoor, il drone deve stimare la propria cinematica elaborando la telemetria radio \cite{Ye2023}. Il tracciamento di terminali in rapida mobilità si affida tipicamente a filtri stocastici, quale l'Extended Kalman Filter (EKF), capace di stimare lo stato dinamico del drone minimizzando l'errore quadratico medio in presenza di rumore di misura \cite{Muller2024,Ye2023}. Ciononostante, prolungate condizioni di NLoS privano il filtro dell'Innovation Step radio; conseguentemente, le incertezze intrinseche ai sensori inerziali di bordo inducono una rapida divergenza della stima di posizione, nota come deriva o coasting, compromettendo fatalmente il tracciamento \cite{Muller2024}.
 
 Per scongiurare tali derive, diviene imperativa l'adozione di paradigmi 6G-ready basati sulle Reconfigurable Intelligent Surfaces (RIS). Le RIS sono metamateriali planari composti da elementi riflettenti a basso costo (patch antenna) capaci di manipolare attivamente lo sfasamento delle onde elettromagnetiche incidenti, rimodellando deterministicamente l'ambiente wireless \cite{Zhang2022}. Il deployment strategico di nodi RIS permette di bypassare gli ostacoli dei corridoi, instaurando un collegamento virtuale in visibilità (Assisted-LoS). Tale soluzione abbatte il path loss e fornisce all'algoritmo EKF ancore radio stabili, garantendo la continuità di un tracciamento ultra-preciso \cite{Muller2024,Ye2023}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../los_nlos_schema.pdf}
+    \caption{Confronto schematico tra condizione di visibilità diretta (LoS) e ostruzione totale (NLoS) in ambiente industriale magazzino.}
+    \label{fig:los_nlos_comparison}
+\end{figure}
 
 
 
@@ -406,14 +414,14 @@ Dove $\mathbf{\Psi} = \text{diag}(p_1 e^{j\theta_1},\dots,p_N e^{j\theta_N})$ è
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../passive_ris.png}
+        \includegraphics[width=\textwidth]{Images/ris_passiva_1.png}
         \caption{Passive RIS (Fading Moltiplicativo)}
         \label{fig:passive_ris}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../active_ris.png}
+        \includegraphics[width=\textwidth]{Images/ris_attiva_1.png}
         \caption{Active RIS (Amplificazione a Riflessione)}
         \label{fig:active_ris}
     \end{subfigure}
@@ -1168,6 +1176,7 @@ L'osservazione topologica estratta in output per layout a complessità media ed 
     \centering
     \includegraphics[width=0.65\textwidth]{../Test_1_B_TopDown_Traiettoria.png}
     \caption{Test 1 (Layout B). Divergenza della traiettoria stimata dall'EKF e logica Coasting.}
+    \label{fig:test1_traiettoria}
 \end{figure}
 
 
@@ -1188,6 +1197,7 @@ Ad integrazione dell'analisi fenomenologico-spaziale, gli algoritmi di back-end 
         \caption{CDF RMSE}
     \end{subfigure}
     \caption{Test 1: Decadimento metrico dell'errore spaziale in NLoS puro.}
+    \label{fig:test1_rmse}
 \end{figure}
 
 \subsection{Test 2: Mitigazione degli Scenari NLoS tramite Assisted-Line-of-Sight}
@@ -1203,12 +1213,13 @@ Tale direttiva demanda alla RIS di calibrare un protocollo di correzione di prop
     \centering
     \includegraphics[width=0.6\textwidth]{../Test_2_B_Successo_RIS.png}
     \caption{Test 2: Con la RIS attiva per A-LoS interviene il ripristino EKF metrico.}
+    \label{fig:test2_successo}
 \end{figure}
 
 I risultati conseguiti a fronte delle simulazioni del Test 2 convalidano l'efficienza del modello strutturato preposto.
 L'azione compensativa della logica RIS reintegra il loop operazionale di aggiornamento (\textit{Innovation Step}) nel ciclo discreto del filtro EKF, interrompendone e correggendone la vertiginosa crescita d'errore autonomo sperimentato nel Test 1.
 In chiave analitica quantitativa, si registra la correzione subitanea degli scarti quadratici transitori, il cui modulo geometrico si stabilisce saldamente e permanentemente nel perimetro del raggio di circa \textbf{1.0 m}. Considerate le imperfezioni multi-cammino e l'elevata trazione cinetica di un drone (3 m/s) tra pareti di metallo, questo parametro risulta ampiamente appianante e validante le normative di \textit{safety}.
-Al contempo, sul piano spaziale-probabilistico di covarianza (rif. Figura 5.6) si certifica l'efficacia algoritmica di re-contrazione della matrice d'incertezza $P$: l'enorme alone ellittico si svuota quasi istantaneamente riattorno ai baricentri reali fisici operanti.
+Al contempo, sul piano spaziale-probabilistico di covarianza (rif. Figura \ref{fig:test2_rmse}) si certifica l'efficacia algoritmica di re-contrazione della matrice d'incertezza $P$: l'enorme alone ellittico si svuota quasi istantaneamente riattorno ai baricentri reali fisici operanti.
 
 
 
@@ -1227,6 +1238,7 @@ Al contempo, sul piano spaziale-probabilistico di covarianza (rif. Figura 5.6) s
         \caption{Distribuzione statistica CDF: errore entro il metro per il 95\% del campione.}
     \end{subfigure}
     \caption{Test 2: Metriche d'errore spaziale misurata ripristinate da Assisted-LoS.}
+    \label{fig:test2_rmse}
 \end{figure}
 
 \newpage
@@ -1245,6 +1257,7 @@ A livello fisico si realizza perciò un disaccoppiamento di posizionamento tempo
     \centering
     \includegraphics[width=0.65\textwidth]{../Test_3_Stress_Latenza.png}
     \caption{Test 3: Analisi di sensibilità alla latenza. Si osserva la soglia critica di 50 ms oltre la quale il disallineamento del beamforming causa la divergenza del tracciamento.}
+    \label{fig:test3_latenza}
 \end{figure}
 
 \subsubsection{Decadimento in Outage Zone e Ritorno al Moto Cieco}
@@ -1259,24 +1272,26 @@ Prendendo atto del crollo prestazionale indotto all'incrementare dei ritardi rea
 \subsubsection{Mitigazione del Beam Misalignment}
 Al motore di esecuzione code-script è stata applicata una rilevante e radicale rivisitazione architetturale nodale per scardinare la modellizzazione passivo-reattiva. Il controller SDN è stato interfacciato in accoppiamento stretto alle equazioni cinematico-predittive proprie dell'Extended Kalman Filter (EKF), configurando un'apri pista \textit{time-shift} per calcolare asincronamente nel futuro (stima vettore anticipato). Riconoscendo analiticamente l'esatta istanza logica vettoriale imminente della barriera NLoS, la centrale pre-alloca l'energia radiante sulle superfici macroscopiche l'istante vitale antecedente il calcolato momento propedeutico allo scroscio propagativo di segnale.
 
-L'effetto risultante dall'integrazione è di portata rilevante e visibile direttamente dal resoconto grafico incrociato (Figura 5.9). Il design predittivo aliena integralmente le correlazioni stocastiche dell'inseguitore visivo passivo limitandone drasticamente il \textit{jitter} dipendente della fluttuante rete trasmissiva locale. Parallelamente alla crescita progressiva dei tempi morti (giungendo al picco di $250\text{ ms}$ ritardato simulabile), si assiste null'altro che ad uno schiacciamento ``appiattitivo'' della norma errore vettoriale (RMSE). Ne deriva un margine assialmente solido recluso e ammortizzato allo scalino statico-fisiologico del filtro approssimabile in $\approx 0.65\text{ m}$. L'architettura ingloba temporalmente il delay in compensazioni calcolate definendo lo schema \textit{Sistema Equivalente a Zero-Latenza}, refrattario ed inalterabile ai cali di prestazione trasmissivi d'orchestra.
+L'effetto risultante dall'integrazione è di portata rilevante e visibile direttamente dal resoconto grafico incrociato (Figura \ref{fig:test4_rmse_latenza}). Il design predittivo aliena integralmente le correlazioni stocastiche dell'inseguitore visivo passivo limitandone drasticamente il \textit{jitter} dipendente della fluttuante rete trasmissiva locale. Parallelamente alla crescita progressiva dei tempi morti (giungendo al picco di $250\text{ ms}$ ritardato simulabile), si assiste null'altro che ad uno schiacciamento ``appiattitivo'' della norma errore vettoriale (RMSE). Ne deriva un margine assialmente solido recluso e ammortizzato allo scalino statico-fisiologico del filtro approssimabile in $\approx 0.65\text{ m}$. L'architettura ingloba temporalmente il delay in compensazioni calcolate definendo lo schema \textit{Sistema Equivalente a Zero-Latenza}, refrattario ed inalterabile ai cali di prestazione trasmissivi d'orchestra.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{../Test_4.1_Comparativo_RMSE_Latenza.png}
     \caption{Test 4.1: Confronto tra approccio reattivo e predittivo. L'SDN predittivo compensa i ritardi di rete, stabilizzando l'errore metrico anche per latenze elevate.}
+    \label{fig:test4_rmse_latenza}
 \end{figure}
 
-Dal punto di vista della cinematica, l'adozione del Deep Learning tramite rete LSTM trova la sua formale validazione accademica nell'incapacità fisiologica del filtro EKF di gestire transizioni vettoriali non lineari in assenza prolungata di Line-of-Sight. Come evidenziato nell'integrazione d'analisi della traiettoria (Figura 5.10), in presenza di una severa deviazione a gomito (curvatura a 90° tipica delle intersezioni VNA), il modello predittivo stocastico classico tende ad accumulare una preoccupante deriva (``Coasting'' dritto), a causa dell'interpretazione inerziale puramente lineare. Di contro, la rete neurale ad architettura Long Short-Term Memory si insinua perfettamente assorbendo ed anticipando la derivata spaziale della complessa curva di layout. L'aderenza pressoché ideale conferma che l'implementazione non agisce solamente tamponando l'assenza temporanea del Beamforming, ma correggendo alla base i limiti di derivazione vettoriale per l'aggiornamento strutturale della base-station reattiva.
+Dal punto di vista della cinematica, l'adozione del Deep Learning tramite rete LSTM trova la sua formale validazione accademica nell'incapacità fisiologica del filtro EKF di gestire transizioni vettoriali non lineari in assenza prolungata di Line-of-Sight. Come evidenziato nell'integrazione d'analisi della traiettoria (Figura \ref{fig:test4_traiettoria}), in presenza di una severa deviazione a gomito (curvatura a 90° tipica delle intersezioni VNA), il modello predittivo stocastico classico tende ad accumulare una preoccupante deriva (``Coasting'' dritto), a causa dell'interpretazione inerziale puramente lineare. Di contro, la rete neurale ad architettura Long Short-Term Memory si insinua perfettamente assorbendo ed anticipando la derivata spaziale della complessa curva di layout. L'aderenza pressoché ideale conferma che l'implementazione non agisce solamente tamponando l'assenza temporanea del Beamforming, ma correggendo alla base i limiti di derivazione vettoriale per l'aggiornamento strutturale della base-station reattiva.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{../Test_4.2_Traiettoria_EKF_vs_LSTM.png}
     \caption{Test 4. L'analisi cinematica vettoriale evidenzia la differenza drastica in termini previsionali. Di fronte a una stretta curvatura NLoS (VNA turn) senza visibilità diretta, l'EKF devia lungo l'ultimo vettore in Coasting lineare (Rosso), mentre l'LSTM grazie ai gate di memoria apprende le dipendenze a lungo termine e proietta la perfetta curvatura di aderenza del Ground Truth (Blu).}
+    \label{fig:test4_traiettoria}
 \end{figure}
 
 \subsubsection{Analisi della Dinamica Temporale: Integrità Cinematica e Handover}
-Parallelamente allo studio asintotico di latenza stazionaria globale, è stato imperativo l'affinamento dello scrutinio inerente il \textit{run-time} cronologico istante per istante dell'unità (Figura 5.11).
+Parallelamente allo studio asintotico di latenza stazionaria globale, è stato imperativo l'affinamento dello scrutinio inerente il \textit{run-time} cronologico istante per istante dell'unità (Figura \ref{fig:test4_rmse_missione}).
 
 Sotto questa rigida ottica d'indagine, lo script simulativo è stato rielaborato per porre a stretto confronto concorrenziale l'algoritmo classico EKF (Lineare e Reattivo) e l'innovativo Filtro Ibrido (EKF + LSTM + SDN Predittivo). Entrambi sono stati sollecitati ai rigori matematico-algoritmici dell'\textit{Handover} spaziali inter-patch e d'inevitabili virate a gomito perimetrali presso le geometrie in metallo massivo (NLoS puro). L'envelop in \textit{smoothing} gaussiano restituisce un responso inequivocabile: in corrispondenza delle transizioni logico-geometriche e barriere fisiche (riscontrabili attorno i blocchi temporali $60\text{s}$ e $225\text{s}$) la divergenza prestazionale si fa estrema.
 Come documentato dal plottaggio, il filtro Baseline (linea arancione tratteggiata), sprovvisto del supporto predittivo neurale, subisce colossali derive in spazio cieco (``Coasting''), collassando sistematicamente in pesanti anomalie transizionali superiori ai $2\div 3\text{ metri}$ d'errore (inevitabile \textit{Outage}).
@@ -1286,22 +1301,24 @@ Di contro, il Filtro Ibrido (linea blu continua), coadiuvato dal WakeUp anticipa
     \centering
     \includegraphics[width=0.7\textwidth]{../Test_4.3_RMSE_Temporale_Missione.png}
     \caption{Test 4. L'Analisi Dinamica e Cronologica dell'Errore RMSE. In profilazione comparativa \textit{mission-run}, lo stimatore standard (Baseline EKF) denuncia severe perdite inerziali in corrispondenza dei varchi NLoS. La stima pilotata in predizione neurale ed assistita dall'SDN (Filtro Ibrido EKF+LSTM) minimizza drasticamente ed ingloba d'autorevolezza gli \textit{spike}, sigillando la tenuta cinematica in perfetta safe-zone.}
+    \label{fig:test4_rmse_missione}
 \end{figure}
 
 \subsubsection{Analisi dell'Ecosistema Elettromagnetico con Controllo SDN}
 L'affidamento all'architettura predittiva non garantisce benefici reclusi univocamente all'anticipo sui tempi d'handover ma agisce intrinsecamente quale controllore soppressore sulle criticità del Layer Fisico delle telecomunicazioni tipico della nascente rete 6G: l'interferenza da riflessione cieca (\textit{Blind Reflection}).
 Se ci si affidasse alla più banale applicazione \textit{Always-On} incrementando monotonamente il numero massivo di elementi attivi della griglia RIS ($M$), l'ecosistema subirebbe un drammatico peggioramento delle interferenze multi-cammino distruttive. Difatti, la massiccia amplificazione incontrollata di lobi secondari e residui ambientali degrada rapidamente il rapporto \textit{Signal-to-Interference-plus-Noise} (SINR) rendendo vana l'intercettazione dell'antenna vettoriale.
-Come sancito dai riscontri metrici evidenziati in Figura 5.12, l'applicazione preclusiva in SDN - l'Algoritmo 1 di decisione ON/OFF implementato on-board - è capace anticipatamente di diagnosticare il limite di compromissione e provvedere allo spegnimento coatto dei patch inquinanti. Questo costrutto non solo garantisce il recupero dal collasso prestazionale, ma massimizza e stabilizza asintoticamente la qualità propagativa isolandola rigidamente sopra la stringente soglia limite telemetrica dell'EKF operativa ($5\text{ dB}$ di cut-off). Questa tenuta vitale spiega perfettamente, in chiave \textit{Telecommunications Engineering} e richiamando i modelli formalizzati da \textit{Kaining Wang et al.}, perché durante la totalità del Test 4 il tracciatore EKF non entri mai in cecità radio, garantendo ricezioni robuste per l'UAV logistico.
+Come sancito dai riscontri metrici evidenziati in Figura \ref{fig:test4_sinr}, l'applicazione preclusiva in SDN - l'Algoritmo 1 di decisione ON/OFF implementato on-board - è capace anticipatamente di diagnosticare il limite di compromissione e provvedere allo spegnimento coatto dei patch inquinanti. Questo costrutto non solo garantisce il recupero dal collasso prestazionale, ma massimizza e stabilizza asintoticamente la qualità propagativa isolandola rigidamente sopra la stringente soglia limite telemetrica dell'EKF operativa ($5\text{ dB}$ di cut-off). Questa tenuta vitale spiega perfettamente, in chiave \textit{Telecommunications Engineering} e richiamando i modelli formalizzati da \textit{Kaining Wang et al.}, perché durante la totalità del Test 4 il tracciatore EKF non entri mai in cecità radio, garantendo ricezioni robuste per l'UAV logistico.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{../Test_4.4_SINR_vs_M_Elements.png}
     \caption{Test 4. Valutazione qualitativa della tolleranza del canale propagativo SINR in densità $M$. Una configurazione cieca ``sempre accesa'' tende al collasso del segnale per mutua interferenza, viceversa l'astuta regolazione predittiva ON-OFF dell'SDN protegge e consolida margini stabili di segnale utile bloccati ai limiti Gold-Standard 6G.}
+    \label{fig:test4_sinr}
 \end{figure}
 
 \subsubsection{Mappa del Trade-off Energetico e Definizione della "Zona Ottima" Operativa}
 Cionostante, qualsiasi implementazione tecnica d'avanguardia progettuale impone ai fini ultimi una rigorosa calibrazione sui \textit{trade-off} operativi energetici, ai fini di inquadrarne la sostenibilità su larga scala intrinseca.
-Al fine di asseverare la sostenibilità architetturale per le istanze a basse dissipazioni ambientali, un parametro normativo \textit{Green 6G} (limitato ai consumi stretti passivi di $\approx 0.5\text{ W}$ in \textit{Deep sleep} limitando l'attivo array sui $50\text{ W}$), si procede al tracciamento intersezionale del consumo aggregato radiativo per singolo target mobile combinato alla bontà predittiva RMSE su logaritmo temporale. Le deduzioni risultanti da tali metriche collassano formalmente in \textit{Scatter Plot} multidimensionale di varianza con cerchi distanziometrici d'intervallo confidenza perimetrico al 95\% fissato sui baricentri di \textit{eigenvalue} limite estratti (Figura 5.13).
+Al fine di asseverare la sostenibilità architetturale per le istanze a basse dissipazioni ambientali, un parametro normativo \textit{Green 6G} (limitato ai consumi stretti passivi di $\approx 0.5\text{ W}$ in \textit{Deep sleep} limitando l'attivo array sui $50\text{ W}$), si procede al tracciamento intersezionale del consumo aggregato radiativo per singolo target mobile combinato alla bontà predittiva RMSE su logaritmo temporale. Le deduzioni risultanti da tali metriche collassano formalmente in \textit{Scatter Plot} multidimensionale di varianza con cerchi distanziometrici d'intervallo confidenza perimetrico al 95\% fissato sui baricentri di \textit{eigenvalue} limite estratti (Figura \ref{fig:test4_scatter}).
 
 Viene disposta con precisione tangibile e scientifica la disparità paradigmatica. Risulta palese dai cluster associabili al modello classico \textbf{EKF Baseline} (\textit{in rosso e arancione}) la frequente ricaduta in zone prestazionali critiche: a causa della mancanza di supporto predittivo ed energetico strutturato, il velivolo subisce continui disallineamenti e sfasamenti radio. Questo isolamento comporta immancabilmente una metrica di tracciamento debole ed incline a superare limiti operativi di sicurezza, sfociando in derive collassanti (\textit{RMSE > 3.0 m}).
 
@@ -1313,15 +1330,17 @@ Il regime protetto e \textit{Mission-Critical} dimostra l'operatività ed asinto
     \centering
     \includegraphics[width=0.6\textwidth]{../Test_4.5_Scatter_Errore_Overhead.png}
     \caption{Test 4. Mapping Multivariato energetico \textit{Scatter Plot Trade-off}. L'algoritmica posizionale ibrida (punti blu), a fronte d'una contenuta gestione termodinamica intelligente dell'array ON/OFF, si colloca prepotentemente nella densità sub-metrica verde confusa denominata \textit{Zona Ottimale Green SDN} (orizzonte $Y$), sconfiggendo totalmente le severe derive dell'ecosistema \textit{Baseline EKF} puro.}
+    \label{fig:test4_scatter}
 \end{figure}
 
-A consolidamento finale ed ingegneristico di questo stringente imperativo di ottimizzazione green energetica, giunge in completo suffragio la modellizzazione del \textit{Pareto-Front} espletata mediante la complessa implementazione risolutiva stocastica basata sull'Ottimizzazione Alternata ed il noto \textbf{Metodo di Dinkelbach}. Al di là della decisione di attivazione, si è confrontata matematicamente l'architettura classica a matrice radiativa unicamente diagonale (D-RIS) con la flessibilità evoluta dell'avanguardistica architettura \textit{Beyond-Diagonal} (BD-RIS). Misurandone quantitativamente l'Efficienza Energetica Assoluta (AEE, quantificata in \textit{bit/Joule}) rapportata fedelmente alla potenza emissiva totale limitata da inviare in \textit{Front-End} dalla Base-Station ($P_s$), è formalmente e definitivamente dimostrabile nelle plottature di Figura 5.14 la supremazia limite dell'hardware di frontiera 6G.
+A consolidamento finale ed ingegneristico di questo stringente imperativo di ottimizzazione green energetica, giunge in completo suffragio la modellizzazione del \textit{Pareto-Front} espletata mediante la complessa implementazione risolutiva stocastica basata sull'Ottimizzazione Alternata ed il noto \textbf{Metodo di Dinkelbach}. Al di là della decisione di attivazione, si è confrontata matematicamente l'architettura classica a matrice radiativa unicamente diagonale (D-RIS) con la flessibilità evoluta dell'avanguardistica architettura \textit{Beyond-Diagonal} (BD-RIS). Misurandone quantitativamente l'Efficienza Energetica Assoluta (AEE, quantificata in \textit{bit/Joule}) rapportata fedelmente alla potenza emissiva totale limitata da inviare in \textit{Front-End} dalla Base-Station ($P_s$), è formalmente e definitivamente dimostrabile nelle plottature di Figura \ref{fig:test4_aee} la supremazia limite dell'hardware di frontiera 6G.
 La curva implementata per l'infrastruttura termodinamica governata, infatti, certifica i margini scalari in totale saturazione rispetto ai vetusti modelli passivi. Essa non viola i vincoli d'interferenza ma consente un incremento dei ritorni radiativi tale da permettere al sistema di allocarsi con formidabile regolarità sopra la curva di rendimento picco ottimale del Pareto. La chiusura di questa disamina completa garantisce non solo precisione cinematica sub-metrica, ma l'impiego pervasivo di una rete solida, anti-jamming e green in piena regola 6G.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{../Test_4.6_AEE_vs_Ps_Dinkelbach.png}
     \caption{Test 4. Analisi d'Efficienza Energetica Assoluta (AEE). La stima termodinamica dimostra tangibilmente il picco operativo ricercato da Dinkelbach: l'algoritmo scala all'aumentare di $P_s$ fino a saturare il break-even di sistema, esaltando notevolmente il margine di efficienza rate/power per l'avanzato pannello BD-RIS rispetto al subottimale passivo D-RIS standardizzato.}
+    \label{fig:test4_aee}
 \end{figure}
 
 \subsubsection{Sinergia Algoritmica: Il Filtro Ibrido EKF-LSTM}
@@ -1514,18 +1533,17 @@ entrati nella seconda parte di questo cammino, tra lo studio in biblioteca e un 
 
 \vspace{\baselineskip}
 
-\textit{Al club 65 e alla tartare,}\\
-. . .
+\textit{Al club 65 e alla Tartare,}\\
+che gli ultimi tre anni mi ha fatto ritrovare lo sport che amo, il basket, con nuovi amici . 
 
 \vspace{\baselineskip}
 
 \textit{Ad Invibe,}\\
-che ogni estate mi ha fatto dimenticare e divertire creando legami forti e amicizie di cui non posso dimenticare 
-
+che mi ha dato la possibilità di fare nuove esperienze e di uscire dalla confort zone. In questi 5 anni ho conosciuto persone da tutta Italia con cui ho stretto un legame difficile da spiegare ma che terrò sempre nel mio cuore.
 \vspace{\baselineskip}
 
 \textit{A quelli del lavoro,}\\
-. . .
+che mi hanno dato la possibilità di crescere professionalmente e personalmente. Grazie a DX-destination, a Nova-eventi e da poco anche Plaza crew che mi fanno continuare ad amare il mio lavoro.
 
 \vspace{\baselineskip}
 

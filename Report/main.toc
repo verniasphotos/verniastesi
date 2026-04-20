@@ -64,5 +64,5 @@
 \contentsline {section}{\numberline {6}Conclusioni Finali e Sviluppi Futuri}{50}{section.6}%
 \contentsline {subsection}{\numberline {6.1}Sintesi dei Traguardi Operativi e Risultati del Framework}{50}{subsection.6.1}%
 \contentsline {subsection}{\numberline {6.2}Sviluppi Futuri e Prospettive di Ricerca}{50}{subsection.6.2}%
-\contentsline {section}{Bibliografia}{52}{section*.22}%
-\contentsline {section}{Ringraziamenti}{54}{section*.22}%
+\contentsline {section}{Bibliografia}{52}{section*.23}%
+\contentsline {section}{Ringraziamenti}{54}{section*.23}%
