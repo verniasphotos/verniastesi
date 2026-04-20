@@ -13,7 +13,7 @@
 \contentsline {subsubsection}{\numberline {2.3.2}Architettura delle RIS Attive e gestione "Green 6G"}{14}{subsubsection.2.3.2}%
 \contentsline {subsubsection}{\numberline {2.3.3}Transizione verso le Beyond-Diagonal RIS (BD-RIS)}{15}{subsubsection.2.3.3}%
 \contentsline {subsubsection}{\numberline {2.3.4}Imperfezioni Hardware e Beam Misalignment}{15}{subsubsection.2.3.4}%
-\contentsline {subsection}{\numberline {2.4}Il Link Budget in Cascata: Analisi del rumore termico dinamico nel canale UAV-RIS-BS}{16}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.4}Link Budget in Cascata nel canale UAV-RIS-BS}{16}{subsection.2.4}%
 \contentsline {section}{\numberline {3}Architettura di Rete e Protocolli SDN}{17}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Evoluzione 6G: Separazione tra Data/Control Plane e Service-Based Architecture (SBA)}{17}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Livello MAC (Fronthaul)}{18}{subsection.3.2}%
@@ -52,17 +52,17 @@
 \contentsline {subsection}{\numberline {5.3}Test 2: Mitigazione degli Scenari NLoS tramite Assisted-Line-of-Sight}{40}{subsection.5.3}%
 \contentsline {subsubsection}{\numberline {5.3.1}Ripristino Analogico: Assisted-Line-of-Sight}{40}{subsubsection.5.3.1}%
 \contentsline {subsubsection}{\numberline {5.3.2}Rientro a Pieno Regime EKF della Stima Metrica}{40}{subsubsection.5.3.2}%
-\contentsline {subsection}{\numberline {5.4}Test 3: Variazione Parametrica e Analisi Stress sul Vincolo di Latenza}{41}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.4}Test 3: Variazione Parametrica e Analisi Stress sul Vincolo di Latenza}{42}{subsection.5.4}%
 \contentsline {subsubsection}{\numberline {5.4.1}Il Limite Fisico Strutturale: L'effetto Beam Misalignment}{42}{subsubsection.5.4.1}%
 \contentsline {subsubsection}{\numberline {5.4.2}Decadimento in Outage Zone e Ritorno al Moto Cieco}{43}{subsubsection.5.4.2}%
 \contentsline {subsection}{\numberline {5.5}Test 4: Evoluzione Predittiva tramite LSTM e Ottimizzazione Energetica BS-RIS}{43}{subsection.5.5}%
 \contentsline {subsubsection}{\numberline {5.5.1}Mitigazione del Beam Misalignment}{43}{subsubsection.5.5.1}%
 \contentsline {subsubsection}{\numberline {5.5.2}Analisi della Dinamica Temporale: Integrità Cinematica e Handover}{45}{subsubsection.5.5.2}%
-\contentsline {subsubsection}{\numberline {5.5.3}Analisi dell'Ecosistema Elettromagnetico con Controllo SDN}{46}{subsubsection.5.5.3}%
-\contentsline {subsubsection}{\numberline {5.5.4}Mappa del Trade-off Energetico e Definizione della "Zona Ottima" Operativa}{47}{subsubsection.5.5.4}%
-\contentsline {subsubsection}{\numberline {5.5.5}Sinergia Algoritmica: Il Filtro Ibrido EKF-LSTM}{49}{subsubsection.5.5.5}%
-\contentsline {section}{\numberline {6}Conclusioni Finali e Sviluppi Futuri}{51}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Sintesi dei Traguardi Operativi e Risultati del Framework}{51}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Sviluppi Futuri e Prospettive di Ricerca}{51}{subsection.6.2}%
-\contentsline {section}{Bibliografia}{53}{section*.22}%
-\contentsline {section}{Ringraziamenti}{55}{section*.22}%
+\contentsline {subsubsection}{\numberline {5.5.3}Analisi dell'Ecosistema Elettromagnetico con Controllo SDN}{45}{subsubsection.5.5.3}%
+\contentsline {subsubsection}{\numberline {5.5.4}Mappa del Trade-off Energetico e Definizione della "Zona Ottima" Operativa}{46}{subsubsection.5.5.4}%
+\contentsline {subsubsection}{\numberline {5.5.5}Sinergia Algoritmica: Il Filtro Ibrido EKF-LSTM}{48}{subsubsection.5.5.5}%
+\contentsline {section}{\numberline {6}Conclusioni Finali e Sviluppi Futuri}{50}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Sintesi dei Traguardi Operativi e Risultati del Framework}{50}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Sviluppi Futuri e Prospettive di Ricerca}{50}{subsection.6.2}%
+\contentsline {section}{Bibliografia}{52}{section*.22}%
+\contentsline {section}{Ringraziamenti}{54}{section*.22}%

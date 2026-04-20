@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  19 APR 2026 10:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  20 APR 2026 12:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -962,26 +962,6 @@ Package: relsize 2013/03/29 ver 4.1
 )
 Package hyperref Info: Option `colorlinks' set `true' on input line 102.
 
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 102.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 102.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 102.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 102.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 102.
-
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/base/inputenc.sty
 Package: inputenc 2024/02/08 v1.3d Input encoding file
 \inpenc@prehook=\toks53
@@ -1212,12 +1192,16 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 (./main.toc [3
 
-] [4])
+]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [4])
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
- [5]
-<../warehouse_drone_problem.png, id=445, 1027.84pt x 1027.84pt>
+
+[5]
+<../warehouse_drone_problem.png, id=444, 1027.84pt x 1027.84pt>
 File: ../warehouse_drone_problem.png Graphic file (type png)
 <use ../warehouse_drone_problem.png>
 Package pdftex.def Info: ../warehouse_drone_problem.png  used on input line 232
@@ -1238,27 +1222,27 @@ Underfull \vbox (badness 1910) has occurred while \output is active []
 ] [12
 
 ]
-<Images/RIS.jpeg, id=561, 1032.85875pt x 1009.7725pt>
+<Images/RIS.jpeg, id=560, 1032.85875pt x 1009.7725pt>
 File: Images/RIS.jpeg Graphic file (type jpg)
 <use Images/RIS.jpeg>
-Package pdftex.def Info: Images/RIS.jpeg  used on input line 367.
+Package pdftex.def Info: Images/RIS.jpeg  used on input line 370.
 (pdftex.def)             Requested size: 128.0387pt x 125.17351pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 368.
+(caption)                particular \caption on input line 371.
 See the caption package documentation for explanation.
 
 [13 <./Images/RIS.jpeg>]
-<../passive_ris.png, id=579, 1023.825pt x 1023.825pt>
+<../passive_ris.png, id=578, 1023.825pt x 1023.825pt>
 File: ../passive_ris.png Graphic file (type png)
 <use ../passive_ris.png>
-Package pdftex.def Info: ../passive_ris.png  used on input line 406.
+Package pdftex.def Info: ../passive_ris.png  used on input line 409.
 (pdftex.def)             Requested size: 204.85802pt x 204.8551pt.
-<../active_ris.png, id=580, 1027.84pt x 1027.84pt>
+<../active_ris.png, id=579, 1027.84pt x 1027.84pt>
 File: ../active_ris.png Graphic file (type png)
 <use ../active_ris.png>
-Package pdftex.def Info: ../active_ris.png  used on input line 413.
+Package pdftex.def Info: ../active_ris.png  used on input line 416.
 (pdftex.def)             Requested size: 204.85802pt x 204.8586pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -1274,14 +1258,14 @@ Underfull \vbox (badness 1360) has occurred while \output is active []
 
 ]
 [22]
-<Images/UAV1_UAV2.jpeg, id=678, 880.28876pt x 899.36pt>
-File: Images/UAV1_UAV2.jpeg Graphic file (type jpg)
-<use Images/UAV1_UAV2.jpeg>
-Package pdftex.def Info: Images/UAV1_UAV2.jpeg  used on input line 675.
-(pdftex.def)             Requested size: 170.71393pt x 174.40701pt.
+<Images/UAV1_UAV2_1.jpeg, id=677, 1395.2125pt x 1406.25375pt>
+File: Images/UAV1_UAV2_1.jpeg Graphic file (type jpg)
+<use Images/UAV1_UAV2_1.jpeg>
+Package pdftex.def Info: Images/UAV1_UAV2_1.jpeg  used on input line 678.
+(pdftex.def)             Requested size: 170.71393pt x 172.04765pt.
  [23
 
- <./Images/UAV1_UAV2.jpeg>]
+ <./Images/UAV1_UAV2_1.jpeg>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [24]
@@ -1296,162 +1280,142 @@ Underfull \vbox (badness 3514) has occurred while \output is active []
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [30]
-<../SDN_Server_Architecture_Updated.png, id=758, 1027.84pt x 1027.84pt>
+<../SDN_Server_Architecture_Updated.png, id=757, 1027.84pt x 1027.84pt>
 File: ../SDN_Server_Architecture_Updated.png Graphic file (type png)
 <use ../SDN_Server_Architecture_Updated.png>
 Package pdftex.def Info: ../SDN_Server_Architecture_Updated.png  used on input 
-line 1034.
+line 1038.
 (pdftex.def)             Requested size: 362.77525pt x 362.77632pt.
 
 [31 <../SDN_Server_Architecture_Updated.png>] [32] [33] [34] [35
 
 ]
-<../topological_map_layout_a_nolegend.png, id=785, 1121.18875pt x 1178.4025pt>
+<../topological_map_layout_a_nolegend.png, id=784, 1121.18875pt x 1178.4025pt>
 File: ../topological_map_layout_a_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_a_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_a_nolegend.png  used on inpu
-t line 1111.
+t line 1123.
 (pdftex.def)             Requested size: 204.85802pt x 215.30391pt.
-<../topological_map_layout_b_nolegend.png, id=786, 970.62625pt x 1178.4025pt>
+<../topological_map_layout_b_nolegend.png, id=785, 970.62625pt x 1178.4025pt>
 File: ../topological_map_layout_b_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_b_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_b_nolegend.png  used on inpu
-t line 1117.
+t line 1129.
 (pdftex.def)             Requested size: 204.85802pt x 248.71251pt.
-<../topological_map_layout_c_nolegend.png, id=787, 1091.07625pt x 858.20625pt>
+<../topological_map_layout_c_nolegend.png, id=786, 1091.07625pt x 858.20625pt>
 File: ../topological_map_layout_c_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_c_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_c_nolegend.png  used on inpu
-t line 1130.
+t line 1137.
 (pdftex.def)             Requested size: 256.07741pt x 201.4166pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \vbox (badness 5460) has occurred while \output is active []
 
  [36 <../topological_map_layout_a_nolegend.png> <../topological_map_layout_b_no
 legend.png>] [37 <../topological_map_layout_c_nolegend.png>]
-<../Test_1_B_TopDown_Traiettoria.png, id=803, 867.24pt x 867.24pt>
+<../Test_1_B_TopDown_Traiettoria.png, id=802, 867.24pt x 867.24pt>
 File: ../Test_1_B_TopDown_Traiettoria.png Graphic file (type png)
 <use ../Test_1_B_TopDown_Traiettoria.png>
 Package pdftex.def Info: ../Test_1_B_TopDown_Traiettoria.png  used on input lin
-e 1166.
+e 1169.
 (pdftex.def)             Requested size: 277.41176pt x 277.41661pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
  [38]
-<../Test_1_RMSE_Temporale.png, id=810, 1300.86pt x 1011.78pt>
+<../Test_1_RMSE_Temporale.png, id=809, 1300.86pt x 1011.78pt>
 File: ../Test_1_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_1_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 1178.
+Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 1181.
 
 (pdftex.def)             Requested size: 204.85802pt x 159.32532pt.
-<../Test_1_CDF_RMSE.png, id=811, 722.7pt x 505.89pt>
+<../Test_1_CDF_RMSE.png, id=810, 722.7pt x 505.89pt>
 File: ../Test_1_CDF_RMSE.png Graphic file (type png)
 <use ../Test_1_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 1184.
+Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 1187.
 (pdftex.def)             Requested size: 204.85802pt x 143.4005pt.
 
 Underfull \vbox (badness 3724) has occurred while \output is active []
 
  [39 <../Test_1_B_TopDown_Traiettoria.png> <../Test_1_RMSE_Temporale.png> <../T
 est_1_CDF_RMSE.png>]
-<../Test_2_B_Successo_RIS.png, id=821, 741.7311pt x 833.0322pt>
+<../Test_2_B_Successo_RIS.png, id=820, 741.7311pt x 833.0322pt>
 File: ../Test_2_B_Successo_RIS.png Graphic file (type png)
 <use ../Test_2_B_Successo_RIS.png>
-Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 1206.
+Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 1204.
 
-(pdftex.def)             Requested size: 277.41176pt x 311.56009pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [40]
-<../Test_2_RMSE_Temporale.png, id=826, 604.1772pt x 447.3513pt>
+(pdftex.def)             Requested size: 256.07741pt x 287.5998pt.
+ [40 <../Test_2_B_Successo_RIS.png>]
+<../Test_2_RMSE_Temporale.png, id=827, 604.1772pt x 447.3513pt>
 File: ../Test_2_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_2_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 1214.
+Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 1219.
 
 (pdftex.def)             Requested size: 204.85802pt x 151.68103pt.
-<../Test_2_CDF_RMSE.png, id=827, 616.9449pt x 447.3513pt>
+<../Test_2_CDF_RMSE.png, id=828, 616.9449pt x 447.3513pt>
 File: ../Test_2_CDF_RMSE.png Graphic file (type png)
 <use ../Test_2_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 1221.
+Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 1226.
 (pdftex.def)             Requested size: 204.85802pt x 148.54106pt.
-
-[41 <../Test_2_B_Successo_RIS.png> <../Test_2_RMSE_Temporale.png> <../Test_2_CD
-F_RMSE.png>]
-<../Test_3_Stress_Latenza.png, id=837, 748.2354pt x 420.1296pt>
+ [41 <../Test_2_RMSE_Temporale.png> <../Test_2_CDF_RMSE.png>]
+<../Test_3_Stress_Latenza.png, id=836, 748.2354pt x 420.1296pt>
 File: ../Test_3_Stress_Latenza.png Graphic file (type png)
 <use ../Test_3_Stress_Latenza.png>
-Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1240.
+Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1246.
 
 (pdftex.def)             Requested size: 277.41176pt x 155.76605pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
  [42 <../Test_3_Stress_Latenza.png>]
-<../Test_4.1_Comparativo_RMSE_Latenza.png, id=844, 859.7721pt x 487.5816pt>
+<../Test_4.1_Comparativo_RMSE_Latenza.png, id=843, 859.7721pt x 487.5816pt>
 File: ../Test_4.1_Comparativo_RMSE_Latenza.png Graphic file (type png)
 <use ../Test_4.1_Comparativo_RMSE_Latenza.png>
 Package pdftex.def Info: ../Test_4.1_Comparativo_RMSE_Latenza.png  used on inpu
-t line 1260.
+t line 1266.
 (pdftex.def)             Requested size: 277.41176pt x 157.32384pt.
 
 Underfull \vbox (badness 3291) has occurred while \output is active []
 
  [43]
-<../Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=850, 682.4697pt x 487.5816pt>
+<../Test_4.2_Traiettoria_EKF_vs_LSTM.png, id=849, 682.4697pt x 487.5816pt>
 File: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png Graphic file (type png)
 <use ../Test_4.2_Traiettoria_EKF_vs_LSTM.png>
 Package pdftex.def Info: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png  used on input
- line 1268.
+ line 1274.
 (pdftex.def)             Requested size: 256.07741pt x 182.95424pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [44 <../Test_4.1_Comparativo_RMSE_Latenza.png>]
-<../Test_4.3_RMSE_Temporale_Missione.png, id=857, 859.7721pt x 416.2752pt>
+[44 <../Test_4.1_Comparativo_RMSE_Latenza.png> <../Test_4.2_Traiettoria_EKF_vs_
+LSTM.png>]
+<../Test_4.3_RMSE_Temporale_Missione.png, id=858, 859.7721pt x 416.2752pt>
 File: ../Test_4.3_RMSE_Temporale_Missione.png Graphic file (type png)
 <use ../Test_4.3_RMSE_Temporale_Missione.png>
 Package pdftex.def Info: ../Test_4.3_RMSE_Temporale_Missione.png  used on input
- line 1281.
+ line 1287.
 (pdftex.def)             Requested size: 298.75264pt x 144.64409pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [45 <../Test_4.2_Traiettoria_EKF_vs_LSTM.png>]
-<../Test_4.4_SINR_vs_M_Elements.png, id=864, 681.9879pt x 487.5816pt>
+ [45 <../Test_4.3_RMSE_Temporale_Missione.png>]
+<../Test_4.4_SINR_vs_M_Elements.png, id=865, 681.9879pt x 487.5816pt>
 File: ../Test_4.4_SINR_vs_M_Elements.png Graphic file (type png)
 <use ../Test_4.4_SINR_vs_M_Elements.png>
 Package pdftex.def Info: ../Test_4.4_SINR_vs_M_Elements.png  used on input line
- 1292.
+ 1298.
 (pdftex.def)             Requested size: 256.07741pt x 183.08072pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [46 <../Test_4.3_RMSE_Temporale_Missione.png>] [47 <../Test_4.4_SINR_vs_M_Elem
-ents.png>]
-<../Test_4.5_Scatter_Errore_Overhead.png, id=878, 715.2321pt x 489.7497pt>
+ [46 <../Test_4.4_SINR_vs_M_Elements.png>]
+<../Test_4.5_Scatter_Errore_Overhead.png, id=872, 715.2321pt x 489.7497pt>
 File: ../Test_4.5_Scatter_Errore_Overhead.png Graphic file (type png)
 <use ../Test_4.5_Scatter_Errore_Overhead.png>
 Package pdftex.def Info: ../Test_4.5_Scatter_Errore_Overhead.png  used on input
- line 1308.
+ line 1314.
 (pdftex.def)             Requested size: 256.07741pt x 175.34573pt.
-<../Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=879, 708.7278pt x 490.7133pt>
+ [47 <../Test_4.5_Scatter_Errore_Overhead.png>]
+<../Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=880, 708.7278pt x 490.7133pt>
 File: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png Graphic file (type png)
 <use ../Test_4.6_AEE_vs_Ps_Dinkelbach.png>
 Package pdftex.def Info: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png  used on input li
-ne 1317.
+ne 1323.
 (pdftex.def)             Requested size: 256.07741pt x 177.30058pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [48 <../Test_4.5_Scatter_Errore_Overhead.png>] [49 <../Test_4.6_AEE_vs_Ps_Dink
-elbach.png>] [50] [51
+ [48 <../Test_4.6_AEE_vs_Ps_Dinkelbach.png>] [49] [50
 
 
-] [52] [53] [54]
-Underfull \hbox (badness 10000) in paragraph at lines 1485--1486
-
- []
-
-[55] [56] [57] [58] [59] (./main.aux)
+] [51] [52] [53] [54] [55] [56]
+[57] [58] [59] [60] [61] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -1461,16 +1425,13 @@ L3 programming layer <2026-01-19>
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.72pt have occurred.
 
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 2A9A62D736B3F769AAA2FD494FA8498B;22510.
+(rerunfilecheck)             Checksum: 2EBDC387F8918CF5A8A4CB17F094E63C;22292.
  ) 
 Here is how much of TeX's memory you used:
- 37228 strings out of 469006
- 712859 string characters out of 5454814
- 1132297 words of memory out of 5000000
+ 37230 strings out of 469006
+ 712887 string characters out of 5454814
+ 1132713 words of memory out of 5000000
  65164 multiletter control sequences out of 15000+600000
  640201 words of font info for 86 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
@@ -1507,10 +1468,10 @@ blic/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1
 /public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/t
 ype1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026basic/texmf-dist/fon
 ts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (59 pages, 7258566 bytes).
+Output written on main.pdf (61 pages, 7504731 bytes).
 PDF statistics:
- 1139 PDF objects out of 1200 (max. 8388607)
- 968 compressed objects within 10 object streams
- 206 named destinations out of 1000 (max. 500000)
+ 1147 PDF objects out of 1200 (max. 8388607)
+ 974 compressed objects within 10 object streams
+ 208 named destinations out of 1000 (max. 500000)
  656 words of extra memory for PDF output out of 10000 (max. 10000000)
 

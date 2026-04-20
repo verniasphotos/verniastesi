@@ -1,0 +1,89 @@
+\documentclass{article}
+\usepackage[paperwidth=10cm,paperheight=13cm,margin=0cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, positioning, arrows.meta, shadows, fit, backgrounds, calc}
+\pagestyle{empty}
+
+% Define UniFI colors
+\definecolor{unifiblue}{RGB}{0,67,112}
+\definecolor{lightgray}{RGB}{240,240,240}
+\definecolor{accent}{RGB}{200,220,240}
+
+\begin{document}
+\centering
+\vspace*{\fill}
+\begin{tikzpicture}[
+    font=\sffamily\bfseries,
+    % Beautiful styling for module boxes
+    module_box/.style={
+        rectangle,
+        rounded corners=4pt,
+        draw=unifiblue, 
+        thick, 
+        top color=white,
+        bottom color=accent,
+        align=center,
+        minimum width=7cm,
+        minimum height=1.1cm,
+        drop shadow={shadow xshift=1.5pt, shadow yshift=-1.5pt, fill=black!30}
+    },
+    % Styling for tests box
+    test_box/.style={
+        module_box,
+        top color=unifiblue!80,
+        bottom color=unifiblue,
+        text=white
+    },
+    % Arrow styling
+    arrow/.style={
+        -{Stealth[scale=1.2]},
+        thick,
+        draw=unifiblue!80,
+        shorten >=2pt,
+        shorten <=2pt
+    }
+]
+
+% Define vertical spacing
+\def\vsep{-1.3cm}
+
+% Nodes
+\node[module_box] (m1) at (0,0) {CONFIG HARDWARE};
+\node[module_box] (m2) at (0,\vsep) {ENVIRONMENT};
+\node[module_box] (m3) at (0,2*\vsep) {NETWORKING};
+\node[module_box] (m4) at (0,3*\vsep) {CHANNEL MODEL};
+\node[module_box] (m5) at (0,4*\vsep) {CINEMATIC EKF};
+\node[module_box] (m6) at (0,5*\vsep) {SDN - CONTROLLER};
+\node[module_box] (m7) at (0,6*\vsep) {TELEMETRY};
+\node[module_box] (m8) at (0,7*\vsep) {SDN - GREEN};
+\node[test_box]   (m9) at (0,8.3*\vsep) {TEST 0 - 1 - 2 - 3 - 4};
+
+% Arrows Flow
+\draw[arrow] (m1) -- (m2);
+\draw[arrow] (m2) -- (m3);
+\draw[arrow] (m3) -- (m4);
+\draw[arrow] (m4) -- (m5);
+\draw[arrow] (m5) -- (m6);
+\draw[arrow] (m6) -- (m7);
+\draw[arrow] (m7) -- (m8);
+\draw[arrow] (m8) -- (m9);
+
+% Background wrapper (optional, for aesthetics)
+\begin{scope}[on background layer]
+    \node [
+        draw=unifiblue!30, 
+        fill=white,
+        line width=1pt, 
+        rounded corners=8pt,
+        inner sep=10pt,
+        fit=(m1) (m9)
+    ] {};
+\end{scope}
+
+\end{tikzpicture}
+\vspace*{\fill}
+\end{document}

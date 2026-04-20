@@ -98,7 +98,7 @@
     linkcolor=black,
     urlcolor=cyan,
     citecolor=blue,
-    pdftitle={Tesi_Verniani_Studio_Sintesi_e_Ottimizzazione},
+    pdftitle={Studio e simulazione di un'architettura 6G centralizzata per il tracking di droni indoor assistita da RIS},
 }
 
 \usepackage[utf8]{inputenc}
@@ -156,7 +156,7 @@
 
 \vspace{20mm}
 \begin{center}
-    {\LARGE{\bf{Progettazione e verifica di un’architettura 6G per il tracking di droni indoor assistita da RIS}}\\\vspace{5mm}}
+    {\LARGE{\bf{Studio e simulazione di un'architettura 6G centralizzata per il tracking di droni indoor assistita da RIS}}\\\vspace{5mm}}
 \end{center}
 \vspace{20mm}
 
@@ -255,6 +255,9 @@ L'impiego massivo di flotte UAV si scontra con le peculiarità architettoniche d
 La navigazione sicura di un UAV all'interno di un corridoio VNA richiede una consapevolezza spaziale (spatial awareness) di ordine sub-metrico. Essendo i sistemi GNSS (Global Navigation Satellite System) inservibili indoor, il drone deve stimare la propria cinematica elaborando la telemetria radio \cite{Ye2023}. Il tracciamento di terminali in rapida mobilità si affida tipicamente a filtri stocastici, quale l'Extended Kalman Filter (EKF), capace di stimare lo stato dinamico del drone minimizzando l'errore quadratico medio in presenza di rumore di misura \cite{Muller2024,Ye2023}. Ciononostante, prolungate condizioni di NLoS privano il filtro dell'Innovation Step radio; conseguentemente, le incertezze intrinseche ai sensori inerziali di bordo inducono una rapida divergenza della stima di posizione, nota come deriva o coasting, compromettendo fatalmente il tracciamento \cite{Muller2024}.
 
 Per scongiurare tali derive, diviene imperativa l'adozione di paradigmi 6G-ready basati sulle Reconfigurable Intelligent Surfaces (RIS). Le RIS sono metamateriali planari composti da elementi riflettenti a basso costo (patch antenna) capaci di manipolare attivamente lo sfasamento delle onde elettromagnetiche incidenti, rimodellando deterministicamente l'ambiente wireless \cite{Zhang2022}. Il deployment strategico di nodi RIS permette di bypassare gli ostacoli dei corridoi, instaurando un collegamento virtuale in visibilità (Assisted-LoS). Tale soluzione abbatte il path loss e fornisce all'algoritmo EKF ancore radio stabili, garantendo la continuità di un tracciamento ultra-preciso \cite{Muller2024,Ye2023}.
+
+
+
 
 
 \clearpage
@@ -433,7 +436,7 @@ L_{mis} = \max\left(0, \min\left(15.0, (\theta_{error} - 5^\circ) \cdot 0.5\righ
 \end{equation}
 
 Questa modellazione garantisce che la validazione sperimentale non sia basata su assunzioni ideali, ma rifletta le reali sfide di un deployment robotico industriale.
-\subsection{Il Link Budget in Cascata: Analisi del rumore termico dinamico nel canale UAV-RIS-BS}
+\subsection{Link Budget in Cascata nel canale UAV-RIS-BS}
 
 Il calcolo del Link Budget in cascata costituisce un passaggio fondamentale per quantificare le prestazioni del canale radio (UAV-RIS-BS) quando il collegamento diretto in ambiente industriale è severamente ostruito. A differenza delle RIS passive, le quali subiscono l'effetto del fading moltiplicativo e si limitano a riflettere l'onda incidente perdendo drasticamente potenza, l'architettura a RIS attive impiegata in questo lavoro amplifica il segnale per compensare le perdite spaziali \cite{Zhang2022}. Tuttavia, l'uso di amplificatori a riflessione introduce una componente di rumore termico dinamico aggiuntiva che deve essere rigorosamente modellata nel bilancio di collegamento.
 
@@ -672,11 +675,12 @@ dove $\mathbf{a}_t$ rappresenta il vettore delle accelerazioni di controllo (inc
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.4\textwidth]{Images/UAV1_UAV2.jpeg}
+    \includegraphics[width=0.4\textwidth]{Images/UAV1_UAV2_1.jpeg}
     \caption{Operazioni di volo e tracciamento multi-UAV.}
     \label{fig:warehouse_uav_operations}
 \end{figure}
 
+\newpage
 Il rumore di processo, modellato come una variabile gaussiana a media nulla $\mathbf{w}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$, è fondamentale per introdurre l'incertezza intrinseca del volo, simulando perturbazioni esogene come le correnti d'aria trasversali generate dai rotori che i soli modelli matematici deterministici non possono prevedere \cite{Ye2023}.
 
 Nello specifico del simulatore, la matrice di covarianza del rumore di processo $\mathbf{Q}$ è stata tarata sperimentalmente per bilanciare la fiducia che il filtro di Kalman (EKF) ripone nel modello cinematico rispetto alle misurazioni radio: un valore eccessivo di $\mathbf{Q}$ indicherebbe una totale imprevedibilità del drone, costringendo l'algoritmo ad affidarsi esclusivamente al segnale RF, mentre un valore troppo basso porterebbe l'EKF a ignorare i dati radio a favore di una stima puramente inerziale.
@@ -1103,38 +1107,36 @@ Tale modulo istruisce il Controller SDN per una mappatura computazionale dell'am
 
 Le valutazioni topologiche sono state declinate su tre differenti \textit{Digital Twin} planimetrici:
 \begin{itemize}
-    \item[] 
-    \begin{figure}[H]
-        \centering
-        \begin{subfigure}[b]{0.48\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../topological_map_layout_a_nolegend.png}
-            \caption{Layout A (50x40m, 4 RIS)}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}[b]{0.48\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../topological_map_layout_b_nolegend.png}
-            \caption{Layout B (100x100m, 12 RIS)}
-        \end{subfigure}
-        \caption{Mappe topologiche comparative: Scenario Piccolo (Layout A) e Standard (Layout B).}
-    \end{figure}
-    \vspace{-0.5cm}
     \item \textbf{Il Layout A (Piccolo - 50x40m):} Rappresenta uno scenario a bassa complessità con modesti indici di ombreggiamento radio. In questo contesto territoriale, l'algoritmo ha assegnato una BOM dimensionata a soli \textbf{4 pannelli RIS}, collocati sulla calotta superiore per la compensazione del lieve \textit{Path Loss}.
     
     \item \textbf{Il Layout B (Medio - 100x100m):} Modella un deposito logistico standard caratterizzato da intersezioni a 90°. L'architettura SDN ha dinamicamente allocato \textbf{12 array RIS} (8 a soffitto e 4 a montaggio parientale), essenziali per mantenere il tracciamento LoS durante i profili di virata cinematica.
 
-    \item[] 
-    \begin{figure}[H]
-        \centering
-        \includegraphics[width=0.6\textwidth]{../topological_map_layout_c_nolegend.png}
-        \caption{Layout C VNA (250x140m, 24 RIS)}
-    \end{figure}
-    \vspace{-0.5cm}
     \item \textbf{Il Layout C (Grande - 250x140m):} Costituisce la prova di \textit{stress test} volumetrica, modellata sull'architettura dei moderni hub logistici contenenti corridoi \textit{Very Narrow Aisle} (VNA). In questo layout ad elevatissima attenuazione, il Test 0 ha calcolato la dispiegazione ottimale di ben \textbf{24 nodi RIS}, allocati precisamente in base al decadimento elettromagnetico dettato dalle direttive spaziali dell'SDN.
 \end{itemize}
 
 Dal punto di vista modellistico, è stato fissato un coefficiente di attenuazione pari a 15 dB per la penetrazione degli ostacoli metallici, penalità che riproduce formalmente le proprietà schermanti e riflettenti del materiale stipato.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../topological_map_layout_a_nolegend.png}
+        \caption{Layout A (50x40m, 4 RIS)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../topological_map_layout_b_nolegend.png}
+        \caption{Layout B (100x100m, 12 RIS)}
+    \end{subfigure}
+    \caption{Mappe topologiche comparative: Scenario Piccolo (Layout A) e Standard (Layout B).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../topological_map_layout_c_nolegend.png}
+    \caption{Layout C VNA (250x140m, 24 RIS)}
+\end{figure}
 
 \subsubsection{I Parametri Elettromagnetici per il "6G"}
 La portante di lavoro adottata per l'infrastruttura è di 5.9 GHz. Sebbene non rientri nello spettro millimetrico (mmWave/THz) prettamente target del 6G, costituisce attulamente lo standard consolidato nel panorama C-V2X (\textit{Cellular Vehicle-to-Everything}) per le reti \textit{mission-critical} veicolari.
@@ -1145,6 +1147,7 @@ Inerentemente all'assorbimento termodinamico delle RIS, i modelli di rete riflet
 Il sistema aeromobile a pilotaggio remoto simulato (UAV) rispecchia le dinamiche cinematiche di un quadrirotore merci leggero operativo, avente modulo della velocità vettoriale pari a circa 3.0 m/s in moto rettilineo uniforme. 
 Il nucleo del tracciamento indoor risiede nell'implementazione dell'Extended Kalman Filter (EKF). Il filtro statuale operante ad una frequenza di aggiornamento di 10 Hz attua la data fusion tra le equazioni differenziali del moto e le rilevazioni sensoristiche telemetriche dell'SDN. Risulta imperativo notare che, a fronte di interruzioni prolungate delle letture esterne dovute ad attenuazioni gravose (il regime NLoS e conseguente \textit{Outage} dei sensori lineari), il filtro diviene inservibile sul fronte dei residui di misura e si sbilancia forzatamente verso le sole matrici predittive basate sull'ultima stima cinematica conosciuta (\textit{navigazione inerziale pura}).
 
+\newpage
 \subsection{Test 1: Analisi Baseline NLoS e fallimento del tracciamento (Diagnosi)}
 
 Allo scopo di validare le dipendenze critiche dall'infrastruttura di supporto, il Test 1 delinea la condizione di \textit{baseline}, analizzando la performance del tracking EKF in assenza totale di superfici riflettenti. Per tale modulo, il collaudo prevede profili di volo articolati che costringono l'UAV ad alternare transizioni repentine tra segmenti prettamente in Line-of-Sight (LoS) e prolungate latitanze in refrattivi complessi a morfologia Non-Line-of-Sight (NLoS).
@@ -1196,34 +1199,37 @@ Il costrutto logico su cui insiste l'architettura si articola come segue: l'inte
 Tale direttiva demanda alla RIS di calibrare un protocollo di correzione di propagazione di fase per direzionare e focalizzare i multi-cammini all'ingresso del corridoio. Questo processo computazionale concretizza in letteratura la cosiddetta \textbf{Assisted-Line-of-Sight} (Linea di Vista Assistita, A-LoS). Ne consegue un transitorio ripristino della densità di segnale, che supera abbondantemente la soglia fisica dei 5 dB di cutoff dell'antenna, mitigando in sicurezza il blocco radiopropagativo preesistente.
 
 \subsubsection{Rientro a Pieno Regime EKF della Stima Metrica}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../Test_2_B_Successo_RIS.png}
+    \caption{Test 2: Con la RIS attiva per A-LoS interviene il ripristino EKF metrico.}
+\end{figure}
+
 I risultati conseguiti a fronte delle simulazioni del Test 2 convalidano l'efficienza del modello strutturato preposto.
 L'azione compensativa della logica RIS reintegra il loop operazionale di aggiornamento (\textit{Innovation Step}) nel ciclo discreto del filtro EKF, interrompendone e correggendone la vertiginosa crescita d'errore autonomo sperimentato nel Test 1.
 In chiave analitica quantitativa, si registra la correzione subitanea degli scarti quadratici transitori, il cui modulo geometrico si stabilisce saldamente e permanentemente nel perimetro del raggio di circa \textbf{1.0 m}. Considerate le imperfezioni multi-cammino e l'elevata trazione cinetica di un drone (3 m/s) tra pareti di metallo, questo parametro risulta ampiamente appianante e validante le normative di \textit{safety}.
 Al contempo, sul piano spaziale-probabilistico di covarianza (rif. Figura 5.6) si certifica l'efficacia algoritmica di re-contrazione della matrice d'incertezza $P$: l'enorme alone ellittico si svuota quasi istantaneamente riattorno ai baricentri reali fisici operanti.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.65\textwidth]{../Test_2_B_Successo_RIS.png}
-    \caption{Test 2. Con la RIS attiva per A-LoS interviene il ripristino EKF metrico.}
-\end{figure}
+
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../Test_2_RMSE_Temporale.png}
-        \caption{Andamento temporale RMSE}
+        \caption{Andamento temporale dell'errore RMSE: ripristino della precisione sub-metrica.}
         \label{fig:test2_rmse_temporale}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../Test_2_CDF_RMSE.png}
-        \caption{Distribuzione CDF}
+        \caption{Distribuzione statistica CDF: errore entro il metro per il 95\% del campione.}
     \end{subfigure}
     \caption{Test 2: Metriche d'errore spaziale misurata ripristinate da Assisted-LoS.}
 \end{figure}
 
+\newpage
 \subsection{Test 3: Variazione Parametrica e Analisi Stress sul Vincolo di Latenza}
 
 Il modello RIS con accensione reattiva sin qui illustrato ha evidenziato inconfutabili benefici se analizzato assoggettato a condizioni di astrazione ideale, caratterizzato dunque da ritardi comunicativi asintoticamente nulli. Al fine di garantire una robustezza analitico-strumentale di stampo \textit{networking} prettamente reale al Digital Twin, è sorto l'obbligo metodologico di confronto formale con il rigore stocastico trasmissivo del canale digitale e del controllore, implementando l'imperfezione dei delay temporali (Latenza della rete di \textit{control plane}). È stato così istituito operativamente il \textbf{Test 3}, nel quale l'orchestrazione software deputata all'attivazione matriciale riflettente è ritardata temporalmente mediante l'inserimento di latenze gaussiane sempre crescenti interposte in simulazione tra il calcolo esecutivo SDN centrale e l'applicazione in radio-frequenza agli effettivi PIN \textit{array} delle RIS d'affissione.
@@ -1238,7 +1244,7 @@ A livello fisico si realizza perciò un disaccoppiamento di posizionamento tempo
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{../Test_3_Stress_Latenza.png}
-    \caption{Test 3. Il netto e invalicabile perimetro strutturale d'accettazione fissato a 50 millisecondi. In oltrepasso della soglia, la divergenza geometrica dell'interferometro decade linearmente e sfocia nel panico matriciale.}
+    \caption{Test 3: Analisi di sensibilità alla latenza. Si osserva la soglia critica di 50 ms oltre la quale il disallineamento del beamforming causa la divergenza del tracciamento.}
 \end{figure}
 
 \subsubsection{Decadimento in Outage Zone e Ritorno al Moto Cieco}
@@ -1258,7 +1264,7 @@ L'effetto risultante dall'integrazione è di portata rilevante e visibile dirett
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{../Test_4.1_Comparativo_RMSE_Latenza.png}
-    \caption{Test 4. Comparativo qualitativo RMSE/Latenza. È documentabile l'appiattimento e l'ammortamento completo del ritardo di trigger operato dall'ingegnerizzazione SDN predittiva contro lo spike disastroso della curva reattiva standardizzata.}
+    \caption{Test 4.1: Confronto tra approccio reattivo e predittivo. L'SDN predittivo compensa i ritardi di rete, stabilizzando l'errore metrico anche per latenze elevate.}
 \end{figure}
 
 Dal punto di vista della cinematica, l'adozione del Deep Learning tramite rete LSTM trova la sua formale validazione accademica nell'incapacità fisiologica del filtro EKF di gestire transizioni vettoriali non lineari in assenza prolungata di Line-of-Sight. Come evidenziato nell'integrazione d'analisi della traiettoria (Figura 5.10), in presenza di una severa deviazione a gomito (curvatura a 90° tipica delle intersezioni VNA), il modello predittivo stocastico classico tende ad accumulare una preoccupante deriva (``Coasting'' dritto), a causa dell'interpretazione inerziale puramente lineare. Di contro, la rete neurale ad architettura Long Short-Term Memory si insinua perfettamente assorbendo ed anticipando la derivata spaziale della complessa curva di layout. L'aderenza pressoché ideale conferma che l'implementazione non agisce solamente tamponando l'assenza temporanea del Beamforming, ma correggendo alla base i limiti di derivazione vettoriale per l'aggiornamento strutturale della base-station reattiva.
@@ -1446,17 +1452,16 @@ In conclusione, i risultati documentati postulano in modo inequivocabile che i f
 
 \setstretch{1.5} % Modifica la spaziatura per rendere i ringraziamenti più leggibili
 
-Questi anni di università sono stati caratterizzati da molti sacrifici, rinunce e momenti di sofferenza. Fortunatamente, queste difficoltà sono state sempre alleviate dalla presenza delle persone a me care. A tutti coloro che mi sono stati vicini, dico Grazie, dal cuore. Tuttavia, alcune persone meritano un ringraziamento particolare:
+Sono passati ben 6 anni dall’inizio di questa lunga e intensa avventura accademica. Tanti sacrifici, tante difficoltà, tanti traguardi raggiunti. Oggi si conclude un percorso dove ho conosciuto e condiviso tante emozioni, vorrei ringraziavi di aver fatto parte di tutto ciò. 
 
 \vspace{\baselineskip}
 
 \textit{Ai miei genitori,}\\
-che, nonostante tutto, non mi hanno mai fatto mancare nulla. Nonostante i vari problemi familiari, mi hanno sempre dato la possibilità di fare ciò che desideravo, supportandomi nel bene e nel male. Grazie a loro, sono la persona forte di oggi. Mi hanno insegnato i valori della vita, tra cui l'educazione e la dedizione. Devono sapere che tutto ciò che faccio, tutto l'impegno che metto in ambito accademico e lavorativo, è per restituire loro, un giorno, tutto ciò che mi hanno dato, senza mai chiedere nulla in cambio.
-
+che non mi hanno mai fatto mancare nulla nella vita, che mi hanno supportato e sopportato in questo cammino. Grazie per avermi trasmesso i veri valori della vita e grazie per avermi fatto la persona che sono oggi.
 \vspace{\baselineskip}
 
 \textit{A mia mamma,}\\
-che nei momenti di difficoltà e nei momenti di gioia era sempre lì a sostenermi ad ogni esame, aspettando l’esito con la mia classica chiamata.
+che nei momenti di difficoltà e nei momenti di gioia era sempre lì a sostenermi ad ogni esame, aspettando l’esito con la mia classica chiamata. 
 
 \vspace{\baselineskip}
 
@@ -1466,45 +1471,46 @@ che con la sua forza e la perseveranza mi ha spinto a dare sempre il massimo per
 \vspace{\baselineskip}
 
 \textit{A Tommy,}\\
-. . .
+che mi ha sostenuto in modo silenzioso e mi sosterrà sempre nella mia vita, sono fiero e felice di avere una persona come lui al mio fianco.
+
+\vspace{\baselineskip}
 
 \textit{Ai nonni,}\\
-che sono i miei più grandi fan. A chi mi ha detto “studia che sarai promosso” a “so che c’è la farai, perché sei forte”. A chi non c’è più, che mi guarda da là su, che non aspettavano altro di vedere questo traguardo rendendoli fieri e felici.
+i miei più grandi fan. A chi mi ha detto “studia che sarai promosso” a “so che c’è la farai, perché sei forte”. A chi non c’è più, che mi guarda da là su, che non aspettavano altro di vedere questo traguardo rendendoli fieri e felici.
  
 \vspace{\baselineskip}
 
 \textit{Alla Domi,}\\
-. . . 
+arrivata da poco nella mia vita ma che mi aiutato in questo finale di viaggio e mi ha fatto riscoprire vero amore . Ti ho conosciuta una sera a Gallipoli e spero di renderti sempre felice “come musica che non potrà finire mai”.
+
+\vspace{\baselineskip}
+
+\textit{Alla big family,}\\
+con il loro affetto e il loro supporto da lontano, dalla Sardegna, a Milano e a Firenze. 
 
 \vspace{\baselineskip}
 
 \textit{A Ivan,}\\
-. . . 
+compagno di gran parte di questa avventura. Anche se ora la distanza ci separa, la sua vicinanza non è mai venuta meno. È stato per me una costante fonte di ispirazione per la dedizione e la voglia di dare sempre il massimo che lo contraddistinguono. Insieme abbiamo superato tante difficoltà, con la certezza che continueremo a credere nei nostri sogni fino a realizzarli.
 \vspace{\baselineskip}
 
 \textit{Al Pico,}\\
-
+che con il corso del tempo è diventato un punto di riferimento, un amico fidato, un fratello. Insieme abbiamo condiviso gioie e dolori, risate e pianti, successi e fallimenti. Nonostante le difficoltà, non ci siamo mai arresi e ognuono ha trovato la propria strada.
 
 \vspace{\baselineskip}
 
 \textit{A Mau,}\\
-. . .
-\vspace{\baselineskip}
-
-\textit{Alla big family,}\\
-. . .
-
+che dal giorno 0 c'è sempre stato. Da quando eravamo bambini a rincorrere un pallone da basket alle serate passate all'overkill a bere una biretta. Grazie per aver saputo trovare le parole giuste al momento giusto. 
 \vspace{\baselineskip}
 
 \textit{Alla 224,}\\
-. . .
+i miei compagni di università che hanno reso questi anni più leggeri e divertenti. Dai festini nella verniashouse nel mugello alle giornate intere passate a studiare in quella aula studio. Ho trovato in voi una seconda famiglia che non dimenticherò mai. 
 
 \vspace{\baselineskip}
-\vspace{\baselineskip}
-\vspace{\baselineskip}
+
 
 \textit{Agli amici di Novoli,}\\
-. . .
+entrati nella seconda parte di questo cammino, tra lo studio in biblioteca e un caffè da capatost, mi hanno aiutato e superato uno dei momenti più difficili della mia vita. Vorrei fare una menzione speciale al mio amico Daniele e alla mia amica Rebecca che hanno capito la mia persona, la loro disponibilità ad ascoltarmi e a darmi consigli. 
 
 \vspace{\baselineskip}
 
@@ -1514,7 +1520,7 @@ che sono i miei più grandi fan. A chi mi ha detto “studia che sarai promosso�
 \vspace{\baselineskip}
 
 \textit{Ad Invibe,}\\
-. . .
+che ogni estate mi ha fatto dimenticare e divertire creando legami forti e amicizie di cui non posso dimenticare 
 
 \vspace{\baselineskip}
 
@@ -1527,6 +1533,16 @@ che sono i miei più grandi fan. A chi mi ha detto “studia che sarai promosso�
 \textit{Matteo Verniani}
 \end{flushright}
 
+
+% Inserire una pagina bianca numerata
+\newpage
+\mbox{}
+\newpage
+
+% Inserire una pagina bianca numerata
+\newpage
+\mbox{}
+\newpage
 
 % Inserire una pagina bianca numerata
 \newpage
