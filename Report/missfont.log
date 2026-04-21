@@ -1,0 +1,23 @@
+mktexpk --mfmode / --bdpi 600 --mag 1+0/600 --dpi 600 tcbx1200
+mktexpk --mfmode / --bdpi 600 --mag 1+0/600 --dpi 600 ecbi1000
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome/BI
+mktextfm FontAwesome
+mktextfm FontAwesome/B
+mktextfm FontAwesome
+mktextfm FontAwesome/I
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktextfm FontAwesome/BI
+mktextfm FontAwesome
+mktextfm FontAwesome/B
+mktextfm FontAwesome
+mktextfm FontAwesome/I
+mktextfm FontAwesome
+mktextfm FontAwesome
+mktexpk --mfmode / --bdpi 600 --mag 1+0/600 --dpi 600 tcrm1200
