@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  21 APR 2026 11:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.4)  21 APR 2026 12:17
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1160,31 +1160,66 @@ Package hyperref Info: Link coloring ON on input line 136.
 \openout4 = `main.out'.
 
 \c@lstlisting=\count392
+*geometry* verbose mode - [ newgeometry ] result:
+* driver: pdftex
+* paper: a4paper
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: twoside 
+* h-part:(L,W,R)=(85.35826pt, 426.79135pt, 85.35826pt)
+* v-part:(T,H,B)=(85.35826pt, 674.33032pt, 85.35826pt)
+* \paperwidth=597.50787pt
+* \paperheight=845.04684pt
+* \textwidth=426.79135pt
+* \textheight=674.33032pt
+* \oddsidemargin=13.08827pt
+* \evensidemargin=13.08827pt
+* \topmargin=-23.91173pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=10.0pt
+* \footskip=30.0pt
+* \marginparwidth=121.0pt
+* \marginparsep=11.0pt
+* \columnsep=10.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidetrue
+* \@mparswitchtrue
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
 <Images/logo-unifi.png, id=271, 1204.5pt x 1304.875pt>
 File: Images/logo-unifi.png Graphic file (type png)
 <use Images/logo-unifi.png>
-Package pdftex.def Info: Images/logo-unifi.png  used on input line 144.
+Package pdftex.def Info: Images/logo-unifi.png  used on input line 146.
 (pdftex.def)             Requested size: 142.26378pt x 154.1093pt.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <18> not available
-(Font)              size <17.28> substituted on input line 148.
+(Font)              size <17.28> substituted on input line 150.
 
 
 LaTeX Font Warning: Font shape `OT1/cmr/m/sc' in size <18> not available
-(Font)              size <17.28> substituted on input line 148.
+(Font)              size <17.28> substituted on input line 150.
 
 [1
 
+
 {/Users/vernias/Library/texlive/2026basic/texmf-var/fonts/map/pdftex/updmap/pdf
-tex.map} <./Images/logo-unifi.png>] [2]
-LaTeX Font Info:    Trying to load font information for U+msa on input line 193
+tex.map} <./Images/logo-unifi.png>] [2
+
+]
+LaTeX Font Info:    Trying to load font information for U+msa on input line 197
 .
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 193
+LaTeX Font Info:    Trying to load font information for U+msb on input line 197
 .
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -1204,7 +1239,7 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 <../warehouse_drone_problem.png, id=445, 1027.84pt x 1027.84pt>
 File: ../warehouse_drone_problem.png Graphic file (type png)
 <use ../warehouse_drone_problem.png>
-Package pdftex.def Info: ../warehouse_drone_problem.png  used on input line 232
+Package pdftex.def Info: ../warehouse_drone_problem.png  used on input line 236
 .
 (pdftex.def)             Requested size: 149.37958pt x 149.37018pt.
  [6
@@ -1213,7 +1248,7 @@ Package pdftex.def Info: ../warehouse_drone_problem.png  used on input line 232
 <../los_nlos_schema.pdf, id=479, 938.94086pt x 213.39525pt>
 File: ../los_nlos_schema.pdf Graphic file (type pdf)
 <use ../los_nlos_schema.pdf>
-Package pdftex.def Info: ../los_nlos_schema.pdf  used on input line 262.
+Package pdftex.def Info: ../los_nlos_schema.pdf  used on input line 266.
 (pdftex.def)             Requested size: 405.45047pt x 92.14565pt.
  [7
 
@@ -1231,24 +1266,24 @@ Underfull \vbox (badness 1910) has occurred while \output is active []
 <Images/RIS.jpeg, id=589, 1032.85875pt x 1009.7725pt>
 File: Images/RIS.jpeg Graphic file (type jpg)
 <use Images/RIS.jpeg>
-Package pdftex.def Info: Images/RIS.jpeg  used on input line 378.
+Package pdftex.def Info: Images/RIS.jpeg  used on input line 382.
 (pdftex.def)             Requested size: 128.0387pt x 125.17351pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 379.
+(caption)                particular \caption on input line 383.
 See the caption package documentation for explanation.
 
 [13 <./Images/RIS.jpeg>]
 <Images/ris_passiva_1.png, id=607, 2023.56pt x 2115.905pt>
 File: Images/ris_passiva_1.png Graphic file (type png)
 <use Images/ris_passiva_1.png>
-Package pdftex.def Info: Images/ris_passiva_1.png  used on input line 417.
+Package pdftex.def Info: Images/ris_passiva_1.png  used on input line 421.
 (pdftex.def)             Requested size: 204.85802pt x 214.18578pt.
 <Images/ris_attiva_1.png, id=608, 2055.68pt x 2055.68pt>
 File: Images/ris_attiva_1.png Graphic file (type png)
 <use Images/ris_attiva_1.png>
-Package pdftex.def Info: Images/ris_attiva_1.png  used on input line 424.
+Package pdftex.def Info: Images/ris_attiva_1.png  used on input line 428.
 (pdftex.def)             Requested size: 204.85802pt x 204.82722pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -1265,7 +1300,7 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 <Images/UAV1_UAV2_1.jpeg, id=708, 1395.2125pt x 1406.25375pt>
 File: Images/UAV1_UAV2_1.jpeg Graphic file (type jpg)
 <use Images/UAV1_UAV2_1.jpeg>
-Package pdftex.def Info: Images/UAV1_UAV2_1.jpeg  used on input line 686.
+Package pdftex.def Info: Images/UAV1_UAV2_1.jpeg  used on input line 690.
 (pdftex.def)             Requested size: 170.71393pt x 172.04765pt.
  [23
 
@@ -1288,7 +1323,7 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 File: ../SDN_Server_Architecture_Updated.png Graphic file (type png)
 <use ../SDN_Server_Architecture_Updated.png>
 Package pdftex.def Info: ../SDN_Server_Architecture_Updated.png  used on input 
-line 1046.
+line 1050.
 (pdftex.def)             Requested size: 362.77525pt x 362.77632pt.
 
 [31 <../SDN_Server_Architecture_Updated.png>] [32] [33] [34] [35
@@ -1298,19 +1333,19 @@ line 1046.
 File: ../topological_map_layout_a_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_a_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_a_nolegend.png  used on inpu
-t line 1131.
+t line 1135.
 (pdftex.def)             Requested size: 204.85802pt x 215.30391pt.
 <../topological_map_layout_b_nolegend.png, id=816, 970.62625pt x 1178.4025pt>
 File: ../topological_map_layout_b_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_b_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_b_nolegend.png  used on inpu
-t line 1137.
+t line 1141.
 (pdftex.def)             Requested size: 204.85802pt x 248.71251pt.
 <../topological_map_layout_c_nolegend.png, id=817, 1091.07625pt x 858.20625pt>
 File: ../topological_map_layout_c_nolegend.png Graphic file (type png)
 <use ../topological_map_layout_c_nolegend.png>
 Package pdftex.def Info: ../topological_map_layout_c_nolegend.png  used on inpu
-t line 1145.
+t line 1149.
 (pdftex.def)             Requested size: 256.07741pt x 201.4166pt.
 
 Underfull \vbox (badness 5460) has occurred while \output is active []
@@ -1321,7 +1356,7 @@ legend.png>] [37 <../topological_map_layout_c_nolegend.png>]
 File: ../Test_1_B_TopDown_Traiettoria.png Graphic file (type png)
 <use ../Test_1_B_TopDown_Traiettoria.png>
 Package pdftex.def Info: ../Test_1_B_TopDown_Traiettoria.png  used on input lin
-e 1177.
+e 1181.
 (pdftex.def)             Requested size: 277.41176pt x 277.41661pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -1330,13 +1365,13 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 <../Test_1_RMSE_Temporale.png, id=839, 1300.86pt x 1011.78pt>
 File: ../Test_1_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_1_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 1190.
+Package pdftex.def Info: ../Test_1_RMSE_Temporale.png  used on input line 1194.
 
 (pdftex.def)             Requested size: 204.85802pt x 159.32532pt.
 <../Test_1_CDF_RMSE.png, id=840, 722.7pt x 505.89pt>
 File: ../Test_1_CDF_RMSE.png Graphic file (type png)
 <use ../Test_1_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 1196.
+Package pdftex.def Info: ../Test_1_CDF_RMSE.png  used on input line 1200.
 (pdftex.def)             Requested size: 204.85802pt x 143.4005pt.
 
 Underfull \vbox (badness 3724) has occurred while \output is active []
@@ -1346,26 +1381,26 @@ est_1_CDF_RMSE.png>]
 <../Test_2_B_Successo_RIS.png, id=850, 741.7311pt x 833.0322pt>
 File: ../Test_2_B_Successo_RIS.png Graphic file (type png)
 <use ../Test_2_B_Successo_RIS.png>
-Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 1214.
+Package pdftex.def Info: ../Test_2_B_Successo_RIS.png  used on input line 1218.
 
 (pdftex.def)             Requested size: 256.07741pt x 287.5998pt.
  [40 <../Test_2_B_Successo_RIS.png>]
 <../Test_2_RMSE_Temporale.png, id=858, 604.1772pt x 447.3513pt>
 File: ../Test_2_RMSE_Temporale.png Graphic file (type png)
 <use ../Test_2_RMSE_Temporale.png>
-Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 1230.
+Package pdftex.def Info: ../Test_2_RMSE_Temporale.png  used on input line 1234.
 
 (pdftex.def)             Requested size: 204.85802pt x 151.68103pt.
 <../Test_2_CDF_RMSE.png, id=859, 616.9449pt x 447.3513pt>
 File: ../Test_2_CDF_RMSE.png Graphic file (type png)
 <use ../Test_2_CDF_RMSE.png>
-Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 1237.
+Package pdftex.def Info: ../Test_2_CDF_RMSE.png  used on input line 1241.
 (pdftex.def)             Requested size: 204.85802pt x 148.54106pt.
  [41 <../Test_2_RMSE_Temporale.png> <../Test_2_CDF_RMSE.png>]
 <../Test_3_Stress_Latenza.png, id=867, 748.2354pt x 420.1296pt>
 File: ../Test_3_Stress_Latenza.png Graphic file (type png)
 <use ../Test_3_Stress_Latenza.png>
-Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1258.
+Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1262.
 
 (pdftex.def)             Requested size: 277.41176pt x 155.76605pt.
  [42 <../Test_3_Stress_Latenza.png>]
@@ -1373,7 +1408,7 @@ Package pdftex.def Info: ../Test_3_Stress_Latenza.png  used on input line 1258.
 File: ../Test_4.1_Comparativo_RMSE_Latenza.png Graphic file (type png)
 <use ../Test_4.1_Comparativo_RMSE_Latenza.png>
 Package pdftex.def Info: ../Test_4.1_Comparativo_RMSE_Latenza.png  used on inpu
-t line 1279.
+t line 1283.
 (pdftex.def)             Requested size: 277.41176pt x 157.32384pt.
 
 Underfull \vbox (badness 3291) has occurred while \output is active []
@@ -1383,7 +1418,7 @@ Underfull \vbox (badness 3291) has occurred while \output is active []
 File: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png Graphic file (type png)
 <use ../Test_4.2_Traiettoria_EKF_vs_LSTM.png>
 Package pdftex.def Info: ../Test_4.2_Traiettoria_EKF_vs_LSTM.png  used on input
- line 1288.
+ line 1292.
 (pdftex.def)             Requested size: 256.07741pt x 182.95424pt.
 
 [44 <../Test_4.1_Comparativo_RMSE_Latenza.png> <../Test_4.2_Traiettoria_EKF_vs_
@@ -1392,28 +1427,28 @@ LSTM.png>]
 File: ../Test_4.3_RMSE_Temporale_Missione.png Graphic file (type png)
 <use ../Test_4.3_RMSE_Temporale_Missione.png>
 Package pdftex.def Info: ../Test_4.3_RMSE_Temporale_Missione.png  used on input
- line 1302.
+ line 1306.
 (pdftex.def)             Requested size: 298.75264pt x 144.64409pt.
  [45 <../Test_4.3_RMSE_Temporale_Missione.png>]
 <../Test_4.4_SINR_vs_M_Elements.png, id=900, 681.9879pt x 487.5816pt>
 File: ../Test_4.4_SINR_vs_M_Elements.png Graphic file (type png)
 <use ../Test_4.4_SINR_vs_M_Elements.png>
 Package pdftex.def Info: ../Test_4.4_SINR_vs_M_Elements.png  used on input line
- 1314.
+ 1318.
 (pdftex.def)             Requested size: 256.07741pt x 183.08072pt.
  [46 <../Test_4.4_SINR_vs_M_Elements.png>]
 <../Test_4.5_Scatter_Errore_Overhead.png, id=909, 715.2321pt x 489.7497pt>
 File: ../Test_4.5_Scatter_Errore_Overhead.png Graphic file (type png)
 <use ../Test_4.5_Scatter_Errore_Overhead.png>
 Package pdftex.def Info: ../Test_4.5_Scatter_Errore_Overhead.png  used on input
- line 1331.
+ line 1335.
 (pdftex.def)             Requested size: 256.07741pt x 175.34573pt.
  [47 <../Test_4.5_Scatter_Errore_Overhead.png>]
 <../Test_4.6_AEE_vs_Ps_Dinkelbach.png, id=918, 708.7278pt x 490.7133pt>
 File: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png Graphic file (type png)
 <use ../Test_4.6_AEE_vs_Ps_Dinkelbach.png>
 Package pdftex.def Info: ../Test_4.6_AEE_vs_Ps_Dinkelbach.png  used on input li
-ne 1341.
+ne 1345.
 (pdftex.def)             Requested size: 256.07741pt x 177.30058pt.
  [48 <../Test_4.6_AEE_vs_Ps_Dinkelbach.png>] [49] [50
 
@@ -1438,11 +1473,11 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 Here is how much of TeX's memory you used:
  37252 strings out of 469006
  713477 string characters out of 5454814
- 1134747 words of memory out of 5000000
+ 1135747 words of memory out of 5000000
  65184 multiletter control sequences out of 15000+600000
  640538 words of font info for 87 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 84i,12n,94p,1355b,998s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,12n,94p,1355b,1000s stack positions out of 10000i,1000n,20000p,200000b,200000s
  </Users/vernias/Library/texlive/2026basic/texmf-var/fonts/pk/ljfour/jknappen
 /ec/tcrm1000.600pk> </Users/vernias/Library/texlive/2026basic/texmf-var/fonts/p
 k/ljfour/jknappen/ec/tcrm1200.600pk></usr/local/texlive/2026basic/texmf-dist/fo
@@ -1480,7 +1515,7 @@ xmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/local/texlive/2026basic/texmf-d
 ist/fonts/type1/public/lm/lmbx9.pfb></usr/local/texlive/2026basic/texmf-dist/fo
 nts/type1/public/lm/lmssbx10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts
 /type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (61 pages, 12027663 bytes).
+Output written on main.pdf (61 pages, 12027658 bytes).
 PDF statistics:
  1193 PDF objects out of 1200 (max. 8388607)
  1007 compressed objects within 11 object streams

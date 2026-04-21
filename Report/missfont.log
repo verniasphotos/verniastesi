@@ -21,3 +21,4 @@ mktextfm FontAwesome/I
 mktextfm FontAwesome
 mktextfm FontAwesome
 mktexpk --mfmode / --bdpi 600 --mag 1+0/600 --dpi 600 tcrm1200
+mktexpk --mfmode / --bdpi 600 --mag 1+0/600 --dpi 600 tcrm1440
